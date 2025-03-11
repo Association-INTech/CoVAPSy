@@ -190,7 +190,7 @@ if __name__ == "__main__":
     print(f"{model.n_epochs=}")
     print(f"{model.batch_size=}")
     print(f"{model.device=}")
-    print(f"{model.policy=}")
+    #print(f"{model.policy=}")
 
 
     # NOTE: this is required for the ``fork`` method to work

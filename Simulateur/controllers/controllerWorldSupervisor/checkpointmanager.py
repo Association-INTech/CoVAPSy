@@ -7,10 +7,10 @@ import os
 np.random.seed(os.getpid())
 
 class CheckpointManager:
-    def __init__(self, supervisor: Supervisor, checkpoints: List[Checkpoint]):
+    def __init__(self, supervisor: Supervisor, checkpoints: List[Checkpoint], next_checkpoint=None):
         self.supervisor = supervisor
         self.checkpoints = checkpoints
-        self.reset()
+        self.reset(next_checkpoint)
         for checkpoint in self.checkpoints:
             checkpoint.create_vector_2d(self.supervisor)
 
@@ -45,12 +45,15 @@ class CheckpointManager:
         """
         return [0, 0, 1, self.getAngle()]
 
-    def reset(self):
-        self.next_checkpoint = np.random.randint(0, len(self.checkpoints) - 1)
+    def reset(self, i=None):
+        if i:
+            self.next_checkpoint = i
+        else:
+            self.next_checkpoint = np.random.randint(0, len(self.checkpoints) - 1)
 
 
 checkpoints = [
-    Checkpoint(0, -0.314494, -2.47211), # this one is very close to the beginning of the track
+    Checkpoint(0, -0.314494, -2.47211),
     Checkpoint(0, 1.11162, -2.56708),
     Checkpoint(0.8, 2.54552, -2.27446),
     Checkpoint(1.2, 3.58779, -1.38814),

@@ -1,8 +1,9 @@
 # just a file that lets us define some constants that are used in multiple files the simulation
 from torch.cuda import is_available
 
-n_simulations = 8
-n_vehicles = 4
+n_simulations = 1
+n_vehicles = 2
+n_stupid_vehicles = 1
 n_actions_steering = 16
 n_actions_speed = 16
 n_sensors = 1
