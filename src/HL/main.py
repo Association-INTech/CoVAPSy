@@ -108,6 +108,7 @@ def Idle(): #Enable chossing between states
         case 4: #tune dir_pwm
             text = "Tune Dir PWM"
             #PS4 controller status
+    
     display_combined_im(text)
     if bp_next.is_pressed:
         bp_next.wait_for_release()
@@ -125,7 +126,7 @@ def Auto_Driving():
     global State
     try:
         if Driving_has_not_started:
-            from driving import Car
+            from Car import Car
             GR86 = Car()
         GR86.main()
         if bp_entre.is_pressed or bp_next.is_pressed:
