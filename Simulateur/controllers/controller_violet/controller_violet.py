@@ -48,6 +48,7 @@ def backwards(lidar_data, camera_data):
     for _ in range(backwards_duration // basicTimeStep):
         speed = -1
         avg_color = np.mean(camera_data, axis=0)
+        print(np.min(camera_data), np.max(camera_data))
         if avg_color[0] >= avg_color[1]:
             angle = -0.2
         else:
