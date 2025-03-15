@@ -47,12 +47,10 @@ driver.setCruisingSpeed(speed)
 def backwards(lidar_data, camera_data):
     for _ in range(backwards_duration // basicTimeStep):
         speed = -1
-        avg_color = np.mean(camera_data, axis=0)
-        print(np.min(camera_data), np.max(camera_data))
-        if avg_color[0] >= avg_color[1]:
-            angle = -0.2
-        else:
-            angle = 0.2
+        avg_color = np.mean(camera_data, axis=0) / 255
+
+        angle = -0.2*avg_color[0] + 0.2*avg_color[1]
+
         driver.setCruisingSpeed(speed)
         driver.setSteeringAngle(angle)
         driver.step()
@@ -86,10 +84,7 @@ while driver.step() != -1:
     speed = 3 #km/h
     #l'angle de la direction est la différence entre les mesures des rayons
     avg_color = np.mean(camera_data, axis=0)
-    if avg_color[0] >= avg_color[1]:
-        angle = 0.2
-    else:
-        angle = -0.2
+    angle = 0.2*avg_color[0] - 0.2*avg_color[1]
 
     driver.setCruisingSpeed(speed)
     driver.setSteeringAngle(angle)
