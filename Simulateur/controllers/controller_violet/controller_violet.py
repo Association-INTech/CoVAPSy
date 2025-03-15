@@ -35,7 +35,7 @@ angle = 0
 maxangle = 0.28 #rad (étrange, la voiture est défini pour une limite à 0.31 rad...
 
 backwards_duration = 2000 # ms
-stop_duration = 1000 # ms
+stop_duration = 3000 # ms
 
 death_count = 0
 
