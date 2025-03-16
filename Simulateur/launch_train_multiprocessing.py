@@ -132,7 +132,7 @@ if __name__ == "__main__":
             device=device
         ),
         activation_fn=nn.ReLU,
-        net_arch=[1024, 1024],
+        net_arch=[1024, 1024, 1024],
     )
 
 
