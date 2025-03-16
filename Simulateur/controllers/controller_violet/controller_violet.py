@@ -83,7 +83,13 @@ while driver.step() != -1:
     speed = 2#km/h
     #l'angle de la direction est la différence entre les mesures des rayons
     avg_color = np.mean(camera_data, axis=0) / 255
-    angle = 0.5*avg_color[0] - 0.5*avg_color[1]
+
+    i = np.argmin(lidar_data)
+    m = lidar_data[i]
+    if m <= 1.:
+        angle = 0.5 if i <= 64 else -0.5
+    else:
+        angle = 0.5*avg_color[0] - 0.5*avg_color[1]
 
     driver.setCruisingSpeed(speed)
     driver.setSteeringAngle(angle)
