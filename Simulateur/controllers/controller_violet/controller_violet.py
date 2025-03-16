@@ -57,7 +57,7 @@ def backwards(lidar_data, camera_data):
 
     # makes sure it doesn't go backwards again because there is a wall behind the car
     speed = 1
-    angles = 0
+    angle = 0
     for _ in range(3):
         driver.setCruisingSpeed(speed)
         driver.setSteeringAngle(angle)
