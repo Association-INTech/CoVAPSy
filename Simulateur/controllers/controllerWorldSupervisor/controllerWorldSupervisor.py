@@ -109,7 +109,7 @@ class WebotsVehicleGymEnvironment(gym.Env):
         self.checkpoint_manager = CheckpointManager(supervisor, checkpoints, vehicle_rank)
 
         self.v_min = np.random.rand()*2 + 0.5 # 0.5 to 2.5
-        self.v_max = np.random.rand()*5 + 5   # 5 to 10
+        self.v_max = 9 #np.random.rand()*5 + 4   # 5 to 10
         basicTimeStep = int(supervisor.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
 
@@ -260,7 +260,7 @@ def main():
                 last_moves[i] = supervisor.getTime()
 
             if supervisor.getTime() - last_moves[i]:
-                tr_field.setSFVec3f()
+                tr_field.setSFVec3f(checkpoint_positions[0])
 
 
 
