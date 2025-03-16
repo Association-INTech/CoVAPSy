@@ -86,10 +86,10 @@ while driver.step() != -1:
 
     i = np.argmin(lidar_data)
     m = lidar_data[i]
-    if m <= 1.:
-        angle = 0.5 if i <= 64 else -0.5
+    if m <= .7:
+        angle = 0.3 if i <= 64 else -0.3
     else:
-        angle = 0.5*avg_color[0] - 0.5*avg_color[1]
+        angle = 0.3*avg_color[0] - 0.3*avg_color[1]
 
     driver.setCruisingSpeed(speed)
     driver.setSteeringAngle(angle)
