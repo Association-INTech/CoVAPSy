@@ -64,7 +64,6 @@ def stop():
 
 
 while driver.step() != -1:
-    speed = driver.getTargetCruisingSpeed()
     lidar_data = np.nan_to_num(lidar.getRangeImage(), nan=0., posinf=30.)
     camera_data = np.nan_to_num(camera.getImageArray(), nan=0., posinf=30.).squeeze()
     sensor_data = touch_sensor.getValue()
@@ -81,7 +80,7 @@ while driver.step() != -1:
             stop()
 
 
-    speed = 3 #km/h
+    speed = 2#km/h
     #l'angle de la direction est la différence entre les mesures des rayons
     avg_color = np.mean(camera_data, axis=0)
     angle = 0.3*avg_color[0] - 0.3*avg_color[1]
