@@ -260,7 +260,7 @@ def main():
                 last_moves[i] = supervisor.getTime()
 
             if supervisor.getTime() - last_moves[i]:
-                tr_field.setSFVec3f()
+                tr_field.setSFVec3f(checkpoint_positions[0])
 
 
 
