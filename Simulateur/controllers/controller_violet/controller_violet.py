@@ -88,7 +88,7 @@ while driver.step() != -1:
             stop()
 
 
-    speed = 1#km/h
+    speed = 1 #km/h
     #l'angle de la direction est la différence entre les mesures des rayons
     avg_color = np.mean(camera_data, axis=0) / 255
 
