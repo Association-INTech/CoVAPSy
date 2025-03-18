@@ -152,7 +152,7 @@ class Car():
         # moyenne pondérée des vitesses
         vitesse = sum(self.lookup_prop*vect_prop)
 
-        print(f"{vect_dir = } {vitesse = }")
+        print(f"{np.argmax(vect_dir) = } {vitesse = }")
 
         print("AI time", time.time()-t)
         return angle, vitesse
