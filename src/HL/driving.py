@@ -152,11 +152,12 @@ class Car():
         # moyenne pondérée des vitesses
         vitesse = sum(self.lookup_prop*vect_prop)
 
+        print(f"{angle = } {vitesse = }")
+
         print("AI time", time.time()-t)
         return angle, vitesse
 
     def main(self):
-        # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
         lidar_data = self.lidar.rDistance
         angle, vitesse = self.ai_update(lidar_data)
         self.set_direction_degre(angle)
