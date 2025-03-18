@@ -96,7 +96,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
         camera_obs = cur_state[lidar_horizontal_resolution:]
 
         # apply dropout to the camera
-        #p = 0.5
+        #²p = 0.5
         #camera_obs *= np.random.binomial(1, 1-p, camera_obs.shape) # random values in {0, 1}
         camera_obs *= 0
 
