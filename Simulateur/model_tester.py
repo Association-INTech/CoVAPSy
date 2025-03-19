@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch
 from config import *
 
-from extractors.CNN1DExtractor import CNN1DExtractor
-from extractors.TemporalResNetExtractor import TemporalResNetExtractor
+from Simulateur.CNN1DExtractor import CNN1DExtractor
+from Simulateur.TemporalResNetExtractor import TemporalResNetExtractor
 
 import onnxruntime as ort
 
@@ -56,7 +56,6 @@ sb_model = PPO.load(save_path + model_name, **ppo_args, policy_kwargs=policy_kwa
 
 print(sb_model.policy)
 
-
 model1 = nn.Sequential(
     sb_model.policy.features_extractor.net,
     sb_model.policy.mlp_extractor.policy_net,
@@ -64,15 +63,12 @@ model1 = nn.Sequential(
 ).to("cpu")
 model1.eval()
 
-
 session = ort.InferenceSession(save_path + model_name.rstrip(".zip") + ".onnx")
 def model2(x):
     return session.run(None, {"input": x.cpu().numpy()})[0]
 
-
 x = torch.randn(1000, 2, 128, 128)
 loss_fn = nn.MSELoss()
-
 
 with torch.no_grad():
     y1 = model1(x)

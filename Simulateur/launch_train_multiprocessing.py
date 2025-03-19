@@ -16,8 +16,8 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 import gymnasium as gym
 
 from config import *
-from extractors.CNN1DExtractor import CNN1DExtractor
-from extractors.TemporalResNetExtractor import TemporalResNetExtractor
+from CNN1DExtractor import CNN1DExtractor
+from TemporalResNetExtractor import TemporalResNetExtractor
 
 if B_DEBUG: from DynamicActionPlotCallback import DynamicActionPlotDistributionCallback
 
