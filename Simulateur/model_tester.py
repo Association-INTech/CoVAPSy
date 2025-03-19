@@ -4,8 +4,8 @@ import torch.nn as nn
 import torch
 from config import *
 
-from Simulateur.CNN1DExtractor import CNN1DExtractor
-from Simulateur.TemporalResNetExtractor import TemporalResNetExtractor
+from CNN1DExtractor import CNN1DExtractor
+from TemporalResNetExtractor import TemporalResNetExtractor
 
 import onnxruntime as ort
 
