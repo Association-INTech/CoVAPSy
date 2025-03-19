@@ -15,6 +15,7 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 
 import gymnasium as gym
 
+from onnx_utils import export_onnx, test_onnx
 from config import *
 from CNN1DExtractor import CNN1DExtractor
 from TemporalResNetExtractor import TemporalResNetExtractor
@@ -210,26 +211,8 @@ if __name__ == "__main__":
     # keep the process running and the fifo open
 
     while True:
-        true_model = nn.Sequential(
-            model.policy.features_extractor.net,
-            model.policy.mlp_extractor.policy_net,
-            model.policy.action_net
-        ).to("cpu")
-        model.policy.eval()
-        x = torch.randn(1, 2, 128, 128)
-
-        with torch.no_grad():
-            torch.onnx.export(
-                true_model,
-                x,
-                "model.onnx",
-                input_names=["input"],
-                output_names=["output"],
-                dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
-            )
-
-        model.policy.to(device)
-        model.policy.train()
+        export_onnx(model)
+        test_onnx(model)
 
         if B_DEBUG:
             model.learn(total_timesteps=100_000, callback=DynamicActionPlotDistributionCallback())

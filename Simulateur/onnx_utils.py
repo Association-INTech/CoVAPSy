@@ -1,0 +1,60 @@
+import os
+from stable_baselines3 import PPO
+import torch.nn as nn
+import torch
+from config import *
+
+from CNN1DExtractor import CNN1DExtractor
+from TemporalResNetExtractor import TemporalResNetExtractor
+
+import onnxruntime as ort
+
+
+def get_true_model(model):
+    return nn.Sequential(
+        model.policy.features_extractor.net,
+        model.policy.mlp_extractor.policy_net,
+        model.policy.action_net
+    ).to("cpu")
+
+
+def export_onnx(model):
+    model.policy.eval()
+    device = model.policy.device
+    true_model = get_true_model(model)
+    x = torch.randn(1, 2, 128, 128)
+
+    with torch.no_grad():
+        torch.onnx.export(
+            true_model,
+            x,
+            "model.onnx",
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
+        )
+
+    model.policy.to(device)
+    model.policy.train()
+
+
+def test_onnx(model):
+    true_model = get_true_model(model)
+    model.policy.eval()
+    device = model.policy.device
+
+    session = ort.InferenceSession("model.onnx")
+    def model_onnx(x):
+        return session.run(None, {"input": x.cpu().numpy()})[0]
+
+    loss_fn = nn.MSELoss()
+    x = torch.randn(1000, 2, 128, 128)
+
+    with torch.no_grad():
+        y_true = true_model(x)
+        y_onnx = model_onnx(x)
+
+        loss = loss_fn(y_true, torch.tensor(y_onnx))
+        print(f"loss={loss}")
+
+
