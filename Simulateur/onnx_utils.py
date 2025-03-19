@@ -34,6 +34,7 @@ def export_onnx(model):
             dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
         )
 
+    true_model.to(device)
     model.policy.to(device)
     model.policy.train()
 
