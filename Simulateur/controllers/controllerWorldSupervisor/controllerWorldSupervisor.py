@@ -256,10 +256,11 @@ def main():
             tr_field = supervisor.getFromDef(f"TT02_{n_vehicles + i}").getField("translation")
             speed = np.linalg.norm(tr_field.getSFVec3f())
 
-            if speed >= 0.01:
+            if speed >= 0.1:
                 last_moves[i] = supervisor.getTime()
 
             if supervisor.getTime() - last_moves[i]:
+                print("DIDNT MOVE FOR 1s")
                 tr_field.setSFVec3f(checkpoint_positions[0])
 
 

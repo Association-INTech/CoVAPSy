@@ -15,9 +15,10 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 
 import gymnasium as gym
 
+from onnx_utils import export_onnx, test_onnx
 from config import *
-from extractors.CNN1DExtractor import CNN1DExtractor
-from extractors.TemporalResNetExtractor import TemporalResNetExtractor
+from CNN1DExtractor import CNN1DExtractor
+from TemporalResNetExtractor import TemporalResNetExtractor
 
 if B_DEBUG: from DynamicActionPlotCallback import DynamicActionPlotDistributionCallback
 
@@ -104,9 +105,6 @@ class WebotsSimulationGymEnvironment(gym.Env):
             self.context[:, 1:],
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
-        print((self.context == 0.0).sum() / (self.context.shape[0] * self.context.shape[1] * self.context.shape[2]))
-        print(self.context.shape)
-
         return obs, reward, done, truncated, info
 
 
@@ -155,9 +153,6 @@ if __name__ == "__main__":
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
-
-    # will throw an error if the directory is emptye
-    # else will be the name of the last checkpoint
     print(save_path)
     print(os.listdir(save_path))
 
@@ -185,11 +180,6 @@ if __name__ == "__main__":
             **ppo_args,
             policy_kwargs=policy_kwargs
         )
-        # os.system(
-        #     f'''if [ -n "$(ls {save_path})" ]; then
-        #         rm {save_path}*
-        #     fi'''
-        # )
 
         i = 0
         print("----- Model not found, creating a new one -----")
@@ -202,36 +192,19 @@ if __name__ == "__main__":
     print(f"{model.n_epochs=}")
     print(f"{model.batch_size=}")
     print(f"{model.device=}")
-    #print(f"{model.policy=}")
-
-
-    # NOTE: this is required for the ``fork`` method to work
-    # same object as pi_features_extractor and vf_features_extractor
-    #model.policy.share_memory()
 
     log(f"SERVER : finished executing")
-    # keep the process running and the fifo open
+
+    # obs = envs.reset()
+    # while True:
+    #     action, _states = model.predict(obs, deterministic=True)  # Use deterministic=True for evaluation
+    #     obs, reward, done, info = envs.step(action)
+    #     envs.render()  # Optional: visualize the environment
+
 
     while True:
-        true_model = nn.Sequential(
-            model.policy.features_extractor.net,
-            model.policy.mlp_extractor.policy_net,
-            model.policy.action_net
-        ).to("cpu")
-        true_model.eval()
-        x = torch.randn(1, 2, 128, 128)
-
-        # save as onnx
-        torch.onnx.export(
-            true_model,
-            x,
-            "model.onnx",
-            input_names=["input"],
-            output_names=["output"],
-            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
-        )
-        true_model.to(device)
-        true_model.train()
+        export_onnx(model)
+        test_onnx(model)
 
         if B_DEBUG:
             model.learn(total_timesteps=100_000, callback=DynamicActionPlotDistributionCallback())
