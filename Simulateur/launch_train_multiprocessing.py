@@ -104,7 +104,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
             self.context[:, 1:],
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
-        print((self.context == 0.0).sum() / self.context.shape.prod())
+        print((self.context == 0.0).sum() / (self.context.shape[0] * self.context.shape[1] * self.context.shape[2]))
         print(self.context.shape)
 
         return obs, reward, done, truncated, info
