@@ -40,9 +40,9 @@ def export_onnx(model):
 
 
 def test_onnx(model):
-    true_model = get_true_model(model)
-    model.policy.eval()
     device = model.policy.device
+    model.policy.eval()
+    true_model = get_true_model(model)
 
     session = ort.InferenceSession("model.onnx")
     def model_onnx(x):
