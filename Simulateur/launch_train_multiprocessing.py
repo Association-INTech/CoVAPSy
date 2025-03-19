@@ -104,9 +104,6 @@ class WebotsSimulationGymEnvironment(gym.Env):
             self.context[:, 1:],
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
-        print((self.context == 0.0).sum() / (self.context.shape[0] * self.context.shape[1] * self.context.shape[2]))
-        print(self.context.shape)
-
         return obs, reward, done, truncated, info
 
 
@@ -218,20 +215,21 @@ if __name__ == "__main__":
             model.policy.mlp_extractor.policy_net,
             model.policy.action_net
         ).to("cpu")
-        true_model.eval()
+        model.policy.eval()
         x = torch.randn(1, 2, 128, 128)
 
-        # save as onnx
-        torch.onnx.export(
-            true_model,
-            x,
-            "model.onnx",
-            input_names=["input"],
-            output_names=["output"],
-            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
-        )
-        true_model.to(device)
-        true_model.train()
+        with torch.no_grad():
+            torch.onnx.export(
+                true_model,
+                x,
+                "model.onnx",
+                input_names=["input"],
+                output_names=["output"],
+                dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}}
+            )
+
+        model.policy.to(device)
+        model.policy.train()
 
         if B_DEBUG:
             model.learn(total_timesteps=100_000, callback=DynamicActionPlotDistributionCallback())
