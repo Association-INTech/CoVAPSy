@@ -52,11 +52,18 @@ def test_onnx(model):
     x = torch.randn(1, 2, 128, 128)
 
     with torch.no_grad():
-        y_true = true_model(x)
+        y_true_test = true_model(x)
+
+        true_model.train()
+        y_true_train = true_model(x)
+        true_model.test()
+
         y_onnx = model_onnx(x)
 
-        loss = loss_fn(y_true, torch.tensor(y_onnx))
-        print(f"loss={loss}")
+        loss_test = loss_fn(y_true_test, torch.tensor(y_onnx))
+        loss_train = loss_fn(y_true_test, torch.tensor(y_onnx))
+        print(f"onnx-test={loss_test}")
+        print(f"onnx-train={loss_train}")
 
     true_model.to(device)
     model.policy.to(device)
