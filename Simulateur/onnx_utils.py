@@ -56,7 +56,7 @@ def test_onnx(model):
 
         true_model.train()
         y_true_train = true_model(x)
-        true_model.test()
+        true_model.eval()
 
         y_onnx = model_onnx(x)
 
