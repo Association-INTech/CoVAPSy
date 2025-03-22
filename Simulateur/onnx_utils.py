@@ -62,8 +62,8 @@ def test_onnx(model):
 
         loss_test = loss_fn(y_true_test, torch.tensor(y_onnx))
         loss_train = loss_fn(y_true_test, torch.tensor(y_onnx))
-        print(f"onnx-test={loss_test}")
-        print(f"onnx-train={loss_train}")
+        print(f"onnx_test={loss_test}")
+        print(f"onnx_train={loss_train}")
 
     true_model.to(device)
     model.policy.to(device)
