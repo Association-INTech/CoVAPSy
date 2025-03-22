@@ -61,7 +61,7 @@ def test_onnx(model):
         y_onnx = model_onnx(x)
 
         loss_test = loss_fn(y_true_test, torch.tensor(y_onnx))
-        loss_train = loss_fn(y_true_test, torch.tensor(y_onnx))
+        loss_train = loss_fn(y_true_train, torch.tensor(y_onnx))
         print(f"onnx_test={loss_test}")
         print(f"onnx_train={loss_train}")
 
