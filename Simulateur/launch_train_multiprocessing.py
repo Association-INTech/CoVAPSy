@@ -195,11 +195,11 @@ if __name__ == "__main__":
 
     log(f"SERVER : finished executing")
 
-    obs = envs.reset()
-    while True:
-        action, _states = model.predict(obs, deterministic=True)  # Use deterministic=True for evaluation
-        obs, reward, done, info = envs.step(action)
-        envs.render()  # Optional: visualize the environment
+    # obs = envs.reset()
+    # while True:
+    #     action, _states = model.predict(obs, deterministic=True)  # Use deterministic=True for evaluation
+    #     obs, reward, done, info = envs.step(action)
+    #     envs.render()  # Optional: visualize the environment
 
 
     while True:
