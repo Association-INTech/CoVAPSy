@@ -98,8 +98,8 @@ class WebotsSimulationGymEnvironment(gym.Env):
 
         # apply dropout to the camera
         #²p = 0.5
-        #camera_obs *= np.random.binomial(1, 1-p, camera_obs.shape) # random values in {0, 1}
-        camera_obs *= 0
+        camera_obs *= np.random.binomial(1, 1-p, camera_obs.shape) # random values in {0, 1}
+        #camera_obs *= 0
 
         self.context = obs = np.concatenate([
             self.context[:, 1:],
