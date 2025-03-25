@@ -8,10 +8,15 @@ void setup() {
   Wire.begin(8);                  // Join I2C bus with address #8
   Wire.onReceive(receiveEvent); // Register receive event
   Wire.onRequest(requestEvent); // Register request event
+  pinMode(13,OUTPUT);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
+  digitalWrite(13,HIGH);
+  delay(500);
+  digitalWrite(13,LOW);
+  delay(500);
 
 }
 

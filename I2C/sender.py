@@ -12,6 +12,7 @@ def write_data(float_data):
     byte_data = struct.pack('f', float_data)
     # Convert the bytes to a list of integers
     int_data = list(byte_data)
+    print(int_data)
     # Write the data to the I2C bus
     bus.write_i2c_block_data(SLAVE_ADDRESS, 0, int_data)
     
