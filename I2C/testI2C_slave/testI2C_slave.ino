@@ -1,6 +1,5 @@
 #include <Wire.h>
 
-uint8_t index =0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -25,17 +24,25 @@ union floatToBytes {
   float valueReading;
 } converter;
 
+// void receiveEvent(int byteCount){
+//   while(Wire.available()){
+//     converter.valueBuffer[index] = Wire.read();
+//     Serial.println(converter.valueBuffer[index]);
+//     index++;
+//   }
+//   index = 0;
+//   Serial.print("The number is: ");
+//   Serial.println(converter.valueReading);
+// }
+
 void receiveEvent(int byteCount){
-  while(Wire.available()){
-    converter.valueBuffer[index] = Wire.read();
-    Serial.print(converter.valueBuffer[index]);
-    Serial.print(" ");
-    Serial.println(index);
-    index++;
+  for(uint8_t index = 0; index<byteCount; index++){
+      converter.valueBuffer[index] = Wire.read();
+      Serial.print(index);
+      Serial.println(converter.valueBuffer[index]);
   }
-  index = 0;
-  Serial.print("The number is: ");
-  Serial.println(converter.valueReading);
+  
+  flag = true;
 }
 
 // Function that executes whenever data is requested by master
