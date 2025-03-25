@@ -1,5 +1,6 @@
 #include <Wire.h>
 
+uint8_t index =0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -27,7 +28,9 @@ union floatToBytes {
 void receiveEvent(int byteCount){
   while(Wire.available()){
     converter.valueBuffer[index] = Wire.read();
-    Serial.println(converter.valueBuffer[index]);
+    Serial.print(converter.valueBuffer[index]);
+    Serial.print(" ");
+    Serial.println(index);
     index++;
   }
   index = 0;
