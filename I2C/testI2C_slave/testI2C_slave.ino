@@ -39,9 +39,10 @@ void receiveEvent(int byteCount){
   for(uint8_t index = 0; index<byteCount; index++){
       converter.valueBuffer[index] = Wire.read();
       Serial.print(index);
+      Serial.print(": ");
       Serial.println(converter.valueBuffer[index]);
   }
-  
+  Serial.println("");
 }
 
 // Function that executes whenever data is requested by master
