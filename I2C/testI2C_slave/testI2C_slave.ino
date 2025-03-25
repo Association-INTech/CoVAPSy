@@ -42,7 +42,6 @@ void receiveEvent(int byteCount){
       Serial.println(converter.valueBuffer[index]);
   }
   
-  flag = true;
 }
 
 // Function that executes whenever data is requested by master
