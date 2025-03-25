@@ -13,8 +13,9 @@ def write_data(float_data):
     # Convert the bytes to a list of integers
     int_data = list(byte_data)
     print(int_data)
+    int_data.append(0)
     # Write the data to the I2C bus
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, int_data)
+    bus.write_i2c_block_data(SLAVE_ADDRESS, int_data[0], int_data[1:3])
     
 def read_data(num_floats=3):
     # Each float is 4 bytes
