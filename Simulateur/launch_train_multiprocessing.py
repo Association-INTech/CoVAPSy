@@ -153,9 +153,6 @@ if __name__ == "__main__":
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
-
-    # will throw an error if the directory is emptye
-    # else will be the name of the last checkpoint
     print(save_path)
     print(os.listdir(save_path))
 
@@ -183,11 +180,6 @@ if __name__ == "__main__":
             **ppo_args,
             policy_kwargs=policy_kwargs
         )
-        # os.system(
-        #     f'''if [ -n "$(ls {save_path})" ]; then
-        #         rm {save_path}*
-        #     fi'''
-        # )
 
         i = 0
         print("----- Model not found, creating a new one -----")
@@ -200,15 +192,15 @@ if __name__ == "__main__":
     print(f"{model.n_epochs=}")
     print(f"{model.batch_size=}")
     print(f"{model.device=}")
-    #print(f"{model.policy=}")
-
-
-    # NOTE: this is required for the ``fork`` method to work
-    # same object as pi_features_extractor and vf_features_extractor
-    #model.policy.share_memory()
 
     log(f"SERVER : finished executing")
-    # keep the process running and the fifo open
+
+    obs = envs.reset()
+    while not done:
+        action, _states = model.predict(obs, deterministic=True)  # Use deterministic=True for evaluation
+        obs, reward, done, info = envs.step(action)
+        envs.render()  # Optional: visualize the environment
+
 
     while True:
         export_onnx(model)
