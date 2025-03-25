@@ -19,10 +19,20 @@ void loop() {
 
 }
 
-void receiveEvent(int howMany){
-  Serial.print("here");
-  volatile int x = Wire.read();    // receive byte as an integer
-  Serial.println(x);         // print the integer
+union floatToBytes {
+  byte valueBuffer[4];
+  float valueReading;
+} converter;
+
+void receiveEvent(int byteCount){
+  while(Wire.available()){
+    converter.valueBuffer[index] = Wire.read();
+    Serial.println(converter.valueBuffer[index]);
+    index++;
+  }
+  index = 0;
+  Serial.print("The number is: ");
+  Serial.println(converter.valueReading);
 }
 
 // Function that executes whenever data is requested by master
