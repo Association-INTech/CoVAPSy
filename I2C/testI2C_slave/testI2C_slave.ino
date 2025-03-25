@@ -1,4 +1,3 @@
-
 #include <Wire.h>
 
 
@@ -21,6 +20,7 @@ void loop() {
 }
 
 void receiveEvent(int howMany){
+  Serial.print("here");
   volatile int x = Wire.read();    // receive byte as an integer
   Serial.println(x);         // print the integer
 }

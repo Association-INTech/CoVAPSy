@@ -28,7 +28,9 @@ def read_data(num_floats=3):
     else:
         raise ValueError("Not enough data received from I2C bus")
 
+i=0.56
 while True :
-    write_data(300.333)
+    write_data(i)
     sleep(0.5)
+    i+=1
 
