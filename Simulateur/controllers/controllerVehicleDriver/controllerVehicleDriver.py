@@ -91,7 +91,7 @@ class VehicleDriver(Driver):
         # b_clipped = abs(action_steering - cur_angle) > omega / freq
         # if b_clipped:
         #     print("clipped ")
-        #action_steering = cur_angle + np.clip(action_steering - cur_angle, -omega * dt, omega * dt)
+        action_steering = cur_angle + np.clip(action_steering - cur_angle, -omega * dt, omega * dt)
 
         self.setSteeringAngle(action_steering)
         self.setCruisingSpeed(action_speed)
