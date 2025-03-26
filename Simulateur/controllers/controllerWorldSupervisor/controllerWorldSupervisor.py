@@ -226,7 +226,7 @@ def main():
             .setSFVec3f(checkpoint_positions[i])
         )
 
-    last_moves = [0 for _ in range(n_stupid_vehicles)]
+    last_moved = [0 for _ in range(n_stupid_vehicles)]
 
     while supervisor.step() != -1:
         log(f"CLIENT ALL : begin step")
@@ -257,9 +257,11 @@ def main():
             speed = np.linalg.norm(tr_field.getSFVec3f())
 
             if speed >= 0.1:
-                last_moves[i] = supervisor.getTime()
+                last_moved[i] = supervisor.getTime()
+            else:
+                print("DIDNT MOVE")
 
-            if supervisor.getTime() - last_moves[i]:
+            if supervisor.getTime() - last_moved[i]:
                 print("DIDNT MOVE FOR 1s")
                 tr_field.setSFVec3f(checkpoint_positions[0])
 
