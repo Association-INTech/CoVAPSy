@@ -2,7 +2,7 @@ import netifaces as ni #netifaces is abondened, so I use netifaces2
 import subprocess
 
 def get_ip(device='wlan0'):
-    ip = ni.ifaddresses(device)[ni.AF_INET][0]['addr'] #note this only gets the first IP address of the interface. I can have sevral IP addresses
+    ip = ni.ifaddresses(device)[ni.AF_INET][0]['addr'] #note this only gets the first IP address of the interface. An Interface can have sevral IP addresses
     return ip
 
 

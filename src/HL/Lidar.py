@@ -27,8 +27,9 @@ import os
 import _thread as thread
 import numpy as np
 import matplotlib.pyplot as plt
+import logging as log
 
-class HokuyoReader():
+class Lidar():
     measureMsgHeads = {'ME', 'GE', 'MD', 'GD'}
     
     def deg2theta(self, deg):
@@ -108,9 +109,9 @@ class HokuyoReader():
         # axp.set_thetamax(deg2theta(45))
         # axp.set_thetamax(deg2theta(270 + 45))
         axp.grid(True)
-        print('Plotter started, press any key to exit')
+        log.info('Plotter started, press any key to exit')
 
-        print(f'{self.xTheta}, {self.rDistance}')
+        log.debug(f'{self.xTheta}, {self.rDistance}')
         while True:
             X, Y = toCartesian(self.xTheta, self.rDistance)
 
@@ -142,14 +143,14 @@ class HokuyoReader():
         gateway = formatZeros(gateway)
         netmask = formatZeros(netmask)
         cmd = f'$IP{ip}{netmask}{gateway}\r\n'
-        print(f'ChangeIP cmd:  {cmd}')
+        log.debug(f'ChangeIP cmd:  {cmd}')
         self.send(cmd)
 
     # Start continous read mode
     def startContinuous(self, start: int, end: int, withIntensity=False):
         head = 'ME' if withIntensity else 'MD'
         cmd = f'{head}{start:04d}{end:04d}00000\r\n'
-        print(cmd)
+        log.debug(cmd)
         self.head = cmd.strip()
         self.send(cmd)
 
@@ -183,7 +184,7 @@ class HokuyoReader():
                 return True
             else:
                 self.buf += line.strip()
-                # print(f'buf size {len(self.buf)}')
+                # log.debug(f'buf size {len(self.buf)}')
                 if len(self.buf) >= self.expectedPacketSize:
                     self.decodeDistance(self.buf)
                     self.buf = ''
@@ -196,7 +197,7 @@ class HokuyoReader():
             lines = msg.split()
             for line in lines:
                 if not self.handleMsgLine(line):
-                    print(f'ignore {line}')
+                    log.debug(f'ignore {line}')
 
         def loop():
             try:
@@ -206,7 +207,7 @@ class HokuyoReader():
                         msg = m.decode()
                         handleMeasuring(msg)
                     except socket.timeout as e:
-                        print('Read timeout, sensor disconnected?')
+                        log.error('Read timeout, sensor disconnected?')
                         os._exit(1)
             finally:
                 self.sock.close()

@@ -1,4 +1,4 @@
-from src.HL.HokuyoReader import HokuyoReader
+from HL.Lidar import Lidar
 
 import time
 from rpi_hardware_pwm import HardwarePWM
@@ -64,7 +64,7 @@ def set_direction_degre(angle_degre) :
     pwm_dir.change_duty_cycle(angle_pwm)
     
 #connexion et démarrage du lidar
-lidar = HokuyoReader(IP, PORT) 
+lidar = Lidar(IP, PORT) 
 lidar.stop()
 lidar.startContinuous(0, 1080)
 
