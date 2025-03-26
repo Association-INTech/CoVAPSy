@@ -6,37 +6,14 @@ from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
-
-
-# class ChannelDependentDropout2d(nn.Module):
-#     def __init__(self, p: list[float], inplace: bool = False):
-#         super().__init__()
-
-#         self.dropouts = nn.ModuleList([
-#             nn.Dropout2d(p=q, inplace=inplace) for q in p
-#         ])
-
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         if x.dim() != 4:
-#             raise ValueError("input tensor must have 4 dimensions")
-#         if x.shape[1] != len(self.dropouts):
-#             raise ValueError(f"input tensor has {x.shape[1]} channels, expected {len(self.dropouts)}")
-
-#         return torch.cat(
-#             [drop(x[:, i, None, :, :]) * (1-drop.p) for i, drop in enumerate(self.dropouts)],
-#             dim=1
-#         )
-
-
 class Compressor(nn.Module):
     def __init__(self, device: str = "cpu"):
         super().__init__()
         # WARNING : do not use inplace=True because it would modify the rollout buffer
-        # self.input_dropout = ChannelDependentDropout2d([0.001, 0.8])
         self.conv = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
         self.bn = nn.BatchNorm2d(64, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.3)
+        self.dropout = nn.Dropout2d(0.2)
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -61,22 +38,25 @@ class ResidualBlock(nn.Module):
         if downsample:
             stride = 2
             self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2, device=device)
-        else:
+        elif in_channels == out_channels:
             stride = 1
             self.downsample = nn.Identity()
+        else:
+            stride = 1
+            self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, device=device)
 
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, device=device)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
         self.bn1 = nn.BatchNorm2d(out_channels, device=device)
         self.bn2 = nn.BatchNorm2d(out_channels, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.3)
+        self.dropout = nn.Dropout2d(0.5)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.conv1(x)
         y = self.bn1(y)
         y = self.relu(y)
-        y = self.dropout(y)
+        # y = self.dropout(y)
 
         y = self.conv2(y)
         y = self.bn2(y)
@@ -113,11 +93,14 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
 
             ResidualBlock(128, 256, downsample=True, device=device),
             ResidualBlock(256, 256, device=device),
-            #ResidualBlock(256, 256, device=device),
             # shape = [batch_size, 256, 8, 8]
 
-            nn.AvgPool2d(8),
-            # shape = [batch_size, 256, 1, 1]
+            ResidualBlock(256, 512, downsample=True, device=device),
+            ResidualBlock(512, 512, device=device),
+            # shape = [batch_size, 512, 4, 4]
+
+            nn.AvgPool2d(4),
+            # shape = [batch_size, 512, 1, 1]
 
             nn.Flatten(),
             # shape = [batch_size, 256]

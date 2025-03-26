@@ -53,12 +53,12 @@ class VehicleDriver(Driver):
             camera_data = camera_data.transpose(1, 2, 0)[0]
             # shape = (3, 1080)
             camera_data = (
-                (camera_data[0] >= 0.3) * 1 +
-                (camera_data[1] >= 0.3) * -1
+                (camera_data[0] >= 0.2) * 1 +
+                (camera_data[1] >= 0.2) * -1
             ).astype(np.float32)
-            # (red >= 0.5)      -> 1.
-            # (green >= 0.5)    -> -1.
-            # both or else      -> 0.
+            # red          -> 1.
+            # green        -> -1.
+            # both or else -> 0.
 
             return np.concatenate([
                 sensor_data,

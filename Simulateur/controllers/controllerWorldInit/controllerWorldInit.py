@@ -43,7 +43,7 @@ def create_nodes(supervisor: Supervisor, n_vehicles: int):
         DEF TT02_{i} TT02_2023b {{
             name "TT02_{i}"
             controller "controllerVehicleDriver"
-            color {np.random.rand() * 0.4} {np.random.rand() * 1.0} {np.random.rand() * 0.4}
+            color 0.0 0.0 1.0
             lidar_horizontal_resolution {lidar_horizontal_resolution}
             camera_horizontal_resolution {camera_horizontal_resolution}
         }}
@@ -56,7 +56,7 @@ def create_nodes(supervisor: Supervisor, n_vehicles: int):
         DEF TT02_{i} TT02_2023b {{
             name "TT02_{i}"
             controller "controller_violet"
-            color {np.random.rand() * 0.4} {np.random.rand() * 1.0} {np.random.rand() * 0.4}
+            color 0.0 0.0 0.0
             lidar_horizontal_resolution {lidar_horizontal_resolution}
             camera_horizontal_resolution {camera_horizontal_resolution}
         }}
