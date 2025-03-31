@@ -17,6 +17,7 @@ class Compressor(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x = self.input_dropout(x)
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
@@ -81,7 +82,7 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
             # shape = [batch_size, 64, 32, 32]
 
             ResidualBlock(64, 64, device=device),
-            #ResidualBlock(64, 64, device=device),
+            ResidualBlock(64, 64, device=device),
             #ResidualBlock(64, 64, device=device),
             # shape = [batch_size, 64, 32, 32]
 
