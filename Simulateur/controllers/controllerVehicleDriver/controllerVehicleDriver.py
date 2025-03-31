@@ -60,7 +60,7 @@ class VehicleDriver(Driver):
             )
             # red   -> 1
             # green -> -1
-            # else  -> 0
+            # blue  -> 0
 
             return np.concatenate([
                 sensor_data,
