@@ -54,8 +54,8 @@ class VehicleDriver(Driver):
             # shape = (3, 1080)
             color = np.argmax(camera_data, axis=0)
             camera_data = (
-                (color == 0).astype(np.float32)*1 +
-                (color == 1).astype(np.float32)*-1 +
+                (color == 0).astype(np.float32)*-1 +
+                (color == 1).astype(np.float32)*1 +
                 (color == 2).astype(np.float32)*0
             )
             # red   -> 1
