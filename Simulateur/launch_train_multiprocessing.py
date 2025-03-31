@@ -104,7 +104,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
             self.context[:, 1:],
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
-        print((obs == 0).mean())
+        print(f"{obs[0] == 0:.2f} {obs[1] == 0:.2f}")
         return obs, reward, done, truncated, info
 
 
