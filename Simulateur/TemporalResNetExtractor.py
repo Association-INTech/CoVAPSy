@@ -38,9 +38,12 @@ class ResidualBlock(nn.Module):
         if downsample:
             stride = 2
             self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2, device=device)
-        else:
+        elif in_channels == out_channels:
             stride = 1
             self.downsample = nn.Identity()
+        else:
+            stride = 1
+            self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, device=device)
 
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, device=device)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
