@@ -54,7 +54,7 @@ class ResidualBlock(nn.Module):
         y = self.conv1(x)
         y = self.bn1(y)
         y = self.relu(y)
-        y = self.dropout(y)
+        #y = self.dropout(y)
 
         y = self.conv2(y)
         y = self.bn2(y)
@@ -91,7 +91,8 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
 
             ResidualBlock(128, 256, downsample=True, device=device),
             ResidualBlock(256, 256, device=device),
-            #ResidualBlock(256, 256, device=device),
+            ResidualBlock(256, 512, device=device),
+            ResidualBlock(512, 512, device=device),
             # shape = [batch_size, 256, 8, 8]
 
             nn.AvgPool2d(8),
