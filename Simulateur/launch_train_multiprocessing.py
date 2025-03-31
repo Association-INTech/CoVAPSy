@@ -140,7 +140,7 @@ if __name__ == "__main__":
         n_steps=2048,
         n_epochs=5,
         batch_size=64,
-        learning_rate=3e-4,
+        learning_rate=2e-4,
         gamma=0.99,
         verbose=1,
         normalize_advantage=True,
