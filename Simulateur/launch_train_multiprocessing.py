@@ -104,6 +104,9 @@ class WebotsSimulationGymEnvironment(gym.Env):
             self.context[:, 1:],
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
+        # check if the context is correct
+        # if self.simulation_rank == 0:
+        #     print(f"{(obs[0] == 0).mean():.3f} {(obs[1] == 0).mean():.3f}")
         return obs, reward, done, truncated, info
 
 
@@ -132,7 +135,7 @@ if __name__ == "__main__":
             device=device
         ),
         activation_fn=nn.ReLU,
-        net_arch=[1024, 1024, 1024],
+        net_arch=[512, 512, 512],
     )
 
 
@@ -140,7 +143,7 @@ if __name__ == "__main__":
         n_steps=2048,
         n_epochs=10,
         batch_size=128,
-        learning_rate=1e-3,
+        learning_rate=3e-4,
         gamma=0.99,
         verbose=1,
         normalize_advantage=True,

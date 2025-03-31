@@ -52,13 +52,15 @@ class VehicleDriver(Driver):
             # shape = (1080, 1, 3)
             camera_data = camera_data.transpose(1, 2, 0)[0]
             # shape = (3, 1080)
+            color = np.argmax(camera_data, axis=0)
             camera_data = (
-                (camera_data[0] >= 0.2) * 1 +
-                (camera_data[1] >= 0.2) * -1
-            ).astype(np.float32)
-            # red          -> 1.
-            # green        -> -1.
-            # both or else -> 0.
+                (color == 0).astype(np.float32)*-1 +
+                (color == 1).astype(np.float32)*1 +
+                (color == 2).astype(np.float32)*0
+            )
+            # red   -> 1
+            # green -> -1
+            # blue  -> 0
 
             return np.concatenate([
                 sensor_data,
@@ -88,9 +90,7 @@ class VehicleDriver(Driver):
         cur_angle = self.getSteeringAngle()
         dt = self.getBasicTimeStep()
         omega = 20 # rad/s (max angular speed of the steering servo)
-        # b_clipped = abs(action_steering - cur_angle) > omega / freq
-        # if b_clipped:
-        #     print("clipped ")
+
         action_steering = cur_angle + np.clip(action_steering - cur_angle, -omega * dt, omega * dt)
 
         self.setSteeringAngle(action_steering)
