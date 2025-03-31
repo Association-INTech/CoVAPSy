@@ -105,7 +105,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
         if self.simulation_rank == 0:
-            print(f"{(obs[0] == 0).mean():.2f} {(obs[1] == 0).mean():.2f}")
+            print(f"{(obs[0] == 0).mean():.3f} {(obs[1] == 0).mean():.3f}")
         return obs, reward, done, truncated, info
 
 

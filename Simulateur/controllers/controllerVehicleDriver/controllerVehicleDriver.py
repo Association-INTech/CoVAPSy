@@ -53,8 +53,8 @@ class VehicleDriver(Driver):
             camera_data = camera_data.transpose(1, 2, 0)[0]
             # shape = (3, 1080)
             camera_data = (
-                (camera_data[0] >= 0.2) * 1 +
-                (camera_data[1] >= 0.2) * -1
+                (camera_data[0] >= 2*camera_data[1]) * 1 +
+                (camera_data[1] >= 2*camera_data[0]) * -1
             ).astype(np.float32)
             # red          -> 1.
             # green        -> -1.
