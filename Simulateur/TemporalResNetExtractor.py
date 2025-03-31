@@ -13,7 +13,7 @@ class Compressor(nn.Module):
         self.conv = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
         self.bn = nn.BatchNorm2d(64, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.3)
+        self.dropout = nn.Dropout2d(0.2)
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -21,7 +21,7 @@ class Compressor(nn.Module):
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
-        #x = self.dropout(x)
+        x = self.dropout(x)
         x = self.pool(x)
         return x
 
@@ -47,7 +47,7 @@ class ResidualBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(out_channels, device=device)
         self.bn2 = nn.BatchNorm2d(out_channels, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.3)
+        self.dropout = nn.Dropout2d(0.5)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.conv1(x)
