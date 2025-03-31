@@ -80,10 +80,10 @@ while driver.step() != -1:
     if sensor_data == 1:
         death_count += 1
         if death_count < 3:
-            print("backwards", driver.getName())
+            # print("backwards", driver.getName())
             backwards(lidar_data, camera_data)
         else:
-            print("stop", driver.getName())
+            # print("stop", driver.getName())
             death_count = 0
             stop()
 
