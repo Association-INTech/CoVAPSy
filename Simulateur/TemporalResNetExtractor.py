@@ -82,7 +82,7 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
             # shape = [batch_size, 64, 32, 32]
 
             ResidualBlock(64, 64, device=device),
-            ResidualBlock(64, 64, device=device),
+            #ResidualBlock(64, 64, device=device),
             #ResidualBlock(64, 64, device=device),
             # shape = [batch_size, 64, 32, 32]
 
