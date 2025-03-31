@@ -52,13 +52,15 @@ class VehicleDriver(Driver):
             # shape = (1080, 1, 3)
             camera_data = camera_data.transpose(1, 2, 0)[0]
             # shape = (3, 1080)
+            color = np.argmax(camera_data, axis=0)
             camera_data = (
-                (camera_data[0] >= 2*camera_data[1]) * 1 +
-                (camera_data[1] >= 2*camera_data[0]) * -1
-            ).astype(np.float32)
-            # red          -> 1.
-            # green        -> -1.
-            # both or else -> 0.
+                (color == 0).astype(np.float32)*1 +
+                (color == 1).astype(np.float32)*-1 +
+                (color == 2).astype(np.float32)*0
+            )
+            # red   -> 1
+            # green -> -1
+            # else  -> 0
 
             return np.concatenate([
                 sensor_data,
