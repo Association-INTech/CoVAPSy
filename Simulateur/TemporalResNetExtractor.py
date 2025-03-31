@@ -6,28 +6,6 @@ from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
-
-
-# class ChannelDependentDropout2d(nn.Module):
-#     def __init__(self, p: list[float], inplace: bool = False):
-#         super().__init__()
-
-#         self.dropouts = nn.ModuleList([
-#             nn.Dropout2d(p=q, inplace=inplace) for q in p
-#         ])
-
-#     def forward(self, x: torch.Tensor) -> torch.Tensor:
-#         if x.dim() != 4:
-#             raise ValueError("input tensor must have 4 dimensions")
-#         if x.shape[1] != len(self.dropouts):
-#             raise ValueError(f"input tensor has {x.shape[1]} channels, expected {len(self.dropouts)}")
-
-#         return torch.cat(
-#             [drop(x[:, i, None, :, :]) * (1-drop.p) for i, drop in enumerate(self.dropouts)],
-#             dim=1
-#         )
-
-
 class Compressor(nn.Module):
     def __init__(self, device: str = "cpu"):
         super().__init__()
