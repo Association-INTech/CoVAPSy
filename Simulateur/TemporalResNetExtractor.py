@@ -50,7 +50,7 @@ class ResidualBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(out_channels, device=device)
         self.bn2 = nn.BatchNorm2d(out_channels, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.5)
+        self.dropout = nn.Dropout2d(0.3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.conv1(x)
