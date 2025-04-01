@@ -95,8 +95,8 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
             ResidualBlock(256, 256, device=device),
             # shape = [batch_size, 256, 8, 8]
 
-            ResidualBlock(256, 512, downsample=True, device=device),
-            ResidualBlock(512, 512, device=device),
+            # ResidualBlock(256, 512, downsample=True, device=device),
+            # ResidualBlock(512, 512, device=device),
             # shape = [batch_size, 512, 4, 4]
 
             nn.AvgPool2d(4),
