@@ -71,7 +71,7 @@ class ResidualBlock(nn.Module):
 
 class TemporalResNetExtractor(BaseFeaturesExtractor):
     def __init__(self, space: spaces.Box, context_size: int, lidar_horizontal_resolution: int, camera_horizontal_resolution: int, device: str = "cpu"):
-        if (context_size, lidar_horizontal_resolution, camera_horizontal_resolution) != 3*(64,):
+        if (context_size, lidar_horizontal_resolution, camera_horizontal_resolution) != 3*(128,):
             raise ValueError("context_size must be 128 for TemporalResNetExtractor")
 
         self.lidar_horizontal_resolution = lidar_horizontal_resolution
@@ -82,7 +82,7 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
             # shape = [batch_size, 64, 32, 32]
 
             ResidualBlock(64, 64, device=device),
-            #ResidualBlock(64, 64, device=device),
+            ResidualBlock(64, 64, device=device),
             #ResidualBlock(64, 64, device=device),
             # shape = [batch_size, 64, 32, 32]
 
@@ -91,15 +91,15 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
             #ResidualBlock(128, 128, device=device),
             # shape = [batch_size, 128, 16, 16]
 
-            #ResidualBlock(128, 256, downsample=True, device=device),
-            #ResidualBlock(256, 256, device=device),
+            ResidualBlock(128, 256, downsample=True, device=device),
+            ResidualBlock(256, 256, device=device),
             # shape = [batch_size, 256, 8, 8]
 
-            # ResidualBlock(256, 512, downsample=True, device=device),
-            # ResidualBlock(512, 512, device=device),
+            ResidualBlock(256, 512, downsample=True, device=device),
+            ResidualBlock(512, 512, device=device),
             # shape = [batch_size, 512, 4, 4]
 
-            nn.AvgPool2d(8),
+            nn.AvgPool2d(4),
             # shape = [batch_size, 512, 1, 1]
 
             nn.Flatten(),
