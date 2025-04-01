@@ -57,7 +57,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
         os.system(f"""
-            webots {__file__.rsplit('/', 1)[0]}/worlds/piste2.wbt --mode=fast --minimize --no-rendering --batch --stdout &
+            webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % 3}.wbt --mode=fast --minimize --no-rendering --batch --stdout &
             echo $! {simulation_rank} >>/tmp/autotech/simulationranks
         """)
         log(f"SERVER{simulation_rank} : {simulation_rank}toserver.pipe")
@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     envs = SubprocVecEnv([lambda rank=rank : make_env(rank) for rank in range(n_simulations)])
 
-    ExtractorClass = CNN1DResNetExtractor
+    ExtractorClass = TemporalResNetExtractor
 
     policy_kwargs = dict(
         features_extractor_class=ExtractorClass,
@@ -141,9 +141,9 @@ if __name__ == "__main__":
 
 
     ppo_args = dict(
-        n_steps=2048,
+        n_steps=4096,
         n_epochs=10,
-        batch_size=128,
+        batch_size=256,
         learning_rate=3e-4,
         gamma=0.99,
         verbose=1,
@@ -210,9 +210,9 @@ if __name__ == "__main__":
         test_onnx(model)
 
         if B_DEBUG:
-            model.learn(total_timesteps=100_000, callback=DynamicActionPlotDistributionCallback())
+            model.learn(total_timesteps=500_000, callback=DynamicActionPlotDistributionCallback())
         else:
-            model.learn(total_timesteps=100_000)
+            model.learn(total_timesteps=500_000)
 
         model.save(save_path + str(i))
 

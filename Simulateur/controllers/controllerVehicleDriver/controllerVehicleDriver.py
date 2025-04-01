@@ -58,8 +58,8 @@ class VehicleDriver(Driver):
                 (color == 1).astype(np.float32)*1 +
                 (color == 2).astype(np.float32)*0
             )
-            # red   -> 1
-            # green -> -1
+            # red   -> -1
+            # green -> 1
             # blue  -> 0
 
             return np.concatenate([

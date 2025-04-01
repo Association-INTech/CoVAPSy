@@ -13,14 +13,10 @@ class Compressor(nn.Module):
         self.conv = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
         self.bn = nn.BatchNorm2d(64, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.2)
+        self.dropout = nn.Dropout2d(0.3)
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print("Compressor input shape: ", x.shape, flush=True)
-        x = x[:, :, 0]
-        print("Compressor input shape after slicing: ", x.shape, flush=True)
-        exit(0)
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
@@ -48,26 +44,28 @@ class ResidualBlock(nn.Module):
             stride = 1
             self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, device=device)
 
+        self.bn1 = nn.BatchNorm2d(in_channels, device=device)
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, device=device)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
-        self.bn1 = nn.BatchNorm2d(out_channels, device=device)
+
         self.bn2 = nn.BatchNorm2d(out_channels, device=device)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
+
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.3)
+        self.dropout = nn.Dropout2d(0.5)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.conv1(x)
-        y = self.bn1(y)
+        y = self.bn1(x)
         y = self.relu(y)
-        # y = self.dropout(y)
+        y = self.conv1(x)
 
-        y = self.conv2(y)
         y = self.bn2(y)
         y = self.relu(y)
         y = self.dropout(y)
+        y = self.conv2(y)
 
-        x = self.downsample(x)
-        return x + y
+        y += self.downsample(x)
+
+        return y
 
 
 
@@ -112,7 +110,7 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = net(
-                torch.zeros([1, 2, 1, lidar_horizontal_resolution], dtype=torch.float32, device=device)
+                torch.zeros([1, 2, context_size, lidar_horizontal_resolution], device=device)
             ).shape[1]
         print("n_flatten: ", n_flatten)
         super().__init__(space, n_flatten)
