@@ -90,9 +90,7 @@ class VehicleDriver(Driver):
         cur_angle = self.getSteeringAngle()
         dt = self.getBasicTimeStep()
         omega = 20 # rad/s (max angular speed of the steering servo)
-        # b_clipped = abs(action_steering - cur_angle) > omega / freq
-        # if b_clipped:
-        #     print("clipped ")
+
         action_steering = cur_angle + np.clip(action_steering - cur_angle, -omega * dt, omega * dt)
 
         self.setSteeringAngle(action_steering)

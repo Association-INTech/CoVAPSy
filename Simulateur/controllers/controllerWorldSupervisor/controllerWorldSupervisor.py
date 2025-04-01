@@ -173,7 +173,7 @@ class WebotsVehicleGymEnvironment(gym.Env):
 
     # step function of the gym environment
     def step(self, action):
-        action_steering = np.linspace(-.44, .44, n_actions_steering, dtype=np.float32)[action[0], None]
+        action_steering = np.linspace(-.4, .4, n_actions_steering, dtype=np.float32)[action[0], None]
         action_speed = np.linspace(self.v_min, self.v_max, n_actions_speed, dtype=np.float32)[action[1], None]
         self.emitter.send(np.array([action_steering, action_speed], dtype=np.float32).tobytes())
 
