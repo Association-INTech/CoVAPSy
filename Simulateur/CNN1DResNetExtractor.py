@@ -17,7 +17,9 @@ class Compressor(nn.Module):
         self.pool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x = self.input_dropout(x)
+        print("Compressor input shape: ", x.shape, flush=True)
+        x = x[:, :, 0]
+        print("Compressor input shape after slicing: ", x.shape, flush=True)
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)

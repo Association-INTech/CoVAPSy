@@ -17,10 +17,6 @@ class Compressor(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print("Compressor input shape: ", x.shape, flush=True)
-        x = x[:, :, 0]
-        print("Compressor input shape after slicing: ", x.shape, flush=True)
-        exit(0)
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
@@ -112,7 +108,7 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = net(
-                torch.zeros([1, 2, 1, lidar_horizontal_resolution], dtype=torch.float32, device=device)
+                torch.zeros([1, 2, 1, lidar_horizontal_resolution], device=device)
             ).shape[1]
         print("n_flatten: ", n_flatten)
         super().__init__(space, n_flatten)
