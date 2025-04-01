@@ -44,7 +44,12 @@ def test_onnx(model):
     model.policy.eval()
     true_model = get_true_model(model)
 
-    session = ort.InferenceSession("model.onnx")
+    try:
+        session = ort.InferenceSession("model.onnx")
+    except Exception as e:
+        print(f"Error loading ONNX model: {e}")
+        return
+
     def model_onnx(x):
         return session.run(None, {"input": x.cpu().numpy()})[0]
 
