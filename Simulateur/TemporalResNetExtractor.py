@@ -20,6 +20,7 @@ class Compressor(nn.Module):
         print("Compressor input shape: ", x.shape, flush=True)
         x = x[:, :, 0]
         print("Compressor input shape after slicing: ", x.shape, flush=True)
+        exit(0)
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
