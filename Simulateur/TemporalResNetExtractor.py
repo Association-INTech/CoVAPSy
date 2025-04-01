@@ -109,7 +109,7 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = net(
-                torch.zeros([1, 2, lidar_horizontal_resolution], dtype=torch.float32, device=device)
+                torch.zeros([1, 2, 1, lidar_horizontal_resolution], dtype=torch.float32, device=device)
             ).shape[1]
         print("n_flatten: ", n_flatten)
         super().__init__(space, n_flatten)
