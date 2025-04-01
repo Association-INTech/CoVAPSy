@@ -17,7 +17,7 @@ class Compressor(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x = self.input_dropout(x)
+        x = x[:, :, 0]
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
@@ -119,6 +119,6 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
 
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        extracted = self.net(observations[:, :, 0])
+        extracted = self.net(observations)
 
         return extracted
