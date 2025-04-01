@@ -22,7 +22,7 @@ def export_onnx(model):
     model.policy.eval()
     device = model.policy.device
     true_model = get_true_model(model)
-    x = torch.randn(1, 2, 128, 128)
+    x = torch.randn(1, 2, context_size, lidar_horizontal_resolution)
 
     with torch.no_grad():
         torch.onnx.export(
@@ -49,7 +49,7 @@ def test_onnx(model):
         return session.run(None, {"input": x.cpu().numpy()})[0]
 
     loss_fn = nn.MSELoss()
-    x = torch.randn(1000, 2, 128, 128)
+    x = torch.randn(1000, 2, context_size, lidar_horizontal_resolution)
 
     with torch.no_grad():
         y_true_test = true_model(x)

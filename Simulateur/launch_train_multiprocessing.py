@@ -19,6 +19,7 @@ from onnx_utils import export_onnx, test_onnx
 from config import *
 from CNN1DExtractor import CNN1DExtractor
 from TemporalResNetExtractor import TemporalResNetExtractor
+from CNN1DResNetExtractor import CNN1DResNetExtractor
 
 if B_DEBUG: from DynamicActionPlotCallback import DynamicActionPlotDistributionCallback
 
@@ -124,7 +125,7 @@ if __name__ == "__main__":
 
     envs = SubprocVecEnv([lambda rank=rank : make_env(rank) for rank in range(n_simulations)])
 
-    ExtractorClass = TemporalResNetExtractor
+    ExtractorClass = CNN1DResNetExtractor
 
     policy_kwargs = dict(
         features_extractor_class=ExtractorClass,

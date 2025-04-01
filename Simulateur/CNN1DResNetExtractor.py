@@ -10,17 +10,14 @@ class Compressor(nn.Module):
     def __init__(self, device: str = "cpu"):
         super().__init__()
         # WARNING : do not use inplace=True because it would modify the rollout buffer
-        self.conv = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
-        self.bn = nn.BatchNorm2d(64, device=device)
+        self.conv = nn.Conv1d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
+        self.bn = nn.BatchNorm1d(64, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.2)
-        self.pool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.dropout = nn.Dropout1d(0.2)
+        self.pool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        print("Compressor input shape: ", x.shape, flush=True)
-        x = x[:, :, 0]
-        print("Compressor input shape after slicing: ", x.shape, flush=True)
-        exit(0)
+        # x = self.input_dropout(x)
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
@@ -40,20 +37,20 @@ class ResidualBlock(nn.Module):
         super().__init__()
         if downsample:
             stride = 2
-            self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=2, device=device)
+            self.downsample = nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=2, device=device)
         elif in_channels == out_channels:
             stride = 1
             self.downsample = nn.Identity()
         else:
             stride = 1
-            self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, device=device)
+            self.downsample = nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=1, device=device)
 
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, device=device)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
-        self.bn1 = nn.BatchNorm2d(out_channels, device=device)
-        self.bn2 = nn.BatchNorm2d(out_channels, device=device)
+        self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, device=device)
+        self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
+        self.bn1 = nn.BatchNorm1d(out_channels, device=device)
+        self.bn2 = nn.BatchNorm1d(out_channels, device=device)
         self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout2d(0.3)
+        self.dropout = nn.Dropout1d(0.4)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.conv1(x)
@@ -72,38 +69,46 @@ class ResidualBlock(nn.Module):
 
 
 
-class TemporalResNetExtractor(BaseFeaturesExtractor):
+class CNN1DResNetExtractor(BaseFeaturesExtractor):
     def __init__(self, space: spaces.Box, context_size: int, lidar_horizontal_resolution: int, camera_horizontal_resolution: int, device: str = "cpu"):
-        if (context_size, lidar_horizontal_resolution, camera_horizontal_resolution) != 3*(128,):
-            raise ValueError("context_size must be 128 for TemporalResNetExtractor")
+        if (context_size, lidar_horizontal_resolution, camera_horizontal_resolution) != (1,) + 2*(1024,):
+            raise ValueError("context_size must be 1 and lidar_horizontal_resolution and camera_horizontal_resolution must be 1024 for TemporalResNetExtractor")
 
         self.lidar_horizontal_resolution = lidar_horizontal_resolution
         self.camera_horizontal_resolution = camera_horizontal_resolution
 
         net = nn.Sequential(
+            # shape = [batch_size, 2, 1024]
             Compressor(device),
-            # shape = [batch_size, 64, 32, 32]
+            # shape = [batch_size, 64, 256]
 
             ResidualBlock(64, 64, device=device),
             ResidualBlock(64, 64, device=device),
-            #ResidualBlock(64, 64, device=device),
-            # shape = [batch_size, 64, 32, 32]
+            ResidualBlock(64, 64, downsample=True, device=device),
+            # shape = [batch_size, 128, 128]
 
+            ResidualBlock(64, 64, device=device),
+            ResidualBlock(64, 64, device=device),
             ResidualBlock(64, 128, downsample=True, device=device),
+            # shape = [batch_size, 128, 64]
+
             ResidualBlock(128, 128, device=device),
-            #ResidualBlock(128, 128, device=device),
-            # shape = [batch_size, 128, 16, 16]
+            ResidualBlock(128, 128, device=device),
+            ResidualBlock(128, 128, downsample=True, device=device),
+            # shape = [batch_size, 256, 32]
 
+            ResidualBlock(128, 128, device=device),
+            ResidualBlock(128, 128, device=device),
             ResidualBlock(128, 256, downsample=True, device=device),
+            # shape = [batch_size, 256, 16]
+
             ResidualBlock(256, 256, device=device),
-            # shape = [batch_size, 256, 8, 8]
+            ResidualBlock(256, 256, device=device),
+            ResidualBlock(256, 256, downsample=True, device=device),
+            # shape = [batch_size, 512, 8]
 
-            ResidualBlock(256, 512, downsample=True, device=device),
-            ResidualBlock(512, 512, device=device),
-            # shape = [batch_size, 512, 4, 4]
-
-            nn.AvgPool2d(4),
-            # shape = [batch_size, 512, 1, 1]
+            nn.AvgPool2d(8),
+            # shape = [batch_size, 512, 1]
 
             nn.Flatten(),
             # shape = [batch_size, 256]
@@ -112,12 +117,12 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = net(
-                torch.zeros([1, 2, 1, lidar_horizontal_resolution], dtype=torch.float32, device=device)
+                torch.zeros([1, 2, context_size, lidar_horizontal_resolution], dtype=torch.float32, device=device)
             ).shape[1]
         print("n_flatten: ", n_flatten)
         super().__init__(space, n_flatten)
 
-        # we cannot assign this directly to self.net before calling the super constructor
+        # we cannot assign this directly to self.cnn before calling the super constructor
         self.net = net
 
 
