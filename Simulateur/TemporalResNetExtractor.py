@@ -114,11 +114,11 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
         print("n_flatten: ", n_flatten)
         super().__init__(space, n_flatten)
 
-        # we cannot assign this directly to self.cnn before calling the super constructor
+        # we cannot assign this directly to self.net before calling the super constructor
         self.net = net
 
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        extracted = self.net(observations)
+        extracted = self.net(observations[:, 0])
 
         return extracted
