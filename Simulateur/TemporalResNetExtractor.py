@@ -71,7 +71,7 @@ class ResidualBlock(nn.Module):
 
 class TemporalResNetExtractor(BaseFeaturesExtractor):
     def __init__(self, space: spaces.Box, context_size: int, lidar_horizontal_resolution: int, camera_horizontal_resolution: int, device: str = "cpu"):
-        if (context_size, lidar_horizontal_resolution, camera_horizontal_resolution) != 3*(128,):
+        if (context_size, lidar_horizontal_resolution, camera_horizontal_resolution) != 3*(64,):
             raise ValueError("context_size must be 128 for TemporalResNetExtractor")
 
         self.lidar_horizontal_resolution = lidar_horizontal_resolution
