@@ -75,11 +75,12 @@ def run_test(resolution):
     print(f"Average Convert time: {average_convert_time:.5f} seconds")
     print(f"Average Path creation time: {average_path_creation_time:.5f} seconds")
     print(f"Average Save time: {average_save_time:.5f} seconds")
-    print(f"Total time for {N} iterations: {total_time:.5f} seconds")
+    print(f"Total time for {N} iterations: {total_time:.5f} seconds. FPS: {N / total_time:.2f}")
     
     
 if __name__ == "__main__":
     N = 50  # Number of iterations to measure
+    Picamera2.set_logging(Picamera2.WARNING)  # Set logging level to warning
     for resolution in [(3280, 2464),  (1280, 720), (1920, 1080),(640, 480), (320, 240)]:
         print(f"Testing resolution: {resolution}")
         run_test(resolution)
