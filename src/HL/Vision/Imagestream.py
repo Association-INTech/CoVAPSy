@@ -15,7 +15,7 @@ def main():
     picam2.start()
 
    
-    time=time.time()  # Start time for the image stream
+    Start_time = time.time()  # Start time for the image stream
     try:
         frame_count = 0  # Counter to keep track of saved frames
         save_dir = "Captured_Frames"  # Directory to save frames
@@ -34,11 +34,10 @@ def main():
             # cv2.imshow("Image Stream", frame)
     
             # Exit the stream when 'q' is pressed
-            if time.time() - time > 1:
+            if time.time() - Start_time > 1:
                 print(f"Captured {frame_count} frames in {time.time() - time:.2f} seconds")
-                time = time.time()
                 frame_count = 0
-                time = time.time()
+                Start_time = time.time()
     finally:
         # Stop the camera and close the window
         picam2.stop()
