@@ -31,8 +31,6 @@ class Driver:
         angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
         vitesse = sum(SPEED_LOOKUP*vect_prop)
-        print("Speedlookup =", SPEED_LOOKUP, "vect_prop =", vect_prop)
-        print("angle =", angle, "vitesse =", vitesse)
         return angle, vitesse
 
 
