@@ -4,8 +4,7 @@ import time
 import os
 import threading
 
-def save_image(image, frame_path):
-    image.save(frame_path)
+
 
 def main():
     # Initialize the camera
@@ -30,7 +29,7 @@ def main():
             image = Image.fromarray(frame)
             image.convert("RGB")
             frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
-            threading.Thread(target=save_image, args=(image, frame_path)).start()
+            image.save(frame_path)
             frame_count += 1
     
             # Display the frame in a window
