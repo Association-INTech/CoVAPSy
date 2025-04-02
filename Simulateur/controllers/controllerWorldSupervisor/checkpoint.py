@@ -17,7 +17,7 @@ class Checkpoint:
         length = 0.5
 
         # debug flag to generate the cylinder and cone shapes
-        DEBUG = False
+        DEBUG = True
         if DEBUG:
             # Cylinder (shaft)
             supervisor.getRoot().getField("children").importMFNodeFromString(-1, f"""
