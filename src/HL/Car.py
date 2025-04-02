@@ -104,6 +104,7 @@ class Car:
         """Set the car's speed in meters per second."""
         # Clamp the speed to the maximum and minimum speed
         vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft)) 
+        log.debug(f"Vitesse: {vitesse_m_s} m/s")
         write_data(vitesse_m_s*1000)
 
 
