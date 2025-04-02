@@ -42,7 +42,7 @@ Il faut donc choisir une adresse ip dans le bon sous-resaux. Nous avons arbitrai
 
 ## Using HokuyoReader class
 
-This class is from [micus/tcp_hokuyo.py](https://gist.github.com/micus/43d98cc1763da34da879e9b0d0db790f)
+This class is from [cassc/tcp_hokuyo.py](https://gist.github.com/cassc/26ac479624cb028b2567491a68c34fb8)
 This class is simpler than [hokuyolx](#using-hokuyolx-class)
 
 Create the class instance with
@@ -60,7 +60,7 @@ sensor.startContinuous(0, 1080)
 Distances can be retrived as a numpy array with the `HokuyoReader.rDistance()` (r standing for radial)
 
 ```python
-distance_array=sensor.rDistance()
+distance_array=sensor.rDistance
 ```
 
 Use `HokuyoReader.stop()` to gracefully shutdown the lidar
@@ -73,4 +73,4 @@ sensor.stop()
 ## Using Hokuyolx class 
 
 This class comes from [SkoltechRobotics/hokuyolx](https://github.com/SkoltechRobotics/hokuyolx). 
-This class has considerably more options than [HokuyoReader](#using-hokuyoreader-class) but is more complicated to understand. This class is documented at [http://hokuyolx.rtfd.org/](http://hokuyolx.rtfd.org/)
+This class has considerably more options than [HokuyoReader](#using-hokuyoreader-class) but is more complicated to understand. This class is documented at [http://hokuyolx.rtfd.org/](http://hokuyolx.rtfd.org/). As of 12/12/24 it doesn't work out off the box and we use [HokuyoReader](#using-hokuyoreader-class)

@@ -22,13 +22,13 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
-      - name: Install MkDocs
-        run: pip install mkdocs
+      - name: Install MkDocs and plugins
+        run: pip install mkdocs mkdocs-mermaid2-plugin
       - name: Build with MkDocs
         run: mkdocs build
-      - name: Check for hard links and symlinks
-        run: |
-          find site -type l -exec echo "Symlink found: {}" \; -o -type f -links +1 -exec echo "Hard link found: {}" \;
+      # - name: Check for hard links and symlinks
+      #   run: |
+      #     find site -type l -exec echo "Symlink found: {}" \; -o -type f -links +1 -exec echo "Hard link found: {}" \;
       - name: Upload build artifacts
         uses: actions/upload-pages-artifact@v3
         with:

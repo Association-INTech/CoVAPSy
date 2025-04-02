@@ -3,16 +3,33 @@ site_name: AutoTech's Docs
 nav:
   - Home: index.md
   - Lidar.md
+  - Simulateur.md
   - IA.md
   - Asservissement.md
   - How to create documentation: building_docs.md
   - Regle de la course: https://ajuton-ens.github.io/CourseVoituresAutonomesSaclay/
 
-theme: 
+theme:
   title: AutoTech's Docs
   name: readthedocs
   logo: img/autotech_logo.jpeg
-  #locale: fr # does not work idk why -Arnaud
+  theme:
+  # icon: does not work idk why -Matthias
+  #   admonition:
+  #     note: octicons/tag-16
+  #     abstract: octicons/checklist-16
+  #     info: octicons/info-16
+  #     tip: octicons/squirrel-16
+  #     success: octicons/check-16
+  #     question: octicons/question-16
+  #     warning: octicons/alert-16
+  #     failure: octicons/x-circle-16
+  #     danger: octicons/zap-16
+  #     bug: octicons/bug-16
+  #     example: octicons/beaker-16
+  #     quote: octicons/quote-16
+
+  # locale: fr # does not work idk why -Arnaud
 
 repo_url: https://github.com/Club-INTech/CoVAPSy/
 
@@ -28,3 +45,6 @@ site_description: "AutoTech est un projet du Club de robotique INTech de Telecom
 
 markdown_extensions:
   - admonition # This is a plugin for adding colored boxes for notes, warnings, etc.
+
+plugins:
+  - mermaid2
