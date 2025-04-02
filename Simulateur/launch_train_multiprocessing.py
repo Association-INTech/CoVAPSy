@@ -57,7 +57,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
         os.system(f"""
-            webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % 3}.wbt --mode=fast --minimize --no-rendering --batch --stdout &
+            webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % n_map}.wbt --mode=fast --minimize --no-rendering --batch --stdout &
             echo $! {simulation_rank} >>/tmp/autotech/simulationranks
         """)
         log(f"SERVER{simulation_rank} : {simulation_rank}toserver.pipe")
