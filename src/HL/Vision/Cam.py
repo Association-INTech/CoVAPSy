@@ -13,7 +13,8 @@ picam2 = Picamera2()
 
 def run_test():
     # Configure the camera for preview
-    config = picam2.create_preview_configuration(sensor={'output_size': (640,480), 'bit_depth': 8, 'fps': 206.65}) # full sensor resolution (3280, 2464)
+    config = picam2.camera_configuration()['sensor']
+    {'output_size': (640,480), 'bit_depth': 8}
     picam2.configure(config)
 
     # Start the camera
