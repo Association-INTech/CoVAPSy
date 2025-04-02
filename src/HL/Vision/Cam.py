@@ -84,4 +84,5 @@ def run_test():
     
     
 if __name__ == "__main__":
+    N=500
     run_test()
