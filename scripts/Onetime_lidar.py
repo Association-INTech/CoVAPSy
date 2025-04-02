@@ -1,11 +1,11 @@
-from src.HL.HokuyoReader import HokuyoReader
+from HL.Lidar import Lidar
 
 IP = '192.168.0.10'
 PORT = 10940
 
 def main():
     # Create an instance of HokuyoReader
-    lidar = HokuyoReader(IP, PORT)
+    lidar = Lidar(IP, PORT)
     
     # Stop any previous measurements
     lidar.stop()
