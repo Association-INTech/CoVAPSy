@@ -144,7 +144,6 @@ class Car:
         
         lidar_data = self.lidar.rDistance[:1080]
         angle, vitesse = self.driving(lidar_data)
-        log.debug(f"Angle: {angle}, Vitesse: {vitesse}")
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.has_Crashed():
