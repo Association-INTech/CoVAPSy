@@ -2,6 +2,10 @@ from picamera2 import Picamera2, Preview # type: ignore #ignore the module could
 from PIL import Image  # For saving images
 import time
 import os
+import threading
+
+def save_image(image, frame_path):
+    image.save(frame_path)
 
 def main():
     # Initialize the camera
@@ -22,14 +26,10 @@ def main():
         os.makedirs(save_dir, exist_ok=True)  # Create the directory if it doesn't exist
     
         while True:
-            # Capture a frame
             frame = picam2.capture_array()
-            
             image = Image.fromarray(frame).convert("RGB")
-    
-            # Save the frame to disk
-            frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.png")
-            image.save(frame_path)
+            frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
+            threading.Thread(target=save_image, args=(image, frame_path)).start()
             frame_count += 1
     
             # Display the frame in a window
