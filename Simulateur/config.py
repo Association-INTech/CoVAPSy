@@ -7,9 +7,9 @@ n_stupid_vehicles = 2
 n_actions_steering = 16
 n_actions_speed = 16
 n_sensors = 1
-context_size = 1
-lidar_horizontal_resolution = 1024 # DON'T CHANGE THIS VALUE PLS
-camera_horizontal_resolution = 1024 # DON'T CHANGE THIS VALUE PLS
+context_size = 128
+lidar_horizontal_resolution = 128 # DON'T CHANGE THIS VALUE PLS
+camera_horizontal_resolution = 128 # DON'T CHANGE THIS VALUE PLS
 lidar_max_range = 12.0
 device = "cuda" if is_available() else "cpu"
 
