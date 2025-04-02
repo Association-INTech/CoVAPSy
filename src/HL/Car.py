@@ -5,12 +5,29 @@ from scipy.special import softmax
 import numpy as np
 from gpiozero import LED, Button
 import logging as log
+import smbus
+import struct
+
+SLAVE_ADDRESS = 0x08
+# Create an SMBus instance
+bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS
 from Driver import Driver
 from Lidar import Lidar
+
+def write_data(float_data):
+    # Convert the float to bytes
+    print(float_data)
+    byte_data = struct.pack('f', float_data)
+    # Convert the bytes to a list of integers
+    int_data = list(byte_data)
+    print(int_data)
+    int_data.append(0)
+    # Write the data to the I2C bus
+    bus.write_i2c_block_data(SLAVE_ADDRESS, int_data[0], int_data[1:4])
 
 class Car:
     def __init__(self, driving_strategy=Driver().farthest_distants):
@@ -89,18 +106,7 @@ class Car:
         """Set the car's speed in meters per second."""
         # Clamp the speed to the maximum and minimum speed
         vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft)) 
-        vitesse_pwm = vitesse_m_s * (self.delta_pwm_max_prop)/self.vitesse_max_m_s_hard
-        
-        if vitesse_m_s == 0:
-            pwm = self.pwm_stop_prop
-        elif vitesse_m_s > 0:
-            pwm= self.pwm_stop_prop + self.direction_prop*(self.point_mort_prop + vitesse_pwm)
-            
-        elif vitesse_m_s < 0:
-            pwm= self.pwm_stop_prop - self.direction_prop*(self.point_mort_prop - vitesse_pwm)
-            
-        self.pwm_prop.change_duty_cycle(pwm)
-        log.debug(f"Vitesse: {vitesse_m_s} m/s, PWM: {pwm}")
+        write_data(vitesse_m_s*1000)
 
 
     def set_direction_degre(self, angle_degre):

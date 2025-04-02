@@ -13,14 +13,22 @@ def write_data(float_data):
     # Convert the bytes to a list of integers
     int_data = list(byte_data)
     print(int_data)
-<<<<<<< HEAD
-    # Write the data to the I2C bus
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, int_data)
-=======
     int_data.append(0)
     # Write the data to the I2C bus
     bus.write_i2c_block_data(SLAVE_ADDRESS, int_data[0], int_data[1:4])
->>>>>>> 9d99797289dde595050069643c982fe3888c9451
+
+def read_data(num_floats=3):
+
+    # Each float is 4 bytes
+    length = num_floats * 4
+    # Read a block of data from the slave
+    data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
+    # Convert the byte data to floats
+    if len(data) >= length:
+        float_values = struct.unpack('f' * num_floats, bytes(data[:length]))
+        return list(float_values)
+    else:
+        raise ValueError("Not enough data received from I2C bus")
     
 def read_data(num_floats=3):
     # Each float is 4 bytes
