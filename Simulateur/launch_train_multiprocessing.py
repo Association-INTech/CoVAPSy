@@ -210,9 +210,9 @@ if __name__ == "__main__":
         test_onnx(model)
 
         if B_DEBUG:
-            model.learn(total_timesteps=100_000, callback=DynamicActionPlotDistributionCallback())
+            model.learn(total_timesteps=500_000, callback=DynamicActionPlotDistributionCallback())
         else:
-            model.learn(total_timesteps=100_000)
+            model.learn(total_timesteps=500_000)
 
         model.save(save_path + str(i))
 
