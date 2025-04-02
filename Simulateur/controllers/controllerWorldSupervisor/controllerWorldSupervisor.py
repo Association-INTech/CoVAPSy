@@ -106,9 +106,9 @@ class WebotsVehicleGymEnvironment(gym.Env):
 
     def __init__(self, vehicle_rank: int):
         self.vehicle_rank = vehicle_rank
-        self.checkpoint_manager = CheckpointManager(supervisor, checkpoints, vehicle_rank)
+        self.checkpoint_manager = CheckpointManager(supervisor, checkpoints[simulation_rank % n_map], vehicle_rank)
 
-        self.v_min = np.random.rand()*2 + 0.5 # 0.5 to 2.5
+        self.v_min = 1 #np.random.rand()*2 + 0.5 # 0.5 to 2.5
         self.v_max = 9 #np.random.rand()*5 + 4   # 5 to 10
         basicTimeStep = int(supervisor.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4

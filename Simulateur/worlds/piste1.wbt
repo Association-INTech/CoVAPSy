@@ -2,7 +2,7 @@
 
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
-EXTERNPROTO "../protos/TT02_2023b.proto"
+IMPORTABLE EXTERNPROTO "../protos/TT02_2023b.proto"
 
 WorldInfo {
 }
@@ -14,17 +14,6 @@ Viewpoint {
 TexturedBackground {
 }
 TexturedBackgroundLight {
-}
-DEF sparringpartner_car_0 TT02_2023b {
-  hidden rotation_1 0.0923750175093567 -0.9944106112114485 -0.05113112995249945 4.147928544808539
-  hidden rotation_2 -0.07902298916042154 0.9797031812808072 -0.18422009600588568 5.457782750462681
-  hidden rotation_3 0 -1 0 3.173527070004254
-  hidden rotation_4 0 1 0 4.530970717935335
-  translation -1.5 6 0.0389178
-  rotation -0.01571661712808417 -0.013393182233979426 0.9997867825770135 0
-  name "sparringpartner_car_0"
-  controller "controller_jaune"
-  color 0.69 0.7 0.2
 }
 DEF elements_pistes Group {
   children [
@@ -3173,4 +3162,11 @@ Solid {
       size 15 15 0.1
     }
   }
+}
+DEF WorldInit Robot {
+  supervisor TRUE
+  name "WorldInit"
+  controller "controllerWorldInit"
+  children [
+  ]
 }
