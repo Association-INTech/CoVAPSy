@@ -88,23 +88,23 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
             ResidualBlock(64, 64, downsample=True, device=device),
             # shape = [batch_size, 128, 128]
 
-            ResidualBlock(64, 64, device=device),
-            ResidualBlock(64, 64, device=device),
+            # ResidualBlock(64, 64, device=device),
+            # ResidualBlock(64, 64, device=device),
             ResidualBlock(64, 128, downsample=True, device=device),
             # shape = [batch_size, 128, 64]
 
-            ResidualBlock(128, 128, device=device),
-            ResidualBlock(128, 128, device=device),
+            # ResidualBlock(128, 128, device=device),
+            # ResidualBlock(128, 128, device=device),
             ResidualBlock(128, 128, downsample=True, device=device),
             # shape = [batch_size, 256, 32]
 
-            ResidualBlock(128, 128, device=device),
-            ResidualBlock(128, 128, device=device),
+            # ResidualBlock(128, 128, device=device),
+            # ResidualBlock(128, 128, device=device),
             ResidualBlock(128, 256, downsample=True, device=device),
             # shape = [batch_size, 256, 16]
 
-            ResidualBlock(256, 256, device=device),
-            ResidualBlock(256, 256, device=device),
+            # ResidualBlock(256, 256, device=device),
+            # ResidualBlock(256, 256, device=device),
             ResidualBlock(256, 256, downsample=True, device=device),
             # shape = [batch_size, 512, 8]
 
