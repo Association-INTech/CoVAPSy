@@ -78,15 +78,19 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
         net = nn.Sequential(
             # shape = [batch_size, 2, 1024]
             Compressor(device),
-            nn.Conv1d(64, 128, kernel_size=3, stride=2, padding=1, device=device),
+            nn.Conv1d(64, 128, kernel_size=3, padding=1, device=device),
             nn.ReLU(inplace=True),
-            nn.Conv1d(128, 256, kernel_size=3, stride=2, padding=1, device=device),
+            nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.Conv1d(128, 256, kernel_size=3, padding=1, device=device),
             nn.ReLU(inplace=True),
-            nn.Conv1d(256, 512, kernel_size=3, stride=2, padding=1, device=device),
+            nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.Conv1d(256, 512, kernel_size=3, padding=1, device=device),
             nn.ReLU(inplace=True),
-            nn.Conv1d(512, 512, kernel_size=3, stride=2, padding=1, device=device),
+            nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.Conv1d(512, 512, kernel_size=3, padding=1, device=device),
             nn.ReLU(inplace=True),
-            nn.Conv1d(512, 512, kernel_size=3, stride=2, padding=1, device=device),
+            nn.MaxPool1d(kernel_size=2, stride=2),
+            nn.Conv1d(512, 512, kernel_size=3, padding=1, device=device),
             # shape = [batch_size, 64, 256]
 
             # # ResidualBlock(64, 64, device=device),
