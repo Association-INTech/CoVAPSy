@@ -52,18 +52,18 @@ class ResidualBlock(nn.Module):
         self.dropout = nn.Dropout2d(0.3)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.conv1(x)
         y = self.bn1(y)
         y = self.relu(y)
-        # y = self.dropout(y)
+        y = self.conv1(x)
 
-        y = self.conv2(y)
         y = self.bn2(y)
         y = self.relu(y)
         y = self.dropout(y)
+        y = self.conv2(y)
 
-        x = self.downsample(x)
-        return x + y
+        y += self.downsample(x)
+
+        return y
 
 
 
