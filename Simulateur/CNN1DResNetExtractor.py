@@ -16,7 +16,7 @@ class Compressor(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x[:, :, 0]
-        print(x.shape, x.mean(dim=2), X[0, 0])
+        print(x.shape, x.mean(dim=2), x[0, 0])
         x = self.conv(x)
         # x = self.dropout(x)
         x = self.pool(x)
