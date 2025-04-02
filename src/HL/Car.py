@@ -101,6 +101,7 @@ class Car:
         log.info("Car initialization complete")
 
     def set_vitesse_m_s(self, vitesse_m_s):
+        print(f"Vitesse: {vitesse_m_s} m/s")
         """Set the car's speed in meters per second."""
         # Clamp the speed to the maximum and minimum speed
         vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft)) 
