@@ -1,8 +1,7 @@
-from picamera2 import Picamera2, Preview # type: ignore #ignore the module could not be resolved error because it is a rpi only module
+from picamera2 import Picamera2, Preview  # type: ignore
 from PIL import Image  # For saving images
 import time
 import os
-import threading
 
 # Initialize the camera
 picam2 = Picamera2()
@@ -14,37 +13,63 @@ picam2.configure(config)
 # Start the camera
 picam2.start()
 
+# Parameters
+N = 1000  # Number of iterations to measure
+frame_count = 0  # Counter to keep track of saved frames
+save_dir = "Captured_Frames"  # Directory to save frames
+os.makedirs(save_dir, exist_ok=True)  # Create the directory if it doesn't exist
+
+# Initialize timing accumulators
+total_capture_time = 0
+total_array_time = 0
+total_convert_time = 0
+total_path_creation_time = 0
+total_save_time = 0
 
 Start_time = time.time()  # Start time for the image stream
 
+for i in range(N):
+    init_time = time.time()  # Initialize the time for the first frame
 
-frame_count = 0  # Counter to keep track of saved frames
-save_dir = "Captured_Frames"  # Directory to save frames
+    # Capture the frame
+    frame = picam2.capture_array()
+    capture_time = time.time()  # Time after capturing the frame
+    total_capture_time += (capture_time - init_time)
 
-os.makedirs(save_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    # Convert the frame to an image
+    image = Image.fromarray(frame)
+    array_time = time.time()  # Time after converting the frame to an image
+    total_array_time += (array_time - capture_time)
 
-init_time = time.time()  # Initialize the time for the first frame
-        
-frame = picam2.capture_array()
-capture_time = time.time()  # Time after capturing the frame
-image = Image.fromarray(frame)
-array_time = time.time()  # Time after converting the frame to an image
-image = image.convert("RGB")
-convert_time = time.time()  # Time after converting the image to RGB
-frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
-path_creation_time = time.time()  # Time after creating the path
-image.save(frame_path)
-save_time = time.time()  # Time after saving the image
+    # Convert the image to RGB
+    image = image.convert("RGB")
+    convert_time = time.time()  # Time after converting the image to RGB
+    total_convert_time += (convert_time - array_time)
 
-print(f"Initialization time: {init_time - Start_time:.5f} seconds")
-print(f"Capture time: {capture_time - init_time:.5f} seconds")
-print(f"Array time: {array_time - capture_time:.5f} seconds")
-print(f"Convert time: {convert_time - array_time:.5f} seconds")
-print(f"Path creation time: {path_creation_time - convert_time:.5f} seconds")
-print(f"Save time: {save_time - path_creation_time:.5f} seconds")
-print(f"Total time: {save_time - Start_time:.5f} seconds")
+    # Create the file path
+    frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
+    path_creation_time = time.time()  # Time after creating the path
+    total_path_creation_time += (path_creation_time - convert_time)
 
+    # Save the image
+    image.save(frame_path)
+    save_time = time.time()  # Time after saving the image
+    total_save_time += (save_time - path_creation_time)
 
+    frame_count += 1
 
-       
+# Calculate averages
+average_capture_time = total_capture_time / N
+average_array_time = total_array_time / N
+average_convert_time = total_convert_time / N
+average_path_creation_time = total_path_creation_time / N
+average_save_time = total_save_time / N
+total_time = time.time() - Start_time
 
+# Print results
+print(f"Average Capture time: {average_capture_time:.5f} seconds")
+print(f"Average Array time: {average_array_time:.5f} seconds")
+print(f"Average Convert time: {average_convert_time:.5f} seconds")
+print(f"Average Path creation time: {average_path_creation_time:.5f} seconds")
+print(f"Average Save time: {average_save_time:.5f} seconds")
+print(f"Total time for {N} iterations: {total_time:.5f} seconds")
