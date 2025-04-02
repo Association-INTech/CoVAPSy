@@ -11,7 +11,7 @@ os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
 
 picam2 = Picamera2()
 
-def run_test(resolution):
+def run_test():
     # Configure the camera for preview
     config = picam2.create_preview_configuration(sensor={'output_size': (640,480), 'bit_depth': 8}) # full sensor resolution (3280, 2464)
     picam2.configure(config)
@@ -84,8 +84,4 @@ def run_test(resolution):
     
     
 if __name__ == "__main__":
-    N = 500  # Number of iterations to measure
-    
-    for resolution in [(3280, 2464),  (1280, 720), (1920, 1080),(640, 480), (320, 240)]:
-        print(f"Testing resolution: {resolution}")
-        run_test(resolution)
+    run_test()
