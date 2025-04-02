@@ -10,7 +10,6 @@ from pprint import *
 os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
 
 
-picam2 = Picamera2()
 
 def run_test():
     # Initialize the camera
