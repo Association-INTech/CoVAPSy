@@ -33,7 +33,7 @@ def run_test():
     pprint(desired_mode)
 
     # Configure the camera with the selected mode
-    config = picam2.create_preview_configuration(main={
+    config = picam2.create_preview_configuration(raw={
         "output_size": desired_mode["size"],
         "bit_depth": desired_mode["bit_depth"]
     })
@@ -63,7 +63,7 @@ def run_test():
         init_time = time.time()  # Initialize the time for the first frame
 
         # Capture the frame
-        frame = picam2.capture_array()
+        frame = picam2.capture_array("raw")
         capture_time = time.time()  # Time after capturing the frame
         total_capture_time += (capture_time - init_time)
 
@@ -107,5 +107,5 @@ def run_test():
     
     
 if __name__ == "__main__":
-    N=500
+    N=100
     run_test()
