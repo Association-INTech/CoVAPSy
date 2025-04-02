@@ -27,7 +27,8 @@ def main():
     
         while True:
             frame = picam2.capture_array()
-            image = Image.fromarray(frame).convert("RGB")
+            image = Image.fromarray(frame)
+            image.convert("RGB")
             frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
             threading.Thread(target=save_image, args=(image, frame_path)).start()
             frame_count += 1
