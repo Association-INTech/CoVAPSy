@@ -130,7 +130,6 @@ class Car:
     
     def has_Crashed(self):
         small_distances = [d for d in self.lidar.rDistance if 0 < d < CRASH_DIST]
-        log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             min_index = np.argmin(small_distances)
@@ -145,6 +144,7 @@ class Car:
         
         lidar_data = self.lidar.rDistance[:1080]
         angle, vitesse = self.driving(lidar_data)
+        log.debug(f"Angle: {angle}, Vitesse: {vitesse}")
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.has_Crashed():
