@@ -35,7 +35,7 @@ def main():
     
             # Exit the stream when 'q' is pressed
             if time.time() - Start_time > 1:
-                print(f"Captured {frame_count} frames in {time.time() - time:.2f} seconds")
+                print(f"Captured {frame_count} frames in {time.time() - Start_time:.2f} seconds")
                 frame_count = 0
                 Start_time = time.time()
     finally:
