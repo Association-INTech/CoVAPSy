@@ -119,12 +119,8 @@ class Car:
         self.pwm_dir.change_duty_cycle(angle_pwm)
         
     def recule(self):
-        self.set_vitesse_m_s(-self.vitesse_max_m_s_hard)
-        time.sleep(0.2)
-        self.set_vitesse_m_s(0)
-        time.sleep(0.2)
         self.set_vitesse_m_s(-2)
-        time.sleep(1)
+        time.sleep(0.1)
     
     def stop(self):
         self.pwm_dir.stop()
