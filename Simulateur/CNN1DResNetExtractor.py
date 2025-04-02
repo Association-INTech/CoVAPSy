@@ -21,7 +21,7 @@ class Compressor(nn.Module):
         x = self.conv(x)
         x = self.bn(x)
         x = self.relu(x)
-        x = self.dropout(x)
+        # x = self.dropout(x)
         x = self.pool(x)
         return x
 
@@ -60,7 +60,7 @@ class ResidualBlock(nn.Module):
         y = self.conv2(y)
         y = self.bn2(y)
         y = self.relu(y)
-        y = self.dropout(y)
+        # y = self.dropout(y)
 
         x = self.downsample(x)
         return x + y
@@ -82,27 +82,27 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
             # shape = [batch_size, 64, 256]
 
             ResidualBlock(64, 64, device=device),
-            #ResidualBlock(64, 64, device=device),
+            ResidualBlock(64, 64, device=device),
             ResidualBlock(64, 64, downsample=True, device=device),
             # shape = [batch_size, 128, 128]
 
-            #ResidualBlock(64, 64, device=device),
-            #ResidualBlock(64, 64, device=device),
+            ResidualBlock(64, 64, device=device),
+            ResidualBlock(64, 64, device=device),
             ResidualBlock(64, 128, downsample=True, device=device),
             # shape = [batch_size, 128, 64]
 
-            # ResidualBlock(128, 128, device=device),
-            # ResidualBlock(128, 128, device=device),
+            ResidualBlock(128, 128, device=device),
+            ResidualBlock(128, 128, device=device),
             ResidualBlock(128, 128, downsample=True, device=device),
             # shape = [batch_size, 256, 32]
 
-            # ResidualBlock(128, 128, device=device),
-            # ResidualBlock(128, 128, device=device),
+            ResidualBlock(128, 128, device=device),
+            ResidualBlock(128, 128, device=device),
             ResidualBlock(128, 256, downsample=True, device=device),
             # shape = [batch_size, 256, 16]
 
-            # ResidualBlock(256, 256, device=device),
-            # ResidualBlock(256, 256, device=device),
+            ResidualBlock(256, 256, device=device),
+            ResidualBlock(256, 256, device=device),
             ResidualBlock(256, 256, downsample=True, device=device),
             # shape = [batch_size, 512, 8]
 
