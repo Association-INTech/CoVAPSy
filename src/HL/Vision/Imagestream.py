@@ -12,7 +12,7 @@ def main():
     picam2 = Picamera2()
 
     # Configure the camera for preview
-    config = picam2.create_preview_configuration(main={"size": (640, 480)})
+    config = picam2.create_preview_configuration(main={"size": (640, 480)}, format= "BGR888")
     picam2.configure(config)
 
     # Start the camera
