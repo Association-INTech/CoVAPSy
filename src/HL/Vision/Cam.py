@@ -3,6 +3,7 @@ from PIL import Image  # For saving images
 import time
 import os
 import shutil 
+from pprint import *
 # Initialize the camera
 
 # Set LIBCAMERA_LOG_LEVELS to suppress INFO logs
@@ -12,11 +13,33 @@ os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
 picam2 = Picamera2()
 
 def run_test():
-    # Configure the camera for preview
-    config = picam2.camera_configuration(sensor={'output_size': (640,480), 'bit_depth': 8}) 
-    
+    # Initialize the camera
+    picam2 = Picamera2()
+
+    # Inspect available sensor modes
+    print("Available sensor modes:")
+    pprint(picam2.sensor_modes)
+
+    # Find the desired mode
+    desired_mode = None
+    for mode in picam2.sensor_modes:
+        if mode["size"] == (640, 480) and mode["bit_depth"] == 8 and mode["fps"] >= 206.65:
+            desired_mode = mode
+            break
+
+    if not desired_mode:
+        raise ValueError("No sensor mode found with the desired configuration.")
+
+    print("Selected sensor mode:")
+    pprint(desired_mode)
+
+    # Configure the camera with the selected mode
+    config = picam2.create_preview_configuration(sensor={
+        "output_size": desired_mode["size"],
+        "bit_depth": desired_mode["bit_depth"]
+    })
     picam2.configure(config)
-    picam2.camera_configuration()['sensor']
+
     # Start the camera
     picam2.start()
 
