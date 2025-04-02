@@ -27,7 +27,6 @@ class Compressor(nn.Module):
 
 
 
-
 class ResidualBlock(nn.Module):
     """
     basic block with a residual connection
@@ -107,7 +106,7 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
             ResidualBlock(256, 256, downsample=True, device=device),
             # shape = [batch_size, 512, 8]
 
-            nn.AvgPool2d(8),
+            nn.AvgPool1d(8),
             # shape = [batch_size, 512, 1]
 
             nn.Flatten(),
