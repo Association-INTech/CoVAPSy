@@ -142,8 +142,8 @@ if __name__ == "__main__":
 
     ppo_args = dict(
         n_steps=2048,
-        n_epochs=10,
-        batch_size=256,
+        n_epochs=20,
+        batch_size=255,
         learning_rate=3e-4,
         gamma=0.99,
         verbose=1,
