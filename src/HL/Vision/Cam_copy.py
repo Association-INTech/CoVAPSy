@@ -49,10 +49,6 @@ def run_test():
 
     # Print results
     print(f"Average Capture time: {average_capture_time:.5f} seconds")
-    print(f"Average Array time: {average_array_time:.5f} seconds")
-    print(f"Average Convert time: {average_convert_time:.5f} seconds")
-    print(f"Average Path creation time: {average_path_creation_time:.5f} seconds")
-    print(f"Average Save time: {average_save_time:.5f} seconds")
     print(f"Total time for {N} iterations: {total_time:.5f} seconds. FPS: {N / total_time:.2f}")
     
     
