@@ -80,6 +80,6 @@ def run_test(resolution):
     
 if __name__ == "__main__":
     N = 500  # Number of iterations to measure
-    for resolution in [(3280, 2464), (640, 480), (1280, 720), (1920, 1080)]:
+    for resolution in [(3280, 2464),  (1280, 720), (1920, 1080),(640, 480), (320, 240)]:
         print(f"Testing resolution: {resolution}")
         run_test(resolution)
