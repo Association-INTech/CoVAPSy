@@ -2,7 +2,7 @@ from picamera2 import Picamera2, Preview  # type: ignore
 from PIL import Image  # For saving images
 import time
 import os
-
+import shutil 
 # Initialize the camera
 picam2 = Picamera2()
 
@@ -17,6 +17,8 @@ picam2.start()
 N = 1000  # Number of iterations to measure
 frame_count = 0  # Counter to keep track of saved frames
 save_dir = "Captured_Frames"  # Directory to save frames
+if os.path.exists(save_dir):
+    shutil.rmtree(save_dir)  # Remove the directory and its contents
 os.makedirs(save_dir, exist_ok=True)  # Create the directory if it doesn't exist
 
 # Initialize timing accumulators
