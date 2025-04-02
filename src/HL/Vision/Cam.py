@@ -33,7 +33,7 @@ def run_test():
     pprint(desired_mode)
 
     # Configure the camera with the selected mode
-    config = picam2.create_preview_configuration(sensor={
+    config = picam2.create_preview_configuration(main={
         "output_size": desired_mode["size"],
         "bit_depth": desired_mode["bit_depth"]
     })
