@@ -25,7 +25,7 @@ def main():
             # Capture a frame
             frame = picam2.capture_array()
             
-            image = Image.fromarray(frame)
+            image = Image.fromarray(frame).convert("RGB")
     
             # Save the frame to disk
             frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
