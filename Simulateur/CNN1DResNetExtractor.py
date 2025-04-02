@@ -57,7 +57,7 @@ class ResidualBlock(nn.Module):
 
         y = self.bn2(y)
         y = self.relu(y)
-        # y = self.dropout(y)
+        y = self.dropout(y)
         y = self.conv2(y)
 
         y += self.downsample(x)
