@@ -11,14 +11,14 @@ class Compressor(nn.Module):
         super().__init__()
         # WARNING : do not use inplace=True because it would modify the rollout buffer
         self.conv = nn.Conv1d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
-        self.dropout = nn.Dropout1d(0.2)
+        self.dropout = nn.Dropout1d(0.3)
         self.pool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x[:, :, 0]
         #print(x.shape, x.mean(dim=2), x[0, 0])
         x = self.conv(x)
-        # x = self.dropout(x)
+        x = self.dropout(x)
         x = self.pool(x)
         return x
 
