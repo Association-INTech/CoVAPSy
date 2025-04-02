@@ -6,7 +6,8 @@ home_dir = os.environ['HOME'] #set the location of your home directory
 cam = Camera()
 init_time = time.time() - Startime
 
-cam.take_photo(f"{home_dir}/CoVAPSy/src/HL/Vision/Captured_image/new_image.jpg") #save the image to your desktop
+cam.take_photo(f"{home_dir}/CoVAPSy/src/HL/Vision/Captured_image/new_image.jpg",) #save the image to your desktop
+# cam.record_video(f"{home_dir}/Desktop/new_video.mp4", duration=5)
 photo_time = time.time() - Startime
 print(f"Photo taken in {photo_time:.5f} seconds")
 print(f"Init time: {init_time:.5f} seconds")
