@@ -44,10 +44,12 @@ class ResidualBlock(nn.Module):
             stride = 1
             self.downsample = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=1, device=device)
 
+        self.bn1 = nn.BatchNorm2d(in_channels, device=device)
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1, device=device)
-        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
-        self.bn1 = nn.BatchNorm2d(out_channels, device=device)
+
         self.bn2 = nn.BatchNorm2d(out_channels, device=device)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, device=device)
+
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout2d(0.5)
 
