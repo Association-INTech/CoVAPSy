@@ -7,7 +7,7 @@ import shutil
 picam2 = Picamera2()
 
 # Configure the camera for preview
-config = picam2.create_preview_configuration(main={"size": (320, 200)})
+config = picam2.create_preview_configuration(main={"size": (3280, 2464)}) # full sensor resolution (3280, 2464)
 picam2.configure(config)
 
 # Start the camera
