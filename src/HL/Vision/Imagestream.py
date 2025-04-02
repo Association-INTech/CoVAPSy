@@ -1,5 +1,5 @@
 from picamera2 import Picamera2, Preview # type: ignore #ignore the module could not be resolved error because it is a rpi only module
-import cv2 # type: ignore
+from PIL import Image  # For saving images
 import time
 import os
 
@@ -24,10 +24,12 @@ def main():
         while True:
             # Capture a frame
             frame = picam2.capture_array()
+            
+            image = Image.fromarray(frame)
     
             # Save the frame to disk
             frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
-            cv2.imwrite(frame_path, frame)
+            image.save(frame_path)
             frame_count += 1
     
             # Display the frame in a window
