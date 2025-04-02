@@ -5,7 +5,7 @@ from scipy.special import softmax
 import numpy as np
 from gpiozero import LED, Button
 import logging as log
-import smbus
+import smbus # type: ignore #ignore the module could not be resolved error because it is a linux only module
 import struct
 
 SLAVE_ADDRESS = 0x08
@@ -101,7 +101,6 @@ class Car:
         log.info("Car initialization complete")
 
     def set_vitesse_m_s(self, vitesse_m_s):
-        print(f"Vitesse: {vitesse_m_s} m/s")
         """Set the car's speed in meters per second."""
         # Clamp the speed to the maximum and minimum speed
         vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft)) 
@@ -131,6 +130,7 @@ class Car:
     
     def has_Crashed(self):
         small_distances = [d for d in self.lidar.rDistance if 0 < d < CRASH_DIST]
+        log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             min_index = np.argmin(small_distances)
