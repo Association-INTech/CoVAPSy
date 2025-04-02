@@ -11,16 +11,12 @@ class Compressor(nn.Module):
         super().__init__()
         # WARNING : do not use inplace=True because it would modify the rollout buffer
         self.conv = nn.Conv1d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
-        self.bn = nn.BatchNorm1d(64, device=device)
-        self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout1d(0.2)
         self.pool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x[:, :, 0]
         x = self.conv(x)
-        x = self.bn(x)
-        x = self.relu(x)
         # x = self.dropout(x)
         x = self.pool(x)
         return x
@@ -56,7 +52,7 @@ class ResidualBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.bn1(x)
         y = self.relu(y)
-        y = self.conv1(x)
+        y = self.conv1(y)
 
         y = self.bn2(y)
         y = self.relu(y)
