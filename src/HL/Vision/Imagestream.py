@@ -32,12 +32,9 @@ def main():
             # cv2.imshow("Image Stream", frame)
     
             # Exit the stream when 'q' is pressed
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
     finally:
         # Stop the camera and close the window
         picam2.stop()
-        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
