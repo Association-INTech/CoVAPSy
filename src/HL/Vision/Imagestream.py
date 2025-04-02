@@ -28,7 +28,7 @@ def main():
             image = Image.fromarray(frame).convert("RGB")
     
             # Save the frame to disk
-            frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.bmp")
+            frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.png")
             image.save(frame_path)
             frame_count += 1
     
