@@ -10,7 +10,7 @@ Markdown files are often recognizable by their `.md` and rarely `.markdown` file
 
 ## Basic Syntax
 
-### Bold and Italics 
+### Bold and Italics
 
 To make bold text, surround your text with double asterisks:
 <table>

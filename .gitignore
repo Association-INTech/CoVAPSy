@@ -1,3 +1,5 @@
 site
 *ignored*
+*__pycache__*
 .vscode
+*.zip
