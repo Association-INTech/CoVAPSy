@@ -16,9 +16,9 @@ class VoltageReader{
         float voltage_NiMh = 0;     // variable to store the value read
     
     public :
-        static void setup()
-        static void calculateVoltage()
-        static void request()
+        static void setup();
+        static void calculateVoltage();
+        static void request();
 
 
-}
+};

@@ -8,12 +8,12 @@ class I2CSlave{
     } converter;
 
   public :
-    void setup()
+    void setup();
 
-    void receiveEvent(int byteCount)
+    void receiveEvent(int byteCount);
 
     // Function that executes whenever data is requested by master
-    void requestEvent()
+    void requestEvent();
 
-    float getReadValue()
-  }
+    float getReadValue();
+  };

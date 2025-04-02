@@ -1,16 +1,14 @@
 #include <Servo.h>
 #include <EnableInterrupt.h>
-#include "I2Cslave.hpp"
+#include <Wire.h>
+
 
 #define PIN_DIR 10
 #define PIN_MOT 9
 #define PIN_FOURCHE 14
 
-
 Servo moteur;
 Servo direction;
-
-
 
 //declaration des broches des differents composants
 const int pinMoteur=PIN_MOT;
@@ -41,6 +39,27 @@ volatile int count=0; //variable utilisee pour compter le nombre de fronts monta
 volatile int vieuxCount=0; //stocke l'ancienne valeur de count pour ensuite faire la difference
 volatile byte state=LOW;
 float mesures[10]; // tableau de mesures pour lisser
+
+////I2C
+union floatToBytes {
+      byte valueBuffer[4];
+      float valueReading;
+    } converter;
+
+////Voltage
+volatile bool dataReceived = false;
+volatile char receivedData[32]; // Buffer to hold received data
+volatile int receivedLength = 0;
+        
+const int sensorPin_Lipo = A2; // select the input pin for the battery sensor
+const int sensorPin_NiMh = A3; // select the input pin for the battery sensor
+        
+const float r1_LiPo = 560;  // resistance of the first resistor
+const float r1_NiMh = 560;  // resistance of the second resistor
+const float r2_LiPo = 1500; // resistance of the second resistor
+const float r2_NiMh = 1000; // resistance of the second resistor
+float voltage_LiPo = 0;     // variable to store the value read
+float voltage_NiMh = 0;     // variable to store the value read
 
 float getMeanSpeed(float dt){
   int length = sizeof(mesures)/sizeof(mesures[0]);
@@ -102,8 +121,17 @@ float PID(float cons, float mes, float dt) {
 
   return P + I;
 }
+void calculateVoltage(){
+  //read from the sensor
+  // and convert the value to voltage
+  voltage_LiPo = analogRead(sensorPin_Lipo);
+  voltage_NiMh = analogRead(sensorPin_NiMh);
+  voltage_LiPo = voltage_LiPo * (5.0 / 1023.0) * ((r1_LiPo + r2_LiPo) / r1_LiPo);
+  voltage_NiMh = voltage_NiMh * (5.0 / 1023.0) * ((r1_NiMh + r2_NiMh) / r1_NiMh);
+  Serial.println(voltage_LiPo);
+  Serial.println(voltage_NiMh);
+}
 void setup() {
-  I2Cslave::setup();
   Serial.begin(115200);
 
   pinMode(pinMoteur,OUTPUT);
@@ -119,11 +147,16 @@ void setup() {
   delay(2000);
   moteur.writeMicroseconds(1590);
 
+  Wire.begin(8);                  // Join I2C bus with address #8
+  Wire.onReceive(receiveEvent); // Register receive event
+  Wire.onRequest(requestEvent); // Register request event
+  pinMode(13,OUTPUT);
 
   delay(10);
-  Serial.println("init");
+  Serial.print("init");
 }
 void loop() {
+  calculateVoltage();
   // Commandes pour debugger
   command=Serial.read();
   switch (command){ //pour regler les parametres
@@ -143,9 +176,7 @@ void loop() {
     Vcons=0;
     break;
   }
-  
-  //lecture depuis l'I2C
-  Vcons = I2CSlave::getReadValue();
+
   
   int deltaT = millis()-vieuxTemps; //temps qui est passé pendant un loop (en millisecondes)
   vitesse=getMeanSpeed(deltaT); // on recup la vitesse lissée
@@ -175,7 +206,7 @@ void loop() {
   old_Vcons = Vcons;
 
   //print debug
-  #if 0
+  #if 1
   Serial.print("");
   Serial.print(Vcons);
   Serial.print(", ");
@@ -189,4 +220,18 @@ void loop() {
   Serial.println(out);
   #endif
   delay(10);
+}
+void receiveEvent(int byteCount){
+  for(uint8_t index = 0; index<byteCount; index++){
+      converter.valueBuffer[index] = Wire.read();
+  }
+  Vcons = converter.valueReading;
+
+}
+void requestEvent(){
+  const int numFloats = 2; // Number of floats to send
+  float data[numFloats] = {voltage_LiPo, voltage_NiMh}; // Example float values to send
+  byte* dataBytes = (byte*)data;
+
+  Wire.write(dataBytes, sizeof(data));
 }

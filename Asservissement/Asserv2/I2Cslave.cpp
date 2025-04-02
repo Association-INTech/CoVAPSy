@@ -17,7 +17,10 @@ class I2CSlave{
 
   // Function that executes whenever data is requested by master
   static void requestEvent(){
-      TensionReader::request();
+    const int numFloats = 2; // Number of floats to send
+    float data[numFloats] = {voltage_LiPo, voltage_NiMh}; // Example float values to send
+    byte* dataBytes = (byte*)data;
+    
   }
   static float getReadValue(){
     return converter.valueReading;
