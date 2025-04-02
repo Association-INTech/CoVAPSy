@@ -37,7 +37,7 @@ def run_test():
         init_time = time.time()  # Initialize the time for the first frame
 
         # Capture the frame
-        picam2.switch_mode_and_capture_file(capture_config, f"frame_{frame_count:04d}.jpg")
+        picam2.switch_mode_and_capture_file(capture_config, f"Captured_Frames/frame_{frame_count:04d}.jpg")
         capture_time = time.time()  # Time after capturing the frame
         total_capture_time += capture_time - init_time
         
