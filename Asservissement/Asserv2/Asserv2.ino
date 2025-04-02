@@ -1,6 +1,6 @@
 #include <Servo.h>
 #include <EnableInterrupt.h>
-
+//#include "I2CReader.hpp"
 
 #define PIN_DIR 10
 #define PIN_MOT 9
@@ -23,7 +23,8 @@ const int distanceUnTour=79; //distance parcourue par la voiture apres un tour d
 
 //variables
 char command;
-float Vcons=0; //consigne
+float Vcons=0; 
+float old_Vcons ;//consigne
 float vitesse=0; //vitesse de la voiture
 
 //PID
@@ -56,6 +57,7 @@ float getMeanSpeed(float dt){
     sum+=mesures[i];
   }
 
+  //affichage debug
   #if 0
   for(int i=0;i<length;i++){
     Serial.print(mesures[i]);
@@ -64,44 +66,45 @@ float getMeanSpeed(float dt){
   Serial.println(sum/length);
   #endif
 
-
   return sum/length;
 }
+
 float getSpeed(float dt){  
   int N = count - vieuxCount; //nombre de fronts montant et descendands après chaque loop
   float V = ((float)N/(float)nb_trous)*distanceUnTour/(dt*1e-3); //16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm 
   vieuxCount=count;
   vieuxTemps=millis();
-  /*Serial.print(count+" ");
-  Serial.print(vieuxCount+" ");
-  Serial.print(N+" ");
-  Serial.println((int)V+" ");*/
   return V;
 }
 void blink(){ //on compte tous les fronts
   //Serial.print(count);
   count++;
 }
-float PID(float cons,float mes,float dt){
-  float e = cons - mes;
-  
-  //Terme Proportionel
-  float P = Kp*e;
-  
-  // Terme Intégral
-  integral=integral + e*dt;
-  float I= Ki*integral;
-  
+float PID(float cons, float mes, float dt) {
+  // Adjust the measured speed based on the sign of the desired speed
+  float adjustedMes = (cons < 0) ? -mes : mes;
+
+  // Calculate the error
+  float e = cons - adjustedMes;
+
+  // Proportional term
+  float P = Kp * e;
+
+  // Integral term
+  integral = integral + e * dt;
+  float I = Ki * integral;
+
   #if 0
-  //terme dérivé
-  derivee =(e-vieuxEcart)/dt;
-  vieuxEcart=e;
-  float D=Kd*derivee;
+  // Derivative term
+  derivee = (e - vieuxEcart) / dt;
+  vieuxEcart = e;
+  float D = Kd * derivee;
   #endif
 
   return P + I;
 }
 void setup() {
+  //I2CReader.init()
   Serial.begin(115200);
 
   pinMode(pinMoteur,OUTPUT);
@@ -129,29 +132,46 @@ void loop() {
     Vcons+=200;
     break;
     case 'z':
-    Vcons-=50;
+    Vcons-=200;
+    break;
+    case 's':
+    Vcons=-1000;
     break;
     case 'q':
     Vcons=0;
     break;
-    case 'i':
-    Ki+=0.01;
-    break;
-    case 'k':
-    Ki-=0.01;
-    break;
-    case 'u':
-    Kp+=0.01;
-    break;
-    case 'j':
-    Kp-=0.01;
-    break;
   }
   int deltaT = millis()-vieuxTemps; //temps qui est passé pendant un loop (en millisecondes)
   vitesse=getMeanSpeed(deltaT); // on recup la vitesse lissée
+  
+  int out;
 
-  int out = PID(Vcons,vitesse,float(deltaT)/1e3);
-  moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+  if (Vcons>=0){
+    out = PID(Vcons,vitesse,float(deltaT)/1e3);
+    moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+
+  } else if ( Vcons<0 && old_Vcons>=0 ){
+
+    Serial.print("Vcons : ");
+    Serial.println(Vcons);
+    Serial.print("old_Vcons : ");
+    Serial.println(old_Vcons);
+    
+    out = PID(-8000,vitesse,float(deltaT)/1e3);
+    moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+    delay(200);
+
+    out = PID(0,vitesse,float(deltaT)/1e3);
+    moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+    delay(10);
+  } else {
+    out = PID(Vcons,vitesse,float(deltaT)/1e3);
+    moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+  }
+  old_Vcons = Vcons;
+  Serial.print("OLD : ");
+  Serial.println(old_Vcons);
+
 
   //print debug
   #if 1
