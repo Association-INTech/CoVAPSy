@@ -100,8 +100,8 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
             # shape = [batch_size, 256, 16]
 
             # ResidualBlock(256, 256, device=device),
-            ResidualBlock(256, 256, device=device),
-            ResidualBlock(256, 256, downsample=True, device=device),
+            # ResidualBlock(256, 256, device=device),
+            # ResidualBlock(256, 256, downsample=True, device=device),
             # shape = [batch_size, 512, 8]
 
             nn.AvgPool1d(8),
