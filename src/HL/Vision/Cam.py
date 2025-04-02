@@ -8,7 +8,7 @@ picam2 = Picamera2()
 
 def run_test(resolution):
     # Configure the camera for preview
-    config = picam2.create_preview_configuration(main={"size": (3280, 2464)}) # full sensor resolution (3280, 2464)
+    config = picam2.create_preview_configuration(main={"size": resolution}) # full sensor resolution (3280, 2464)
     picam2.configure(config)
 
     # Start the camera
@@ -79,7 +79,7 @@ def run_test(resolution):
     
     
 if __name__ == "__main__":
-    N = 500  # Number of iterations to measure
+    N = 50  # Number of iterations to measure
     for resolution in [(3280, 2464),  (1280, 720), (1920, 1080),(640, 480), (320, 240)]:
         print(f"Testing resolution: {resolution}")
         run_test(resolution)
