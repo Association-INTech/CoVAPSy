@@ -1,5 +1,5 @@
 from picamera2 import Picamera2, Preview # type: ignore #ignore the module could not be resolved error because it is a rpi only module
-import cv2
+import cv2 # type: ignore
 import time
 import os
 
@@ -38,6 +38,7 @@ def main():
                 print(f"Captured {frame_count} frames in {time.time() - time:.2f} seconds")
                 time = time.time()
                 frame_count = 0
+                time = time.time()
     finally:
         # Stop the camera and close the window
         picam2.stop()
