@@ -1,6 +1,6 @@
 #include <Servo.h>
 #include <EnableInterrupt.h>
-//#include "I2CReader.hpp"
+#include "I2Cslave.cpp"
 
 #define PIN_DIR 10
 #define PIN_MOT 9
@@ -104,7 +104,7 @@ float PID(float cons, float mes, float dt) {
   return P + I;
 }
 void setup() {
-  //I2CReader.init()
+  I2Cslave.setup()
   Serial.begin(115200);
 
   pinMode(pinMoteur,OUTPUT);
@@ -137,44 +137,46 @@ void loop() {
     case 's':
     Vcons=-1000;
     break;
+    case 'd':
+    Vcons=2000;
+    break;
     case 'q':
     Vcons=0;
     break;
   }
+  
+  //lecture depuis l'I2C
+  Vcons = I2CSlave::getReadValue()
+  
   int deltaT = millis()-vieuxTemps; //temps qui est passé pendant un loop (en millisecondes)
   vitesse=getMeanSpeed(deltaT); // on recup la vitesse lissée
   
   int out;
 
   if (Vcons>=0){
+
     out = PID(Vcons,vitesse,float(deltaT)/1e3);
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
 
   } else if ( Vcons<0 && old_Vcons>=0 ){
-
-    Serial.print("Vcons : ");
-    Serial.println(Vcons);
-    Serial.print("old_Vcons : ");
-    Serial.println(old_Vcons);
     
     out = PID(-8000,vitesse,float(deltaT)/1e3);
     moteur.writeMicroseconds(constrain(1500 + out,500,1500));
     delay(200);
-
     out = PID(0,vitesse,float(deltaT)/1e3);
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
     delay(10);
+
   } else {
+
     out = PID(Vcons,vitesse,float(deltaT)/1e3);
     moteur.writeMicroseconds(constrain(1500 + out,500,1500));
   }
-  old_Vcons = Vcons;
-  Serial.print("OLD : ");
-  Serial.println(old_Vcons);
 
+  old_Vcons = Vcons;
 
   //print debug
-  #if 1
+  #if 0
   Serial.print("");
   Serial.print(Vcons);
   Serial.print(", ");
