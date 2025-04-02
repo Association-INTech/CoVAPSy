@@ -57,5 +57,5 @@ def run_test():
     
     
 if __name__ == "__main__":
-    N=100
+    N=10
     run_test()
