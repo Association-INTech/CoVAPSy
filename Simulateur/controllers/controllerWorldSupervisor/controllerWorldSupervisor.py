@@ -191,7 +191,7 @@ class WebotsVehicleGymEnvironment(gym.Env):
 
         if b_collided or (z < -10):
             #print(f"CLIENT{simulation_rank}/{self.vehicle_rank} : {b_collided=}, {z=}")
-            reward = np.float32(-2.0)
+            reward = np.float32(0.0)
             done = np.True_
         elif b_past_checkpoint:
             reward = np.float32(1.0) #* np.cos(self.checkpoint_manager.getAngle() - self.rotation_field.getSFRotation()[3], dtype=np.float32)
