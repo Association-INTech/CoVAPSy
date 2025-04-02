@@ -80,7 +80,7 @@ def run_test(resolution):
     
 if __name__ == "__main__":
     N = 50  # Number of iterations to measure
-    Picamera2.set_logging(Picamera2.WARNING)  # Set logging level to warning
+    Picamera2.set_logging("ERROR")  # Suppress all messages except errors
     for resolution in [(3280, 2464),  (1280, 720), (1920, 1080),(640, 480), (320, 240)]:
         print(f"Testing resolution: {resolution}")
         run_test(resolution)
