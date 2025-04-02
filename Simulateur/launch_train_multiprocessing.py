@@ -125,7 +125,7 @@ if __name__ == "__main__":
 
     envs = SubprocVecEnv([lambda rank=rank : make_env(rank) for rank in range(n_simulations)])
 
-    ExtractorClass = CNN1DResNetExtractor
+    ExtractorClass = TemporalResNetExtractor
 
     policy_kwargs = dict(
         features_extractor_class=ExtractorClass,
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     ppo_args = dict(
         n_steps=4096,
         n_epochs=10,
-        batch_size=512,
+        batch_size=256,
         learning_rate=3e-4,
         gamma=0.99,
         verbose=1,
