@@ -149,7 +149,6 @@ class Camera:
         # Append the recreated image to the bottom of the sliced image
         combined_image = np.vstack((image, recreated_image_resized))
         self.debug_counter += 1
-        path= os.path.join(DEBUG_DIR, f"debug_combined_image{self.debug_counter}.jpg")
         return Image.fromarray(combined_image).convert("RGB")
         
     def is_green_or_red(self):
