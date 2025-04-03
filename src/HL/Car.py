@@ -136,8 +136,8 @@ class Car:
         time.sleep(0.2)
         self.set_vitesse_m_s(0)
         time.sleep(0.2)
-        self.set_vitesse_m_s(-2)
-        time.sleep(0.5)
+        self.set_vitesse_m_s(-4)
+        time.sleep(0.8)
     
     def stop(self):
         self.pwm_dir.stop()
