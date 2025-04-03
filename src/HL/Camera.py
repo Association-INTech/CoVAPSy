@@ -178,4 +178,12 @@ class Camera:
         right_red_intensity = np.mean(right_half[:, :, 0])  # Red channel in RGB
         
         # Allow to change the color of the left and right side
-        return (left_red_intensity <= right_red_intensity) if LEFT_IS_GREEN else (left_red_intensity > right_red_intensity)
+        if (left_red_intensity <= right_red_intensity) and LEFT_IS_GREEN:
+            # If the left side is green and red is on the right, return True
+            if log.getLogger().isEnabledFor(log.DEBUG):
+                Image.fromarray(left_half).convert("RGB").save(os.path.join(DEBUG_DIR, f"leftside{self.image_no}.jpg"))
+            return True
+        elif (left_red_intensity > right_red_intensity) and not LEFT_IS_GREEN:
+            # If the left side is red and green is on the right, return True
+            return True
+        
