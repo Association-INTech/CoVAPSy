@@ -1,57 +1,31 @@
-from picamera2 import Picamera2, Preview  # type: ignore
-from PIL import Image  # For saving images
+from picamera2 import Picamera2
 import time
 import os
-import shutil 
-from pprint import *
-# Initialize the camera
 
-# Set LIBCAMERA_LOG_LEVELS to suppress INFO logs
-os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
+# Initialize Picamera2
+picam2 = Picamera2()
+config = picam2.create_still_configuration(main={"size": (640, 480)}, buffer_count=4)
+picam2.configure(config)
 
+# Directory for saving images
+save_dir = "captured_frames"
+os.makedirs(save_dir, exist_ok=True)
 
+# Start capturing
+picam2.start()
 
-def run_test():
-    # Initialize the camera
-    picam2 = Picamera2()
+frame_count = 0
+start_time = time.time()
+capture_time = 5  # Capture for 5 seconds
 
-    capture_config = picam2.create_still_configuration()
+while time.time() - start_time < capture_time:
+    filename = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
+    picam2.capture_file(filename, format="jpeg")
+    frame_count += 1
 
-    # Start the camera
-    picam2.start()
+picam2.stop()
 
-    # Parameters
-    
-    frame_count = 0  # Counter to keep track of saved frames
-    save_dir = "Captured_Frames"  # Directory to save frames
-    if os.path.exists(save_dir):
-        shutil.rmtree(save_dir)  # Remove the directory and its contents
-    os.makedirs(save_dir, exist_ok=True)  # Create the directory if it doesn't exist
-
-    # Initialize timing accumulators
-    total_capture_time = 0
-
-    Start_time = time.time()  # Start time for the image stream
-
-    for i in range(N):
-        init_time = time.time()  # Initialize the time for the first frame
-
-        # Capture the frame
-        picam2.switch_mode_and_capture_file(capture_config, f"Captured_Frames/frame_{frame_count:04d}.jpg")
-        capture_time = time.time()  # Time after capturing the frame
-        total_capture_time += capture_time - init_time
-        
-        frame_count += 1
-    picam2.stop()  # Stop the camera
-    # Calculate averages
-    average_capture_time = total_capture_time / N
-    total_time = time.time() - Start_time
-
-    # Print results
-    print(f"Average Capture time: {average_capture_time:.5f} seconds")
-    print(f"Total time for {N} iterations: {total_time:.5f} seconds. FPS: {N / total_time:.2f}")
-    
-    
-if __name__ == "__main__":
-    N=10
-    run_test()
+# Performance report
+elapsed_time = time.time() - start_time
+fps = frame_count / elapsed_time
+print(f"Captured {frame_count} frames in {elapsed_time:.2f} seconds ({fps:.2f} FPS)")
