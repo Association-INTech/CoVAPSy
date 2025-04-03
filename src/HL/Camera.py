@@ -3,6 +3,7 @@ from PIL import Image
 import numpy as np
 import os
 import logging
+import threading
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
@@ -23,6 +24,7 @@ class Camera:
         self.picam2.configure(config)
         self.picam2.start()
         self.flag_stop = False
+        self.thread = None  # Stocke le thread pour contrôle
         
     def capture_image(self):
         
@@ -42,9 +44,19 @@ class Camera:
             if self.flag_stop:
                 break
             self.image_no = 0
+
+    def start(self):
+        """Démarre la capture en continu dans un thread séparé."""
+        if self.thread is None or not self.thread.is_alive():  # Évite de lancer plusieurs threads
+            self.flag_stop = False  # Réinitialiser le flag d'arrêt
+            self.thread = threading.Thread(target=self.capture_images_continus, daemon=True)
+            self.thread.start()
     
     def stop(self):
+        """Arrête la capture et attend que le thread se termine proprement."""
         self.flag_stop = True
+        if self.thread is not None:
+            self.thread.join()  # Attendre la fin du thread avant de continuer
         self.picam2.stop()
         self.picam2.close()
         
