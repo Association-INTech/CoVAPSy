@@ -144,6 +144,7 @@ class Camera:
         Check if the car is facing a green or red wall by analyzing the bottom half of the image.
         """
         image = self.get_last_image()
+        print(image, type(image))
         height, _, _ = image.shape
         bottom_half = image[height // 2:, :, :]  # Slice the bottom half of the image
 

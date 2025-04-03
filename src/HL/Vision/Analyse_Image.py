@@ -20,6 +20,7 @@ def is_running_in_reversed(image, LEFT_IS_GREEN=True):
     Check if the car is running in reverse.
     If the car is in reverse, green will be on the right side of the image and red on the left.
     """
+    print(image, type(image))
     height, width, _ = image.shape
     left_half = image[:, :width // 2]
     right_half = image[:, width // 2:]
