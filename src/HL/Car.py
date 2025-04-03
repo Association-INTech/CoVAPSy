@@ -11,6 +11,7 @@ import logging as log
 from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS
 from Driver import Driver
 from Lidar import Lidar
+from Camera import Camera
 
 class Car:
     def __init__(self, driving_strategy=Driver().farthest_distants):
@@ -67,6 +68,16 @@ class Car:
                 log.info("Lidar initialized successfully")
             except Exception as e:
                 log.error(f"Error initializing Lidar: {e}")
+                raise
+        
+        def _initialize_camera():
+            """Initialize the camera."""
+            try:
+                self.camera = Camera()
+                self.camera.start()
+                log.info("Camera initialized successfully")
+            except Exception as e:
+                log.error(f"Error initializing Camera: {e}")
                 raise
         
         # Initialize speed limits

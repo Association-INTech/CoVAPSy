@@ -18,16 +18,16 @@ class Camera:
     def __init__(self):
         self.image_no = 0
         self.image_path = None
-        self.camera = Picamera2()
-        config = self.camera.create_preview_configuration(main={"size": (1920, 1080)}, format= "BGR888")
-        self.camera.configure(config)
-        self.camera.start()
+        self.picam2 = Picamera2()
+        config = self.picam2.create_preview_configuration(main={"size": (1920, 1080)}, format= "BGR888")
+        self.picam2.configure(config)
+        self.picam2.start()
         self.flag_stop = False
         
     def capture_image(self):
         
         self.image_path = os.path.join(SAVE_DIR, f"frame_{self.image_no:02d}.jpg")
-        frame = self.camera.capture_array()
+        frame = self.picam2.capture_array()
         image = Image.fromarray(frame).convert("RGB")
         image.save(self.image_path)
         self.image_no += 1
@@ -45,8 +45,8 @@ class Camera:
     
     def stop(self):
         self.flag_stop = True
-        self.camera.stop()
-        self.camera.close()
+        self.picam2.stop()
+        self.picam2.close()
         
     def get_last_image(self):
         last_image_no= self.image_no - 1 if self.image_no > 0 else 99 # 
