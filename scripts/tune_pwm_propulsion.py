@@ -1,6 +1,11 @@
 from rpi_hardware_pwm import HardwarePWM
 import time
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from src.HL.Autotech_constant import PWM_PROP
+# ...existing code...
 
 #paramètres de la fonction vitesse_m_s, à étalonner 
 direction_prop = PWM_PROP["direction"] # 1 pour les variateurs à droite ou un petit rapport correspond à une marche avant
