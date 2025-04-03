@@ -44,6 +44,8 @@ class Driver:
         vect_dir = softmax(vect_dir)  # distribution de probabilité
         vect_prop = softmax(vect_prop)
 
+        print(vect_dir, vect_prop)
+
         angle = sum(SPEED_LOOKUP*vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
         vitesse = sum(ANGLE_LOOKUP*vect_prop)
