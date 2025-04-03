@@ -4,7 +4,7 @@ from scipy.special import softmax
 import numpy as np
 import onnxruntime as ort
 
-from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH
+from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Temperature
 
 
 
@@ -56,7 +56,7 @@ class Driver:
         vect = self.ai_session.run(None, {'input': lidar_data[None]})[0][0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
-        vect_dir = softmax(vect_dir)  # distribution de probabilité
+        vect_dir = softmax(vect_dir/Temperature)  # distribution de probabilité
         vect_prop = softmax(vect_prop)
 
         angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
