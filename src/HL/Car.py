@@ -75,6 +75,7 @@ class Car:
             try:
                 self.camera = Camera()
                 self.camera.start()
+                time.sleep(0.2)  # Allow time for the camera to start
                 log.info("Camera initialized successfully")
             except Exception as e:
                 log.error(f"Error initializing Camera: {e}")
