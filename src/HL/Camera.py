@@ -68,7 +68,9 @@ class Camera:
     def get_last_image(self):
         last_image_no= self.image_no - 1 if self.image_no > 0 else 99 # 
         image_path = os.path.join(SAVE_DIR, f"frame_{last_image_no:02d}.jpg")
-        return Image.open(image_path).convert("RGB")
+        image= Image.open(image_path).convert("RGB")
+        image_np = np.array(image)
+        return image_np
     
     def camera_matrix(self, vector_size=128):
         """
