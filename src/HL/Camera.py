@@ -8,13 +8,14 @@ import shutil
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
+DEBUG_DIR = "Debug"  # Directory for debug images
 COLOUR_KEY = {
     "green": 1,
     "red": -1,
     "none": 0
 }
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
-Y_OFFSET = 0.5  # Offset for the y-axis in the image
+Y_OFFSET = -80  # Offset for the y-axis in the image
 
 class Camera:
     def __init__(self):
@@ -30,6 +31,7 @@ class Camera:
         picamera2_logger = log.getLogger("picamera2")
         picamera2_logger.setLevel(log.INFO)
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
+        os.makedirs(DEBUG_DIR, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
     def capture_image(self):
@@ -141,7 +143,8 @@ class Camera:
 
         # Append the recreated image to the bottom of the sliced image
         combined_image = np.vstack((image, recreated_image_resized))
-        Image.fromarray(combined_image).convert("RGB").save(f"debug_combined_image{self.image_no}.jpg")
+        path= os.path.join(DEBUG_DIR, f"debug_combined_image{self.image_no}.jpg")
+        Image.fromarray(combined_image).convert("RGB").save(path)
         
     def is_green_or_red(self):
         """
@@ -165,10 +168,16 @@ class Camera:
         Check if the car is running in reverse.
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
+        image= self.get_last_image()
         matrix = self.camera_matrix()
-        green = np.sum(matrix == COLOUR_KEY["green"])*range(1, len(matrix)+1)
-        red = np.sum(matrix == COLOUR_KEY["red"])*range(1, len(matrix)+1) #get the average of the index of the matrix where the color is red
+        green = np.sum((matrix == COLOUR_KEY["green"])*np.arange(1, len(matrix)+1))
+        red = np.sum((matrix == COLOUR_KEY["red"])*np.arange(1, len(matrix)+1)) #get the average of the index of the matrix where the color is red
+        if log.getLogger().isEnabledFor(log.DEBUG):
+            log.debug(f"green: {green}, red: {red}")
+            Image.fromarray(image).convert("RGB").save(os.path.join(DEBUG_DIR, f"wrong_direction{self.image_no}.jpg"))
         if LEFT_IS_GREEN and red > green:
             return True
         elif not LEFT_IS_GREEN and green > red:
             return True
+
+        
