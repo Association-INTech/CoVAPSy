@@ -34,6 +34,7 @@ class Camera:
         picamera2_logger.setLevel(log.INFO)
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
         os.makedirs(DEBUG_DIR, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
+        os.makedirs(DEBUG_DIR_wayfinding, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
     def capture_image(self):
