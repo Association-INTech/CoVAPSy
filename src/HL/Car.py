@@ -8,7 +8,7 @@ import logging as log
 
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
-from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS
+from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_PROP, PWM_PROP, SOCKET_ADRESS
 from Driver import Driver
 from Lidar import Lidar
 from Camera import Camera
@@ -26,10 +26,10 @@ class Car:
             """Initialize PWM components for propulsion and steering."""
             try:
                 # Load parameters from PWM_DIR
-                self.direction_prop = PWM_DIR["direction_prop"]
-                self.pwm_stop_prop = PWM_DIR["pwm_stop_prop"]
-                self.point_mort_prop = PWM_DIR["point_mort_prop"]
-                self.delta_pwm_max_prop = PWM_DIR["delta_pwm_max_prop"]
+                self.direction_prop = PWM_PROP["direction_prop"]
+                self.pwm_stop_prop = PWM_PROP["pwm_stop_prop"]
+                self.point_mort_prop = PWM_PROP["point_mort_prop"]
+                self.delta_pwm_max_prop = PWM_PROP["delta_pwm_max_prop"]
 
                 # Load parameters from PWM_PROP
                 self.direction = PWM_PROP["direction"]
