@@ -30,7 +30,7 @@ class Driver:
         camera_data = sp.ndimage.zoom(
             np.array(camera_data, dtype=np.float32),
             128/len(camera_data)
-        ) * 0
+        )
 
         self.context = np.concatenate([
             self.context[:, 1:],
