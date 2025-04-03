@@ -186,17 +186,16 @@ class Car:
 
 
 if __name__ == '__main__':
+    if input("Appuyez sur D pour démarrer en debug ou sur n'importe quelle autre touche pour démarrer en mode normal") in ("D", "d"):
+        log.basicConfig(level=log.DEBUG)
+    else:
+        log.basicConfig(level=log.INFO)
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver()
         GR86 = Car(Schumacher.ai)
         log.info("Initialisation terminée")
-        input= input("Press S for start and D for start in debug")
-        if input in ("D", "d", "S", "s") or bp2.is_pressed:
-            if input in ("D", "d"):
-                log.basicConfig(level=log.DEBUG)
-            else:
-                log.basicConfig(level=log.INFO)
+        if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
             log.info("Depart")
             while True:
                 GR86.main()
