@@ -2,7 +2,7 @@ from picamera2 import Picamera2 # type: ignore
 from PIL import Image
 import numpy as np
 import os
-import logging
+import logging as log
 import threading
 import shutil
 
@@ -102,7 +102,7 @@ class Camera:
         output_matrix[np.abs(red_intensities - green_intensities) <= COLOR_THRESHOLD] = COLOUR_KEY["none"]
 
         # Recreate the image from the matrix
-        if logging.getLogger().isEnabledFor(logging.DEBUG):
+        if log.getLogger().isEnabledFor(log.DEBUG):
             self.recreate_image_from_matrix(sliced_image, output_matrix, adjusted_width, vector_size)
 
         return output_matrix
@@ -144,7 +144,6 @@ class Camera:
         Check if the car is facing a green or red wall by analyzing the bottom half of the image.
         """
         image = self.get_last_image()
-        print(image, type(image))
         height, _, _ = image.shape
         bottom_half = image[height // 2:, :, :]  # Slice the bottom half of the image
 
@@ -163,6 +162,7 @@ class Camera:
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
         image = self.get_last_image()
+        log.debug(image, type(image))
         height, width, _ = image.shape
         left_half = image[:, :width // 2]
         right_half = image[:, width // 2:]
