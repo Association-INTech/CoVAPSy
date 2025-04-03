@@ -181,7 +181,7 @@ class Camera:
         if (left_red_intensity <= right_red_intensity) and LEFT_IS_GREEN:
             # If the left side is green and red is on the right, return True
             if log.getLogger().isEnabledFor(log.DEBUG):
-                image.save(os.path.join(DEBUG_DIR, f"wrongside{self.image_no}.jpg"))
+                Image.fromarray(left_half).convert("RGB").save(os.path.join(DEBUG_DIR, f"leftside{self.image_no}.jpg"))
             return True
         elif (left_red_intensity > right_red_intensity) and not LEFT_IS_GREEN:
             # If the left side is red and green is on the right, return True
