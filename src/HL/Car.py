@@ -131,6 +131,7 @@ class Car:
         
     def recule(self):
         """Set the car to reverse."""
+        log.info("Recule")
         self.set_vitesse_m_s(-self.vitesse_max_m_s_hard)
         time.sleep(0.2)
         self.set_vitesse_m_s(0)
@@ -154,6 +155,7 @@ class Car:
     
     def turn_around(self):
         """Turn the car around."""
+        log.info("Turning around")
         self.set_vitesse_m_s(0)
         self.set_direction_degre(MAX_ANGLE)
         self.recule() #blocing call
