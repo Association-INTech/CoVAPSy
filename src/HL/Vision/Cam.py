@@ -46,8 +46,8 @@ def run_test(resolution):
 
         # Convert the frame to an image
         # image = Image.fromarray(frame)
-        # array_time = time.time()  # Time after converting the frame to an image
-        # total_array_time += (array_time - capture_time)
+        array_time = time.time()  # Time after converting the frame to an image
+        total_array_time += (array_time - capture_time)
 
         # Convert the image to RGB
         #image = image.convert("RGB")
