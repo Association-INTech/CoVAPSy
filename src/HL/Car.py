@@ -172,7 +172,7 @@ class Car:
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
         
         lidar_data = self.lidar.rDistance[:1080]
-        angle, vitesse = self.driving(lidar_data)
+        angle, vitesse = self.driving(lidar_data*0.9)
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.camera.is_running_in_reversed():
@@ -190,7 +190,7 @@ class Car:
 
 
 if __name__ == '__main__':
-    Format= '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    Format= '%(asctime)s:%(name)s:%(levelname)s:%(message)s'
     if input("Appuyez sur D pour démarrer en debug ou sur n'importe quelle autre touche pour démarrer en mode normal") in ("D", "d"):
         log.basicConfig(level=log.DEBUG, format=Format)
     else:
