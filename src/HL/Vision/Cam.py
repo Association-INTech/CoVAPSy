@@ -50,17 +50,17 @@ def run_test(resolution):
         total_array_time += (array_time - capture_time)
 
         # Convert the image to RGB
-        image = image.convert("RGB")
+        #image = image.convert("RGB")
         convert_time = time.time()  # Time after converting the image to RGB
         total_convert_time += (convert_time - array_time)
 
         # Create the file path
-        frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
+        #frame_path = os.path.join(save_dir, f"frame_{frame_count:04d}.jpg")
         path_creation_time = time.time()  # Time after creating the path
         total_path_creation_time += (path_creation_time - convert_time)
 
         # Save the image
-        image.save(frame_path)
+        #image.save(frame_path)
         save_time = time.time()  # Time after saving the image
         total_save_time += (save_time - path_creation_time)
 
