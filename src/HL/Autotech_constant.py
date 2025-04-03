@@ -11,7 +11,7 @@ MODEL_PATH = os.path.join(script_dir, "model.onnx")  # Allows the model to be lo
 
 PWM_PROP = {
     "direction_prop": 1,
-    "pwm_stop_prop": 7.31,
+    "pwm_stop_prop": 7.37,
     "point_mort_prop": 0.5,
     "delta_pwm_max_prop": 1.1  # PWM at which the maximum speed is reached
 }
