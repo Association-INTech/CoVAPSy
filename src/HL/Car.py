@@ -153,7 +153,7 @@ class Car:
     
     def has_Crashed(self):
         
-        small_distances = [d for d in self.lidar.rDistance[360:720] if 0 < d < CRASH_DIST] # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
+        small_distances = [d for d in self.lidar.rDistance[300:780] if 0 < d < CRASH_DIST] # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
         log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
