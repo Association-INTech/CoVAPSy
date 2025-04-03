@@ -20,7 +20,7 @@ class Camera:
         self.image_no = 0
         self.image_path = None
         self.picam2 = Picamera2()
-        config = self.picam2.create_preview_configuration(main={"size": (1920, 1080)}, format= "BGR888")
+        config = self.picam2.create_preview_configuration(main={"size": (1920, 1080)})
         self.picam2.configure(config)
         self.picam2.start()
         self.flag_stop = False
