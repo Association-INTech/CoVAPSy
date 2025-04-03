@@ -3,40 +3,17 @@ from PIL import Image  # For saving images
 import time
 import os
 import shutil 
-from pprint import *
 # Initialize the camera
 
 # Set LIBCAMERA_LOG_LEVELS to suppress INFO logs
 os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
 
 
+picam2 = Picamera2()
 
-def run_test():
-    # Initialize the camera
-    picam2 = Picamera2()
-
-    # Inspect available sensor modes
-    print("Available sensor modes:")
-    pprint(picam2.sensor_modes)
-
-    # Find the desired mode
-    desired_mode = None
-    for mode in picam2.sensor_modes:
-        if mode["size"] == (640, 480) and mode["bit_depth"] == 8 and mode["fps"] >= 206.65:
-            desired_mode = mode
-            break
-
-    if not desired_mode:
-        raise ValueError("No sensor mode found with the desired configuration.")
-
-    print("Selected sensor mode:")
-    pprint(desired_mode)
-
-    # Configure the camera with the selected mode
-    config = picam2.create_preview_configuration(raw={
-        "output_size": desired_mode["size"],
-        "bit_depth": desired_mode["bit_depth"]
-    })
+def run_test(resolution):
+    # Configure the camera for preview
+    config = picam2.create_preview_configuration(main={"size": resolution}) # full sensor resolution (3280, 2464)
     picam2.configure(config)
 
     # Start the camera
@@ -63,7 +40,7 @@ def run_test():
         init_time = time.time()  # Initialize the time for the first frame
 
         # Capture the frame
-        frame = picam2.capture_array("raw")
+        frame = picam2.capture_array()
         capture_time = time.time()  # Time after capturing the frame
         total_capture_time += (capture_time - init_time)
 
@@ -107,5 +84,8 @@ def run_test():
     
     
 if __name__ == "__main__":
-    N=100
-    run_test()
+    N = 100  # Number of iterations to measure
+    
+    for resolution in [(3280, 2464),  (1280, 720), (1920, 1080),(640, 480), (320, 240)]:
+        print(f"Testing resolution: {resolution}")
+        run_test(resolution)
