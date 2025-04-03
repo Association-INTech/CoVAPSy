@@ -183,7 +183,7 @@ class Car:
             self.turn_around()
             self.reverse_count = 0
         if self.has_Crashed():
-            angle= self.camera.is_green_or_red()*MAX_ANGLE
+            angle= -self.camera.is_green_or_red()*MAX_ANGLE
             self.set_direction_degre(angle)
             self.recule()
 
