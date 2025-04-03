@@ -8,6 +8,7 @@ import shutil
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
+DEBUG_DIR = "Debug"  # Directory for debug images
 COLOUR_KEY = {
     "green": 1,
     "red": -1,
@@ -30,6 +31,7 @@ class Camera:
         picamera2_logger = log.getLogger("picamera2")
         picamera2_logger.setLevel(log.INFO)
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
+        os.makedirs(DEBUG_DIR, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
     def capture_image(self):
@@ -141,7 +143,8 @@ class Camera:
 
         # Append the recreated image to the bottom of the sliced image
         combined_image = np.vstack((image, recreated_image_resized))
-        Image.fromarray(combined_image).convert("RGB").save(f"debug_combined_image{self.image_no}.jpg")
+        path= os.path.join(DEBUG_DIR, f"debug_combined_image{self.image_no}.jpg")
+        Image.fromarray(combined_image).convert("RGB").save(path)
         
     def is_green_or_red(self):
         """
