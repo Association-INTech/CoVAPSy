@@ -18,6 +18,7 @@ Y_OFFSET = 0.5  # Offset for the y-axis in the image
 
 class Camera:
     def __init__(self):
+        os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
         self.image_no = 0
         self.image_path = None
         self.picam2 = Picamera2()
@@ -26,7 +27,8 @@ class Camera:
         self.picam2.start()
         self.flag_stop = False
         self.thread = None  # Stocke le thread pour contrôle ultérieur
-        log.basicConfig(level=log.INFO)
+        picamera2_logger = log.getLogger("picamera2")
+        picamera2_logger.setLevel(log.INFO)
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
