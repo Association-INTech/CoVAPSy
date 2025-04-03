@@ -26,7 +26,9 @@ class Camera:
         self.picam2.start()
         self.flag_stop = False
         self.thread = None  # Stocke le thread pour contrôle
+        
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
+        self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
     def capture_image(self):
         
