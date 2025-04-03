@@ -11,21 +11,15 @@ picam2.configure(config)
 save_dir = "captured_frames"
 os.makedirs(save_dir, exist_ok=True)
 
-frame_count = 0
+frame_count = 40
 start_time = time.time()
-capture_time = 5  # Capture for 5 seconds
 
-for i in range(200):  # Targeting ~40 FPS over 5 seconds
-    filename = os.path.join(save_dir, f"frame_{i:04d}.jpg")
-    picam2.capture_file(filename)  # No need for "format"
+picam2.start_and_capture_files("test{:d}.jpg", num_files=40)
 
-    frame_count += 1
-    if time.time() - start_time > capture_time:
-        break
 
-picam2.stop()
 
 # Performance report
 elapsed_time = time.time() - start_time
 fps = frame_count / elapsed_time
 print(f"Captured {frame_count} frames in {elapsed_time:.2f} seconds ({fps:.2f} FPS)")
+picam2.stop()
