@@ -164,7 +164,7 @@ class Camera:
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
         image = self.get_last_image()
-        log.info(image, type(image))
+        log.debug(image, type(image))
         height, width, _ = image.shape
         left_half = image[:, :width // 2]
         right_half = image[:, width // 2:]
