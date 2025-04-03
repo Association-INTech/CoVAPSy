@@ -211,8 +211,10 @@ if __name__ == '__main__':
         log.info("Initialisation terminée")
         if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
             log.info("Depart")
-            while True:
-                GR86.main()
+            for i in range(10):
+                GR86.turn_around()
+            # while True:
+            #     GR86.main()
         else:
             raise Exception("Le programme a été arrêté par l'utilisateur")
     except KeyboardInterrupt:
