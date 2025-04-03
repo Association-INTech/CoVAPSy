@@ -62,7 +62,7 @@ class Camera:
             raise ValueError("Vector size cannot be greater than image width")
 
         # Slice the middle 5% of the image height
-        sliced_image = image[height // 2 - height // 40 : height // 2 + height // 40, :, :]
+        sliced_image = image[height // 2 - height // 40 + Y_OFFSET: height // 2 + height // 40 + Y_OFFSET, :, :]
 
         # Ensure the width of the sliced image is divisible by vector_size
         adjusted_width = (width // vector_size) * vector_size
@@ -89,7 +89,7 @@ class Camera:
 
         return output_matrix
     
-    def recreate_image_from_matrix(image, matrix,adjusted_width, vector_size=128):
+    def recreate_image_from_matrix(self, image, matrix,adjusted_width, vector_size=128):
         """
         Recreate an image from the matrix of -1, 0, and 1 and append it to the bottom of the sliced image.
         """
@@ -119,4 +119,35 @@ class Camera:
 
         # Append the recreated image to the bottom of the sliced image
         combined_image = np.vstack((image, recreated_image_resized))
-        Image.fromarray(combined_image).convert("RGB").save(f"debug_combined_image{counter}.jpg")
+        Image.fromarray(combined_image).convert("RGB").save(f"debug_combined_image{self.image_no}.jpg")
+        
+    def is_green_or_red(self, image):
+        """
+        Check if the car is facing a green or red wall by analyzing the bottom half of the image.
+        """
+        height, _, _ = image.shape
+        bottom_half = image[height // 2:, :, :]  # Slice the bottom half of the image
+
+        red_intensity = np.mean(bottom_half[:, :, 0])  # Red channel in RGB
+        green_intensity = np.mean(bottom_half[:, :, 1])  # Green channel in RGB
+
+        if green_intensity > red_intensity + COLOR_THRESHOLD:
+            return COLOUR_KEY["green"]
+        elif red_intensity > green_intensity + COLOR_THRESHOLD:
+            return COLOUR_KEY["red"]
+        return COLOUR_KEY["none"]
+    
+    def is_running_in_reversed(self, image, LEFT_IS_GREEN=True):
+        """
+        Check if the car is running in reverse.
+        If the car is in reverse, green will be on the right side of the image and red on the left.
+        """
+        height, width, _ = image.shape
+        left_half = image[:, :width // 2]
+        right_half = image[:, width // 2:]
+
+        left_red_intensity = np.mean(left_half[:, :, 0])  # Red channel in RGB
+        right_red_intensity = np.mean(right_half[:, :, 0])  # Red channel in RGB
+        
+        # Allow to change the color of the left and right side
+        return (left_red_intensity <= right_red_intensity) if LEFT_IS_GREEN else (left_red_intensity > right_red_intensity)
