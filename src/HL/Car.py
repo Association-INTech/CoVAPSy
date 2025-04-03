@@ -73,6 +73,7 @@ class Car:
         def _initialize_camera():
             """Initialize the camera."""
             try:
+                self.reverse_count = 0
                 self.camera = Camera()
                 self.camera.start()
                 time.sleep(0.2)  # Allow time for the camera to start
@@ -96,6 +97,8 @@ class Car:
         _initialize_camera()
         
         self.driving = driving_strategy
+        
+        
 
         log.info("Car initialization complete")
 
@@ -169,8 +172,12 @@ class Car:
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.camera.is_running_in_reversed():
-            log.warning("La voiture roule à l'envers")
+            self.reverse_count += 1
+        else:
+            self.reverse_count = 0
+        if self.reverse_count > 3:
             self.turn_around()
+            self.reverse_count = 0
         if self.has_Crashed():
             angle= self.camera.is_green_or_red()*MAX_ANGLE
             self.set_direction_degre(angle)
