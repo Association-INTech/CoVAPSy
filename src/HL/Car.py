@@ -173,10 +173,10 @@ class Car:
 
         lidar_data = self.lidar.rDistance
         camera_data = self.camera.camera_matrix() # just some random size
-        # t0 = time.time()
+        t0 = time.time()
         angle, vitesse = self.driving(lidar_data, camera_data)
-        # t = time.time()
-        # print("ai duration", t-t0)
+        t = time.time()
+        print("ai duration", t-t0)
 
 
         self.set_direction_degre(angle)
