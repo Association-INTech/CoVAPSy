@@ -194,7 +194,7 @@ class WebotsVehicleGymEnvironment(gym.Env):
             reward = np.float32(-3.0)
             done = np.True_
         elif b_past_checkpoint:
-            reward = np.float32(0.75) #* np.cos(self.checkpoint_manager.getAngle() - self.rotation_field.getSFRotation()[3], dtype=np.float32)
+            reward = np.float32(1.0) #* np.cos(self.checkpoint_manager.getAngle() - self.rotation_field.getSFRotation()[3], dtype=np.float32)
             done = np.False_
         else:
             reward = np.float32(0.05)
