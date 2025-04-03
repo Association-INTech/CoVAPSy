@@ -16,8 +16,8 @@ class Driver:
     def omniscent(self, lidar_data, camera_data):
         return self.ai_update_lidar_camera(lidar_data, camera_data)
 
-    def ai(self, lidar_data, camera_data):
-        return self.ai_update_lidar(lidar_data, camera_data)
+    def ai(self, lidar_data):
+        return self.ai_update_lidar(lidar_data)
 
     def simple_minded(self, lidar_data):
         return self.farthest_distants(lidar_data)
@@ -51,7 +51,6 @@ class Driver:
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data):
-        raise NotImplementedError("This method doesn't work anymore")
         lidar_data = np.array(lidar_data, dtype=np.float32)
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
         vect = self.ai_session.run(None, {'input': lidar_data[None]})[0][0]
