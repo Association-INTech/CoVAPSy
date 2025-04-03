@@ -8,7 +8,7 @@ from src.HL.Autotech_constant import PWM_PROP
 # ...existing code...
 
 #paramètres de la fonction vitesse_m_s, à étalonner 
-direction_prop = PWM_PROP["direction"] # 1 pour les variateurs à droite ou un petit rapport correspond à une marche avant
+direction_prop = PWM_PROP["direction_prop"] # 1 pour les variateurs à droite ou un petit rapport correspond à une marche avant
 pwm_stop_prop = PWM_PROP["pwm_stop_prop"]
 point_mort_prop = PWM_PROP["point_mort_prop"]
 delta_pwm_max_prop = PWM_PROP["delta_pwm_max_prop"] #pwm à laquelle on atteint la vitesse maximale
