@@ -165,12 +165,11 @@ class Car:
         
         self.set_vitesse_m_s(0)
         self.set_direction_degre(MAX_ANGLE)
-        self.recule(0) #blocing call
-        self.set_vitesse_m_s(0)
-        self.set_direction_degre(-MAX_ANGLE)
-        self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
-        time.sleep(1)
-        self.set_vitesse_m_s(0)
+        self.recule(MAX_ANGLE) #blocing call
+        time.sleep(0.3)
+        if self.camera.is_running_in_reversed():
+            self.turn_around()
+
 
 
     def main(self):
