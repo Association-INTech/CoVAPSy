@@ -168,9 +168,13 @@ class Camera:
         Check if the car is running in reverse.
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
+        image= self.get_last_image()
         matrix = self.camera_matrix()
-        green = np.sum(matrix == COLOUR_KEY["green"])*range(1, len(matrix)+1)
-        red = np.sum(matrix == COLOUR_KEY["red"])*range(1, len(matrix)+1) #get the average of the index of the matrix where the color is red
+        green = np.sum((matrix == COLOUR_KEY["green"])*np.arange(1, len(matrix)+1))
+        red = np.sum((matrix == COLOUR_KEY["red"])*np.arange(1, len(matrix)+1)) #get the average of the index of the matrix where the color is red
+        if log.getLogger().isEnabledFor(log.DEBUG):
+            log.debug(f"green: {green}, red: {red}")
+            Image.fromarray(image).convert("RGB").save(os.path.join(DEBUG_DIR, f"wrong_direction{self.image_no}.jpg"))
         if LEFT_IS_GREEN and red > green:
             return True
         elif not LEFT_IS_GREEN and green > red:
