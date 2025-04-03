@@ -157,14 +157,15 @@ class Car:
     def turn_around(self):
         """Turn the car around."""
         log.info("Turning around")
-        self.set_vitesse_m_s(0)
-        self.set_direction_degre(MAX_ANGLE)
-        self.recule() #blocing call
-        self.set_vitesse_m_s(0)
-        self.set_direction_degre(-MAX_ANGLE)
-        self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
-        time.sleep(1)
-        self.set_vitesse_m_s(0)
+        
+        # self.set_vitesse_m_s(0)
+        # self.set_direction_degre(MAX_ANGLE)
+        # self.recule() #blocing call
+        # self.set_vitesse_m_s(0)
+        # self.set_direction_degre(-MAX_ANGLE)
+        # self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
+        # time.sleep(1)
+        # self.set_vitesse_m_s(0)
 
 
     def main(self):
