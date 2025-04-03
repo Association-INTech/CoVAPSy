@@ -25,8 +25,8 @@ class Camera:
         self.picam2.configure(config)
         self.picam2.start()
         self.flag_stop = False
-        self.thread = None  # Stocke le thread pour contrôle
-        
+        self.thread = None  # Stocke le thread pour contrôle ultérieur
+        log.basicConfig(level=log.INFO)
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
@@ -164,7 +164,7 @@ class Camera:
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
         image = self.get_last_image()
-        log.debug(image, type(image))
+        # log.debug(image, type(image))
         height, width, _ = image.shape
         left_half = image[:, :width // 2]
         right_half = image[:, width // 2:]
