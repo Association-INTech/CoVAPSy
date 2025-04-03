@@ -40,12 +40,12 @@ def run_test(resolution):
         init_time = time.time()  # Initialize the time for the first frame
 
         # Capture the frame
-        frame = picam2.capture_file(f"frame_{frame_count:04d}.jpg")
+        frame = picam2.capture_array()
         capture_time = time.time()  # Time after capturing the frame
         total_capture_time += (capture_time - init_time)
 
         # Convert the frame to an image
-        # image = Image.fromarray(frame)
+        image = Image.fromarray(frame)
         array_time = time.time()  # Time after converting the frame to an image
         total_array_time += (array_time - capture_time)
 
