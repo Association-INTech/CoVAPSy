@@ -7,7 +7,7 @@ MAX_ANGLE = 18
 CRASH_DIST = 110
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(script_dir, "model.onnx")  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
+MODEL_PATH = os.path.join(script_dir, "model_CNN1D.onnx")  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
 
 PWM_PROP = {
     "direction_prop": 1,

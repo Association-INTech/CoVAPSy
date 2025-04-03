@@ -9,15 +9,15 @@ from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH
 
 
 class Driver:
-    def __init__(self, context_size, horizontal_size):
+    def __init__(self, context_size=0, horizontal_size=0):
         self.ai_session = ort.InferenceSession(MODEL_PATH)
         self.context = np.zeros([2, context_size, horizontal_size], dtype=np.float32)
 
     def omniscent(self, lidar_data, camera_data):
-        pass
+        return self.ai_update_lidar_camera(lidar_data, camera_data)
 
     def ai(self, lidar_data, camera_data):
-        return self.ai_update_lidar_camera(lidar_data, camera_data)
+        return self.ai_update_lidar(lidar_data, camera_data)
 
     def simple_minded(self, lidar_data):
         return self.farthest_distants(lidar_data)
