@@ -9,7 +9,7 @@ from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH
 
 
 class Driver:
-    def __init__(self, context_size, horizontal_size):
+    def __init__(self, context_size=None, horizontal_size=None):
         self.ai_session = ort.InferenceSession(MODEL_PATH)
         self.context = np.zeros([2, context_size, horizontal_size], dtype=np.float32)
 

@@ -141,11 +141,13 @@ class Car:
 
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
-        
+
         lidar_data = self.lidar.rDistance
-        raise NotImplementedError("Camera data is not implemented")
-        camera_data = ...
+        camera_data = np.zeros([566]) # just some random size
+        t0 = time.time()
         angle, vitesse = self.driving(lidar_data, camera_data)
+        t = time.time() - t0
+        print("ai duration", t-t0)
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.has_Crashed():
