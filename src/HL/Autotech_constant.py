@@ -16,7 +16,7 @@ PWM_PROP = {
     "delta_pwm_max_prop": 1.1  # PWM at which the maximum speed is reached
 }
 
-PWM_PROP = {
+PWM_DIR = {
     "direction": -1,  # 1 for angle_pwm_min to the left, -1 for angle_pwm_min to the right
     "angle_pwm_min": 6.91,
     "angle_pwm_max": 10.7,
