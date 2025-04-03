@@ -11,6 +11,7 @@ import logging as log
 from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS
 from Driver import Driver
 from Lidar import Lidar
+from Camera import Camera
 
 class Car:
     def __init__(self, driving_strategy=Driver().farthest_distants):
@@ -69,6 +70,18 @@ class Car:
                 log.error(f"Error initializing Lidar: {e}")
                 raise
         
+        def _initialize_camera():
+            """Initialize the camera."""
+            try:
+                self.reverse_count = 0
+                self.camera = Camera()
+                self.camera.start()
+                time.sleep(0.2)  # Allow time for the camera to start
+                log.info("Camera initialized successfully")
+            except Exception as e:
+                log.error(f"Error initializing Camera: {e}")
+                raise
+        
         # Initialize speed limits
         _initialize_speed_limits()
 
@@ -81,7 +94,11 @@ class Car:
         # Initialize Lidar
         _initialize_lidar()
         
+        _initialize_camera()
+        
         self.driving = driving_strategy
+        
+        
 
         log.info("Car initialization complete")
 
@@ -113,12 +130,14 @@ class Car:
         self.pwm_dir.change_duty_cycle(angle_pwm)
         
     def recule(self):
+        """Set the car to reverse."""
+        log.info("Recule")
         self.set_vitesse_m_s(-self.vitesse_max_m_s_hard)
         time.sleep(0.2)
         self.set_vitesse_m_s(0)
         time.sleep(0.2)
-        self.set_vitesse_m_s(-2)
-        time.sleep(1)
+        self.set_vitesse_m_s(-4)
+        time.sleep(0.8)
     
     def stop(self):
         self.pwm_dir.stop()
@@ -129,14 +148,24 @@ class Car:
     
     def has_Crashed(self):
         small_distances = [d for d in self.lidar.rDistance if 0 < d < CRASH_DIST]
-        log.info(f"Distances: {small_distances}")
+        log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
-            min_index = np.argmin(small_distances)
-            direction = MAX_ANGLE if min_index < 540 else -MAX_ANGLE #540 is the middle of the lidar
-            self.set_direction_degre(-direction)  # Adjust direction
             return True
         return False
+    
+    def turn_around(self):
+        """Turn the car around."""
+        log.info("Turning around")
+        
+        # self.set_vitesse_m_s(0)
+        # self.set_direction_degre(MAX_ANGLE)
+        # self.recule() #blocing call
+        # self.set_vitesse_m_s(0)
+        # self.set_direction_degre(-MAX_ANGLE)
+        # self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
+        # time.sleep(1)
+        # self.set_vitesse_m_s(0)
 
 
     def main(self):
@@ -150,13 +179,31 @@ class Car:
         print("ai duration", t-t0)
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
+        if self.camera.is_running_in_reversed():
+            self.reverse_count += 1
+        else:
+            self.reverse_count = 0
+        if self.reverse_count > 3:
+            self.turn_around()
+            self.reverse_count = 0
         if self.has_Crashed():
+            color= self.camera.is_green_or_red()
+            if color == -1:
+                log.info("Obstacle rouge détecté")
+            if color == 1:
+                log.info("Obstacle vert détecté")
+            angle= -color*MAX_ANGLE
+            self.set_direction_degre(angle)
             self.recule()
 
 
 
 if __name__ == '__main__':
-    log.basicConfig(level=log.INFO)
+    Format= '%(asctime)s:%(name)s:%(levelname)s:%(message)s'
+    if input("Appuyez sur D pour démarrer en debug ou sur n'importe quelle autre touche pour démarrer en mode normal") in ("D", "d"):
+        log.basicConfig(level=log.DEBUG, format=Format)
+    else:
+        log.basicConfig(level=log.INFO, format=Format)
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver(128, 128)
