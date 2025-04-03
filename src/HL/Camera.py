@@ -169,19 +169,26 @@ class Camera:
             return COLOUR_KEY["red"]
         return COLOUR_KEY["none"]
     
-    def is_running_in_reversed(self, LEFT_IS_GREEN=True):
+    def is_running_in_reversed(self, image = None, LEFT_IS_GREEN=True):
         """
         Check if the car is running in reverse.
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
-        image = self.get_last_image()
+        if image is None:
+            image = self.get_last_image()
         matrix = self.camera_matrix(image=image)
-        green = np.sum((matrix == COLOUR_KEY["green"])*np.arange(1, len(matrix)+1))
-        red = np.sum((matrix == COLOUR_KEY["red"])*np.arange(1, len(matrix)+1)) #get the average of the index of the matrix where the color is red
+        if COLOUR_KEY["green"] not in matrix or COLOUR_KEY["red"] not in matrix:
+            # If there are no green or no red pixels, return False
+            return False
+        green_indices = (matrix == COLOUR_KEY["green"]) * np.arange(1, len(matrix) + 1)
+        average_green_index = np.mean(green_indices[green_indices > 0])  # Average index of green
+
+        red_indices = (matrix == COLOUR_KEY["red"]) * np.arange(1, len(matrix) + 1)
+        average_red_index = np.mean(red_indices[red_indices > 0])  # Average index of redcolor is red
         
-        if LEFT_IS_GREEN and red > green:
+        if LEFT_IS_GREEN and average_red_index > average_green_index:
             if log.getLogger().isEnabledFor(log.DEBUG):
-                log.debug(f"green: {green}, red: {red}")
+                log.debug(f"green: {average_green_index}, red: {average_red_index}")
                 vector_size = 128   
                 self.debug_counter += 1
                 height, width, _ = image.shape
@@ -195,7 +202,15 @@ class Camera:
                 debug_slice_image.save(os.path.join(DEBUG_DIR_wayfinding, f"wrong_direction_{self.debug_counter}_slice.jpg"))
                 Image.fromarray(image).convert("RGB").save(os.path.join(DEBUG_DIR_wayfinding, f"wrong_direction{self.debug_counter}.jpg"))
             return True
-        elif not LEFT_IS_GREEN and green > red:
+        elif not LEFT_IS_GREEN and average_green_index > average_red_index:
             return True
 
-        
+if __name__ == "__main__":
+    log.basicConfig(level=log.DEBUG)
+    image_path = "src\HL\wrong_direction33.jpg"  # Replace with your image path
+    camera = Camera()
+    camera.start()
+    pil_image = Image.open(image_path).convert("RGB")  # Open and ensure it's in RGB format
+    image = np.array(pil_image)  # Convert to NumPy array
+    
+    print(camera.is_running_in_reversed(image=image, LEFT_IS_GREEN=True))  # Check if the car is running in reverse
