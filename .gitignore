@@ -3,3 +3,5 @@ site
 *__pycache__*
 .vscode
 *.zip
+Captured_Frames
+Debug
