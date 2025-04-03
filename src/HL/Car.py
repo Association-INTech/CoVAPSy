@@ -149,7 +149,7 @@ class Car:
     def has_Crashed(self):
         small_distances = [d for d in self.lidar.rDistance if 0 < d < CRASH_DIST]
         log.debug(f"Distances: {small_distances}")
-        if len(small_distances) > 2:
+        if len(small_distances) > 8:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             return True
         return False
