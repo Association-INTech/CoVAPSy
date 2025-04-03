@@ -19,7 +19,7 @@ def get_true_model(model):
 
 
 def export_onnx(model):
-    model.policy.eval()
+    #model.policy.eval()
     device = model.policy.device
     true_model = get_true_model(model)
     x = torch.randn(1, 2, context_size, lidar_horizontal_resolution)
