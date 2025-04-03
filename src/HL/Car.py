@@ -189,10 +189,11 @@ class Car:
 
 
 if __name__ == '__main__':
+    Format= '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     if input("Appuyez sur D pour démarrer en debug ou sur n'importe quelle autre touche pour démarrer en mode normal") in ("D", "d"):
-        log.basicConfig(level=log.DEBUG)
+        log.basicConfig(level=log.DEBUG, format=Format)
     else:
-        log.basicConfig(level=log.INFO)
+        log.basicConfig(level=log.INFO, format=Format)
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver()
