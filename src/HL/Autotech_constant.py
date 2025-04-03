@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-MAX_SOFT_SPEED = 1.5
+MAX_SOFT_SPEED = 1
 MIN_SOFT_SPEED = 0.1
 MAX_ANGLE = 18
 CRASH_DIST = 110
@@ -28,5 +28,5 @@ SOCKET_ADRESS = {
     "PORT": 10940
 }
 
-ANGLE_LOOKUP = np.linspace(-MAX_ANGLE, MAX_ANGLE, 16)
+ANGLE_LOOKUP = np.linspace(-MAX_ANGLE+5, MAX_ANGLE-5, 16)
 SPEED_LOOKUP = np.linspace(MIN_SOFT_SPEED, MAX_SOFT_SPEED, 16)
