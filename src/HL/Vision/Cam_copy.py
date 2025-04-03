@@ -14,7 +14,7 @@ os.makedirs(save_dir, exist_ok=True)
 frame_count = 40
 start_time = time.time()
 
-picam2.start_and_capture_files("test{:d}.jpg", num_files=40)
+picam2.start_and_capture_files("test{:d}.jpg", initial_delay=5, delay=5, num_files=10)
 
 
 
