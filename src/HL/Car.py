@@ -142,8 +142,10 @@ class Car:
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
         
-        lidar_data = self.lidar.rDistance[:1080]
-        angle, vitesse = self.driving(lidar_data)
+        lidar_data = self.lidar.rDistance
+        raise NotImplementedError("Camera data is not implemented")
+        camera_data = ...
+        angle, vitesse = self.driving(lidar_data, camera_data)
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.has_Crashed():
@@ -155,7 +157,7 @@ if __name__ == '__main__':
     log.basicConfig(level=log.INFO)
     bp2 = Button("GPIO6")
     try:
-        Schumacher = Driver()
+        Schumacher = Driver(128, 128)
         GR86 = Car(Schumacher.ai)
         log.info("Initialisation terminée")
         if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
