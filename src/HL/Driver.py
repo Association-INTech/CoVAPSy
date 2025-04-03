@@ -27,10 +27,10 @@ class Driver:
             np.array(lidar_data, dtype=np.float32),
             128/len(lidar_data)
         )
-        camera_data = np.flip(sp.ndimage.zoom(
+        camera_data = sp.ndimage.zoom(
             np.array(camera_data, dtype=np.float32),
             128/len(camera_data)
-        ))
+        )
 
         self.context = np.concatenate([
             self.context[:, 1:],
