@@ -53,10 +53,11 @@ class Camera:
         image_path = os.path.join(SAVE_DIR, f"frame_{last_image_no:02d}.jpg")
         return Image.open(image_path) #.convert("RGB")
     
-    def camera_matrix(self, image, vector_size=128):
+    def camera_matrix(self, vector_size=128):
         """
         Create a matrix of -1, 0, and 1 for a line in the image. The matrix size is 128.
         """
+        image = self.get_last_image()
         height, width, _ = image.shape
         if vector_size > width:
             raise ValueError("Vector size cannot be greater than image width")
@@ -89,7 +90,7 @@ class Camera:
 
         return output_matrix
     
-    def recreate_image_from_matrix(self, image, matrix,adjusted_width, vector_size=128):
+    def recreate_image_from_matrix(self, image, matrix, adjusted_width, vector_size=128):
         """
         Recreate an image from the matrix of -1, 0, and 1 and append it to the bottom of the sliced image.
         """
@@ -121,10 +122,11 @@ class Camera:
         combined_image = np.vstack((image, recreated_image_resized))
         Image.fromarray(combined_image).convert("RGB").save(f"debug_combined_image{self.image_no}.jpg")
         
-    def is_green_or_red(self, image):
+    def is_green_or_red(self):
         """
         Check if the car is facing a green or red wall by analyzing the bottom half of the image.
         """
+        image = self.get_last_image()
         height, _, _ = image.shape
         bottom_half = image[height // 2:, :, :]  # Slice the bottom half of the image
 
@@ -137,11 +139,12 @@ class Camera:
             return COLOUR_KEY["red"]
         return COLOUR_KEY["none"]
     
-    def is_running_in_reversed(self, image, LEFT_IS_GREEN=True):
+    def is_running_in_reversed(self, LEFT_IS_GREEN=True):
         """
         Check if the car is running in reverse.
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
+        image = self.get_last_image()
         height, width, _ = image.shape
         left_half = image[:, :width // 2]
         right_half = image[:, width // 2:]

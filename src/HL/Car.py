@@ -92,6 +92,8 @@ class Car:
         # Initialize Lidar
         _initialize_lidar()
         
+        _initialize_camera()
+        
         self.driving = driving_strategy
 
         log.info("Car initialization complete")
@@ -124,12 +126,12 @@ class Car:
         self.pwm_dir.change_duty_cycle(angle_pwm)
         
     def recule(self):
+        """Set the car to reverse."""
         self.set_vitesse_m_s(-self.vitesse_max_m_s_hard)
         time.sleep(0.2)
         self.set_vitesse_m_s(0)
         time.sleep(0.2)
-        self.set_vitesse_m_s(-2)
-        time.sleep(1)
+        self.set_vitesse_m_s(-1)
     
     def stop(self):
         self.pwm_dir.stop()
@@ -143,11 +145,19 @@ class Car:
         log.info(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
-            min_index = np.argmin(small_distances)
-            direction = MAX_ANGLE if min_index < 540 else -MAX_ANGLE #540 is the middle of the lidar
-            self.set_direction_degre(-direction)  # Adjust direction
             return True
         return False
+    
+    def turn_around(self):
+        """Turn the car around."""
+        self.set_vitesse_m_s(0)
+        self.set_direction_degre(MAX_ANGLE)
+        self.recule() #blocing call
+        self.set_vitesse_m_s(0)
+        self.set_direction_degre(-MAX_ANGLE)
+        self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
+        time.sleep(1)
+        self.set_vitesse_m_s(0)
 
 
     def main(self):
@@ -157,7 +167,12 @@ class Car:
         angle, vitesse = self.driving(lidar_data)
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
+        if self.camera.is_running_in_reversed():
+            log.warning("La voiture roule à l'envers")
+            self.turn_around()
         if self.has_Crashed():
+            angle= self.camera.is_green_or_red()*MAX_ANGLE
+            self.set_direction_degre(angle)
             self.recule()
 
 
