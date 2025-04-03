@@ -14,7 +14,7 @@ COLOUR_KEY = {
     "none": 0
 }
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
-Y_OFFSET = -10  # Offset for the y-axis in the image
+Y_OFFSET = -40  # Offset for the y-axis in the image
 
 class Camera:
     def __init__(self):
