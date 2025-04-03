@@ -16,7 +16,7 @@ from Camera import Camera
 class Car:
     def __init__(self, driving_strategy=Driver().farthest_distants):
         """Initialize the car's components."""
-        
+
         def _initialize_speed_limits():
             """Set the car's speed limits."""
             self.vitesse_max_m_s_hard = 8  # Maximum hardware speed
@@ -69,7 +69,7 @@ class Car:
             except Exception as e:
                 log.error(f"Error initializing Lidar: {e}")
                 raise
-        
+
         def _initialize_camera():
             """Initialize the camera."""
             try:
@@ -81,7 +81,7 @@ class Car:
             except Exception as e:
                 log.error(f"Error initializing Camera: {e}")
                 raise
-        
+
         # Initialize speed limits
         _initialize_speed_limits()
 
@@ -93,29 +93,29 @@ class Car:
 
         # Initialize Lidar
         _initialize_lidar()
-        
+
         _initialize_camera()
-        
+
         self.driving = driving_strategy
-        
-        
+
+
 
         log.info("Car initialization complete")
 
     def set_vitesse_m_s(self, vitesse_m_s):
         """Set the car's speed in meters per second."""
         # Clamp the speed to the maximum and minimum speed
-        vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft)) 
+        vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft))
         vitesse_pwm = vitesse_m_s * (self.delta_pwm_max_prop)/self.vitesse_max_m_s_hard
-        
+
         if vitesse_m_s == 0:
             pwm = self.pwm_stop_prop
         elif vitesse_m_s > 0:
             pwm= self.pwm_stop_prop + self.direction_prop*(self.point_mort_prop + vitesse_pwm)
-            
+
         elif vitesse_m_s < 0:
             pwm= self.pwm_stop_prop - self.direction_prop*(self.point_mort_prop - vitesse_pwm)
-            
+
         self.pwm_prop.change_duty_cycle(pwm)
         log.debug(f"Vitesse: {vitesse_m_s} m/s, PWM: {pwm}")
 
@@ -123,12 +123,12 @@ class Car:
     def set_direction_degre(self, angle_degre):
         """Set the car's steering angle in degrees."""
         angle_pwm = self.angle_pwm_centre + self.direction * ((self.angle_pwm_max - self.angle_pwm_min) * angle_degre / (2 * MAX_ANGLE))
-        
+
         # Clamp the angle to the maximum and minimum angle
         angle_pwm = max(self.angle_pwm_min, min(angle_pwm, self.angle_pwm_max))
         log.debug(f"Angle: {angle_degre}°, PWM: {angle_pwm}")
         self.pwm_dir.change_duty_cycle(angle_pwm)
-        
+
     def recule(self):
         """Set the car to reverse."""
         log.info("Recule")
@@ -138,14 +138,14 @@ class Car:
         time.sleep(0.2)
         self.set_vitesse_m_s(-4)
         time.sleep(0.8)
-    
+
     def stop(self):
         self.pwm_dir.stop()
         self.pwm_prop.start(self.pwm_stop_prop)
         log.info("Arrêt du moteur")
         self.lidar.stop()
         # exit() #not to be used in prodution/library? https://www.geeksforgeeks.org/python-exit-commands-quit-exit-sys-exit-and-os-_exit/
-    
+
     def has_Crashed(self):
         small_distances = [d for d in self.lidar.rDistance if 0 < d < CRASH_DIST]
         log.debug(f"Distances: {small_distances}")
@@ -153,11 +153,11 @@ class Car:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             return True
         return False
-    
+
     def turn_around(self):
         """Turn the car around."""
         log.info("Turning around")
-        
+
         # self.set_vitesse_m_s(0)
         # self.set_direction_degre(MAX_ANGLE)
         # self.recule() #blocing call
@@ -172,11 +172,13 @@ class Car:
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
 
         lidar_data = self.lidar.rDistance
-        camera_data = np.zeros([566]) # just some random size
-        t0 = time.time()
+        camera_data = self.camera.camera_matrix() # just some random size
+        # t0 = time.time()
         angle, vitesse = self.driving(lidar_data, camera_data)
-        t = time.time()
-        print("ai duration", t-t0)
+        # t = time.time()
+        # print("ai duration", t-t0)
+
+
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.camera.is_running_in_reversed():
@@ -218,9 +220,8 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         GR86.stop()
         log.info("Le programme a été arrêté par l'utilisateur")
-    
+
     except Exception as e: # catch all exceptions to stop the car
         GR86.stop()
         log.error("Erreur inconnue")
         raise e # re-raise the exception to see the error message
-    
