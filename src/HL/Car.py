@@ -146,7 +146,7 @@ class Car:
         camera_data = np.zeros([566]) # just some random size
         t0 = time.time()
         angle, vitesse = self.driving(lidar_data, camera_data)
-        t = time.time() - t0
+        t = time.time()
         print("ai duration", t-t0)
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
