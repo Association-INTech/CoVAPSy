@@ -28,7 +28,7 @@ SOCKET_ADRESS = {
     "PORT": 10940
 }
 
-ANGLE_LOOKUP = np.linspace(-MAX_ANGLE, MAX_ANGLE, 16)
+ANGLE_LOOKUP = np.linspace(-MAX_ANGLE+3, MAX_ANGLE-3, 16)
 SPEED_LOOKUP = np.linspace(MIN_SOFT_SPEED, MAX_SOFT_SPEED, 16)
 
 Temperature = 0.75  # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
