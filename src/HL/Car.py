@@ -179,7 +179,7 @@ class Car:
 
 
 if __name__ == '__main__':
-    log.basicConfig(level=log.INFO)
+    log.basicConfig(level=log.DEBUG)
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver()
