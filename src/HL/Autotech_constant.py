@@ -31,6 +31,6 @@ SOCKET_ADRESS = {
 ANGLE_LOOKUP = np.linspace(-MAX_ANGLE+4, MAX_ANGLE-4, 16)
 SPEED_LOOKUP = np.linspace(MIN_SOFT_SPEED, MAX_SOFT_SPEED, 16)
 
-Temperature = 1.2  # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
+Temperature = 0.8  # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
 # the higher the temperature the more unprobalbe actions become probable, the lower the temperature the more probable actions become probable.
 # In our case Higher temperature means less agressive driving and lower temperature means more aggressive driving.
