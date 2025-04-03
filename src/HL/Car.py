@@ -129,15 +129,20 @@ class Car:
         log.debug(f"Angle: {angle_degre}°, PWM: {angle_pwm}")
         self.pwm_dir.change_duty_cycle(angle_pwm)
         
-    def recule(self):
+    def recule(self,angle):
         """Set the car to reverse."""
         log.info("Recule")
+        self.set_direction_degre(angle)
         self.set_vitesse_m_s(-self.vitesse_max_m_s_hard)
         time.sleep(0.2)
         self.set_vitesse_m_s(0)
         time.sleep(0.2)
-        self.set_vitesse_m_s(-4)
+        self.set_vitesse_m_s(-2)
         time.sleep(0.8)
+        if angle != 0:
+            self.set_direction_degre(-angle)
+            self.set_vitesse_m_s(1)
+            time.sleep(0.5)
     
     def stop(self):
         self.pwm_dir.stop()
@@ -189,8 +194,7 @@ class Car:
             if color == 1:
                 log.info("Obstacle vert détecté")
             angle= -color*MAX_ANGLE
-            self.set_direction_degre(angle)
-            self.recule()
+            self.recule(angle)
 
 
 
