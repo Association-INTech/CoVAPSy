@@ -9,6 +9,7 @@ import shutil
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
 DEBUG_DIR = "Debug"  # Directory for debug images
+DEBUG_DIR_wayfinding = "Debug_Wayfinding"  # Directory for wayfinding debug images
 COLOUR_KEY = {
     "green": 1,
     "red": -1,
@@ -20,6 +21,7 @@ Y_OFFSET = -80  # Offset for the y-axis in the image
 class Camera:
     def __init__(self):
         os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
+        self.debug_counter = 0  # Counter for debug images
         self.image_no = 0
         self.image_path = None
         self.picam2 = Picamera2()
@@ -76,11 +78,12 @@ class Camera:
         image_np = np.array(image)
         return image_np
     
-    def camera_matrix(self, vector_size=128):
+    def camera_matrix(self, vector_size=128, image=None):
         """
         Create a matrix of -1, 0, and 1 for a line in the image. The matrix size is 128.
         """
-        image = self.get_last_image()
+        if image is None:
+            image = self.get_last_image()
         height, width, _ = image.shape
         if vector_size > width:
             raise ValueError("Vector size cannot be greater than image width")
@@ -109,7 +112,9 @@ class Camera:
 
         # Recreate the image from the matrix
         if log.getLogger().isEnabledFor(log.DEBUG):
-            self.recreate_image_from_matrix(sliced_image, output_matrix, adjusted_width, vector_size)
+            path= os.path.join(DEBUG_DIR, f"debug_combined_image{self.debug_counter}.jpg")
+            self.recreate_image_from_matrix(sliced_image, output_matrix, adjusted_width, vector_size).save(path)
+            
 
         return output_matrix
     
@@ -143,8 +148,9 @@ class Camera:
 
         # Append the recreated image to the bottom of the sliced image
         combined_image = np.vstack((image, recreated_image_resized))
-        path= os.path.join(DEBUG_DIR, f"debug_combined_image{self.image_no}.jpg")
-        Image.fromarray(combined_image).convert("RGB").save(path)
+        self.debug_counter += 1
+        path= os.path.join(DEBUG_DIR, f"debug_combined_image{self.debug_counter}.jpg")
+        return Image.fromarray(combined_image).convert("RGB")
         
     def is_green_or_red(self):
         """
@@ -168,14 +174,26 @@ class Camera:
         Check if the car is running in reverse.
         If the car is in reverse, green will be on the right side of the image and red on the left.
         """
-        image= self.get_last_image()
-        matrix = self.camera_matrix()
+        image = self.get_last_image()
+        matrix = self.camera_matrix(image=image)
         green = np.sum((matrix == COLOUR_KEY["green"])*np.arange(1, len(matrix)+1))
         red = np.sum((matrix == COLOUR_KEY["red"])*np.arange(1, len(matrix)+1)) #get the average of the index of the matrix where the color is red
-        if log.getLogger().isEnabledFor(log.DEBUG):
-            log.debug(f"green: {green}, red: {red}")
-            Image.fromarray(image).convert("RGB").save(os.path.join(DEBUG_DIR, f"wrong_direction{self.image_no}.jpg"))
+        
         if LEFT_IS_GREEN and red > green:
+            if log.getLogger().isEnabledFor(log.DEBUG):
+                log.debug(f"green: {green}, red: {red}")
+                vector_size = 128   
+                self.debug_counter += 1
+                height, width, _ = image.shape
+                sliced_image = image[height // 2 - height // 40 + Y_OFFSET: height // 2 + height // 40 + Y_OFFSET, :, :]
+
+                # Ensure the width of the sliced image is divisible by vector_size
+                adjusted_width = (width // vector_size) * vector_size
+                sliced_image = sliced_image[:, :adjusted_width, :]
+                debug_slice_image=self.recreate_image_from_matrix(sliced_image, matrix, adjusted_width, vector_size)
+                
+                debug_slice_image.save(os.path.join(DEBUG_DIR_wayfinding, f"wrong_direction_{self.debug_counter}_slice.jpg"))
+                Image.fromarray(image).convert("RGB").save(os.path.join(DEBUG_DIR_wayfinding, f"wrong_direction{self.debug_counter}.jpg"))
             return True
         elif not LEFT_IS_GREEN and green > red:
             return True
