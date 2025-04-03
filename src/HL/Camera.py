@@ -4,6 +4,7 @@ import numpy as np
 import os
 import logging
 import threading
+import shutil
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
@@ -25,6 +26,7 @@ class Camera:
         self.picam2.start()
         self.flag_stop = False
         self.thread = None  # Stocke le thread pour contrôle
+        os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
         
     def capture_image(self):
         
@@ -59,6 +61,7 @@ class Camera:
             self.thread.join()  # Attendre la fin du thread avant de continuer
         self.picam2.stop()
         self.picam2.close()
+        shutil.rmtree(SAVE_DIR)  # Supprime le répertoire des images capturées
         
     def get_last_image(self):
         last_image_no= self.image_no - 1 if self.image_no > 0 else 99 # 
