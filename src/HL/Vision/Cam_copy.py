@@ -1,10 +1,9 @@
-from picamera2 import Picamera2, NullPreview
+from picamera2 import Picamera2
 import time
 import os
 
-# Initialize Picamera2 with NullPreview
+# Initialize Picamera2 without a preview
 picam2 = Picamera2()
-picam2.preview_configuration = NullPreview(picam2)
 
 # Configure the camera
 config = picam2.create_video_configuration(main={"size": (640, 480)})
