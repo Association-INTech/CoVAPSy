@@ -34,14 +34,14 @@ class Driver:
             self.ax[1].set_title('Speed Action Probabilities')
 
             # LiDAR img
-            lidar_img = self.ax[2].imshow(
+            self.lidar_img = self.ax[2].imshow(
                 np.zeros((128, 128)),
                 cmap='gray', vmin=0, vmax=np.log(31)
             )
             self.ax[2].set_title('LiDAR Image')
 
             # Camera img
-            camera_img = self.ax[3].imshow(
+            self.camera_img = self.ax[3].imshow(
                 np.zeros((128, 128, 3)),
                 cmap='RdYlGn', vmin=-1, vmax=1
             )
