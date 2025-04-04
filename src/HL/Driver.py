@@ -59,6 +59,8 @@ class Driver:
         return self.farthest_distants(lidar_data)
 
     def ai_update_lidar_camera(self, lidar_data, camera_data):
+        log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+
         lidar_data = sp.ndimage.zoom(
             np.array(lidar_data, dtype=np.float32),
             128/len(lidar_data)
