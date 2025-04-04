@@ -80,7 +80,7 @@ class Driver:
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
         vect_dir = softmax(vect_dir)  # distribution de probabilité
-        vect_dir = softmax(vect_prop)
+        vect_prop = softmax(vect_prop)
 
         if log.getLogger().isEnabledFor(log.DEBUG):
             log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
