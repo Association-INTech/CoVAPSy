@@ -14,6 +14,8 @@ from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH
 
 class Driver:
     def __init__(self, context_size=0, horizontal_size=0):
+        self.context_size = context_size
+        self.horizontal_size = horizontal_size
         self.ai_session = ort.InferenceSession(MODEL_PATH)
         self.context = np.zeros([2, context_size, horizontal_size], dtype=np.float32)
 
@@ -47,7 +49,8 @@ class Driver:
             )
             self.ax[3].set_title('Camera Image')
 
-
+    def reset(self):
+        self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32)
 
     def omniscent(self, lidar_data, camera_data):
         pass

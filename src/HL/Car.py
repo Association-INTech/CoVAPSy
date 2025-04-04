@@ -195,6 +195,7 @@ class Car:
             angle= -color*MAX_ANGLE
             self.set_direction_degre(angle)
             self.recule()
+            self.driver.reset()
 
 
 
