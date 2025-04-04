@@ -105,6 +105,7 @@ class Driver:
 
 
         print(" ".join([f"{x:.1f}" for x in vect_dir]))
+        print(" ".join([f"{x:.1f}" for x in vect_prop]), flush=True)
 
         angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
