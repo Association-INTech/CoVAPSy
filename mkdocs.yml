@@ -28,9 +28,9 @@ theme:
   #     example: octicons/beaker-16
   #     quote: octicons/quote-16
 
-  # locale: fr # does not work idk why -Arnaud
+  # locale: fr # does not work idk why -Arnaud autotech 2025
 
-repo_url: https://github.com/Club-INTech/CoVAPSy/
+repo_url: https://github.com/Association-INTech/CoVAPSy
 
 site_description: "AutoTech est un projet du Club de robotique INTech de Telecom SudParis et IMT Business School. Il a pour but de concevoir un véhicule autonome pour la compétition CoVAPSy."
 
@@ -46,4 +46,20 @@ markdown_extensions:
   - admonition # This is a plugin for adding colored boxes for notes, warnings, etc.
 
 plugins:
+  - search
   - mermaid2
+  # TODO: Overide theme to add authors and dates
+  # - git-authors #https://github.com/timvink/mkdocs-git-authors-plugin
+  # - git-revision-date-localized: #https://timvink.github.io/mkdocs-git-revision-date-localized-plugin/options/
+  #     type: timeago
+  #     custom_format: "%d. %B %Y"
+  #     timezone: Europe/Amsterdam
+  #     locale: en
+  #     fallback_to_build_date: false
+  #     enable_creation_date: true
+  #     exclude:
+  #         - index.md
+  #     enable_git_follow: true
+  #     enabled: true
+  #     strict: true
+

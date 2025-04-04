@@ -18,12 +18,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Fetch all history for all branches and tags. This is required for the git revision date plugin and git authors plugin.
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
       - name: Install MkDocs and plugins
-        run: pip install mkdocs mkdocs-mermaid2-plugin
+        run: pip install mkdocs mkdocs-mermaid2-plugin mkdocs-git-revision-date-localized-plugin mkdocs-git-authors-plugin
       - name: Build with MkDocs
         run: mkdocs build
       # - name: Check for hard links and symlinks
