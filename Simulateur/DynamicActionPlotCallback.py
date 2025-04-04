@@ -31,7 +31,7 @@ class DynamicActionPlotDistributionCallback(BaseCallback):
         # LiDAR img
         self.lidar_img = self.ax[2].imshow(
             np.zeros((lidar_horizontal_resolution, lidar_horizontal_resolution)),
-            cmap='gray', vmin=0, vmax=1
+            cmap='gray', vmin=0, vmax=10
         )
         self.ax[2].set_title('LiDAR Image')
 
