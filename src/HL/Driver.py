@@ -28,8 +28,8 @@ class Driver:
             self.ax[0].set_title('Steering Action Probabilities')
 
             # Speed bars
-            self.speed_bars = ax[1].bar(range(16), np.zeros(16), color='blue')
-            self.speed_avg = ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
+            self.speed_bars = self.ax[1].bar(range(16), np.zeros(16), color='blue')
+            self.speed_avg = self.ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
             self.ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
             self.ax[1].set_title('Speed Action Probabilities')
 
