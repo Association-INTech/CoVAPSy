@@ -31,7 +31,7 @@ class DynamicActionPlotDistributionCallback(BaseCallback):
         # LiDAR img
         self.lidar_img = self.ax[2].imshow(
             np.zeros((lidar_horizontal_resolution, lidar_horizontal_resolution)),
-            cmap='gray', vmin=0, vmax=10
+            cmap='gray', vmin=0, vmax=np.log(31)
         )
         self.ax[2].set_title('LiDAR Image')
 
@@ -48,7 +48,7 @@ class DynamicActionPlotDistributionCallback(BaseCallback):
 
         obs = self.locals["obs_tensor"].clone().detach()
 
-        self.lidar_img.set_array(obs[0, 0, :, :].cpu().numpy())
+        self.lidar_img.set_array(np.log(1 + obs[0, 0, :, :].cpu().numpy()))
         self.camera_img.set_array(obs[0, 1, :, :].cpu().numpy())
         with torch.no_grad():
             latent = self.model.policy.features_extractor(obs)
