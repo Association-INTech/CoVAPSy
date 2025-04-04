@@ -3,7 +3,7 @@ import numpy as np
 
 MAX_SOFT_SPEED = 1
 MIN_SOFT_SPEED = 0.1
-MAX_ANGLE = 18
+MAX_ANGLE = 14
 CRASH_DIST = 110
 
 script_dir = os.path.dirname(os.path.abspath(__file__))

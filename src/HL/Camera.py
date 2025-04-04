@@ -162,7 +162,7 @@ class Camera:
         elif red_intensity > green_intensity + COLOR_THRESHOLD:
             return COLOUR_KEY["red"]
         return COLOUR_KEY["none"]
-    
+
     def is_running_in_reversed(self, LEFT_IS_GREEN=True):
         """
         Check if the car is running in reverse.
