@@ -193,7 +193,7 @@ class Car:
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
         
         lidar_data = self.lidar.rDistance[:1080]
-        angle, vitesse = self.driving(lidar_data*0.9)
+        angle, vitesse = self.driving((lidar_data*0.9)/1000) #l'ai prend des distance en mètre et non en mm
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.camera.is_running_in_reversed():
