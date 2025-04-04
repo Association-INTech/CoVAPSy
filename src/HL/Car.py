@@ -141,7 +141,7 @@ class Car:
         # log.debug(f"Angle: {angle_degre}°, PWM: {angle_pwm}")
         self.pwm_dir.change_duty_cycle(angle_pwm)
         
-    def recule(self,angle):
+    def recule(self,angle,duration=0.5):
         """Set the car to reverse."""
         log.info("Recule")
         self.set_direction_degre(angle)
@@ -150,11 +150,15 @@ class Car:
         self.set_vitesse_m_s(0)
         time.sleep(0.2)
         self.set_vitesse_m_s(-2)
-        time.sleep(0.8)
+        time.sleep(duration+0.3)
         if angle != 0:
             self.set_direction_degre(-angle)
             self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
-            time.sleep(0.5)
+            time.sleep(duration)
+        else:
+            self.set_direction_degre(10)
+            self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
+            time.sleep(duration)
     
     def stop(self):
         self.pwm_dir.stop()
@@ -182,7 +186,7 @@ class Car:
         
         self.set_vitesse_m_s(0)
         self.set_direction_degre(MAX_ANGLE)
-        self.recule(MAX_ANGLE) #blocing call
+        self.recule(MAX_ANGLE,duration=1.5) #blocing call
         time.sleep(0.3)
         if self.camera.is_running_in_reversed():
             self.turn_around()
@@ -201,7 +205,7 @@ class Car:
             self.reverse_count += 1
         else:
             self.reverse_count = 0
-        if self.reverse_count > 3:
+        if self.reverse_count > 5:
             self.turn_around()
             self.reverse_count = 0
         if self.has_Crashed():
