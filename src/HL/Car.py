@@ -14,7 +14,7 @@ from Lidar import Lidar
 from Camera import Camera
 
 class Car:
-    def __init__(self, driving_strategy=Driver().farthest_distants):
+    def __init__(self, driver):
         """Initialize the car's components."""
 
         def _initialize_speed_limits():
@@ -96,9 +96,7 @@ class Car:
 
         _initialize_camera()
 
-        self.driving = driving_strategy
-
-
+        self.driver = driver
 
         log.info("Car initialization complete")
 
@@ -174,7 +172,7 @@ class Car:
         lidar_data = self.lidar.rDistance
         camera_data = self.camera.camera_matrix() # just some random size
         t0 = time.time()
-        angle, vitesse = self.driving(lidar_data, camera_data)
+        angle, vitesse = self.driver.ai(lidar_data, camera_data)
         t = time.time()
         print("ai duration", t-t0)
 
@@ -194,7 +192,7 @@ class Car:
                 log.info("Obstacle rouge détecté")
             if color == 1:
                 log.info("Obstacle vert détecté")
-            angle= -color*MAX_ANGLE*1.5
+            angle= -color*MAX_ANGLE
             self.set_direction_degre(angle)
             self.recule()
 
