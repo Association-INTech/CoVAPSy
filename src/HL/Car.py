@@ -8,10 +8,11 @@ import logging as log
 
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
-from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS
+from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS, REAR_BACKUP_DIST
 from Driver import Driver
 from Lidar import Lidar
 from Camera import Camera
+from ToF import ToF
 
 class Car:
     def __init__(self, driving_strategy=Driver().farthest_distants):
@@ -81,6 +82,15 @@ class Car:
             except Exception as e:
                 log.error(f"Error initializing Camera: {e}")
                 raise
+            
+        def _initialize_tof():
+            """Initialize the ToF sensor."""
+            try:
+                self.tof = ToF()
+                log.info("ToF initialized successfully")
+            except Exception as e:
+                log.error(f"Error initializing ToF: {e}")
+                raise
         
         # Initialize speed limits
         _initialize_speed_limits()
@@ -95,6 +105,8 @@ class Car:
         _initialize_lidar()
         
         _initialize_camera()
+        
+        _initialize_tof()
         
         self.driving = driving_strategy
         
@@ -157,6 +169,10 @@ class Car:
         log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
+            while self.tof.get_distance() < REAR_BACKUP_DIST:
+                log.info("Obstacle arriere détecté")
+                self.set_vitesse_m_s(0)
+                time.sleep(0.1)
             return True
         return False
     
