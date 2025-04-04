@@ -170,7 +170,7 @@ class Car:
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             while self.tof.get_distance() < REAR_BACKUP_DIST:
-                log.info("Obstacle arriere détecté")
+                log.info(f"Obstacle arriere détecté {self.tof.get_distance()}")
                 self.set_vitesse_m_s(0)
                 time.sleep(0.1)
             return True
