@@ -8,36 +8,6 @@ import logging as log
 
 from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH
 
-if log.getLogger().isEnabledFor(log.DEBUG):
-    fig, ax = plt.subplots(4, 1, figsize=(10, 8))
-    steering_bars = ax[0].bar(range(n_actions_steering), np.zeros(n_actions_steering), color='blue')
-    steering_avg = [
-        ax[0].plot([0, 0], [0,  1], color=(i/3, 1 - i/3, 0), label='Average')[0]
-        for i in range(4)
-    ]
-    ax[0].set_ylim(0, 1) # Probabilities range from 0 to 1
-    ax[0].set_title('Steering Action Probabilities')
-
-    # Speed bars
-    speed_bars = ax[1].bar(range(16), np.zeros(16), color='blue')
-    speed_avg = ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
-    ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
-    ax[1].set_title('Speed Action Probabilities')
-
-    # LiDAR img
-    lidar_img = ax[2].imshow(
-        np.zeros((128, 128)),
-        cmap='gray', vmin=0, vmax=np.log(31)
-    )
-    ax[2].set_title('LiDAR Image')
-
-    # Camera img
-    camera_img = ax[3].imshow(
-        np.zeros((128, 128, 3)),
-        cmap='RdYlGn', vmin=-1, vmax=1
-    )
-    ax[3].set_title('Camera Image')
-
 
 
 
@@ -46,6 +16,38 @@ class Driver:
     def __init__(self, context_size=0, horizontal_size=0):
         self.ai_session = ort.InferenceSession(MODEL_PATH)
         self.context = np.zeros([2, context_size, horizontal_size], dtype=np.float32)
+
+        if log.getLogger().isEnabledFor(log.DEBUG):
+            self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
+            self.steering_bars = self.ax[0].bar(range(16), np.zeros(16), color='blue')
+            self.steering_avg = [
+                self.ax[0].plot([0, 0], [0,  1], color=(i/3, 1 - i/3, 0), label='Average')[0]
+                for i in range(4)
+            ]
+            self.ax[0].set_ylim(0, 1) # Probabilities range from 0 to 1
+            self.ax[0].set_title('Steering Action Probabilities')
+
+            # Speed bars
+            self.speed_bars = ax[1].bar(range(16), np.zeros(16), color='blue')
+            self.speed_avg = ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
+            self.ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
+            self.ax[1].set_title('Speed Action Probabilities')
+
+            # LiDAR img
+            lidar_img = self.ax[2].imshow(
+                np.zeros((128, 128)),
+                cmap='gray', vmin=0, vmax=np.log(31)
+            )
+            self.ax[2].set_title('LiDAR Image')
+
+            # Camera img
+            camera_img = self.ax[3].imshow(
+                np.zeros((128, 128, 3)),
+                cmap='RdYlGn', vmin=-1, vmax=1
+            )
+            self.ax[3].set_title('Camera Image')
+
+
 
     def omniscent(self, lidar_data, camera_data):
         pass
@@ -79,21 +81,21 @@ class Driver:
         vect_dir = softmax(vect_prop)
 
         if log.getLogger().isEnabledFor(log.DEBUG):
-            lidar_img.set_array(np.log(1 + self.context[0, 0, :, :].cpu().numpy()))
-            camera_img.set_array(self.context[0, 1, :, :].cpu().numpy())
+            self.lidar_img.set_array(np.log(1 + self.context[0, 0, :, :].cpu().numpy()))
+            self.camera_img.set_array(self.context[0, 1, :, :].cpu().numpy())
 
             for i, bar in enumerate(self.steering_bars):
                 bar.set_height(vect_dir[i].item())
 
             for i in range(4):
                 steering_avg = (vect_dir / vect_dir.sum() * np.arange(16)).sum().item()
-                steering_avg[i].set_xdata([steering_avg, steering_avg])
+                self.steering_avg[i].set_xdata([steering_avg, steering_avg])
 
             for i, bar in enumerate(self.speed_bars):
                 bar.set_height(vect_dir[i].item())
 
             speed_avg = (vect_dir * np.arange(16)).sum().item()
-            speed_avg.set_xdata([speed_avg, speed_avg])
+            self.speed_avg.set_xdata([speed_avg, speed_avg])
 
             plt.draw()
             plt.pause(1e-8)
