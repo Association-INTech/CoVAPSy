@@ -14,7 +14,7 @@ class ToF:
         i2c = busio.I2C(board.SCL, board.SDA)
         self.vl53 = VL53L0X(i2c)
         
-    def get_rear_distance(self):
+    def get_distance(self):
         """
         Get the distance from the rear ToF sensor.
         """
