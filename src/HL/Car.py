@@ -207,7 +207,7 @@ if __name__ == '__main__':
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver(128, 128)
-        GR86 = Car(Schumacher.ai)
+        GR86 = Car(Schumacher)
         log.info("Initialisation terminée")
         if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
             log.info("Depart")
