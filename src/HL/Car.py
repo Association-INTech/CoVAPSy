@@ -129,7 +129,7 @@ class Car:
             pwm= self.pwm_stop_prop - self.direction_prop*(self.point_mort_prop - vitesse_pwm)
             
         self.pwm_prop.change_duty_cycle(pwm)
-        log.debug(f"Vitesse: {vitesse_m_s} m/s, PWM: {pwm}")
+        # log.debug(f"Vitesse: {vitesse_m_s} m/s, PWM: {pwm}")
 
 
     def set_direction_degre(self, angle_degre):
@@ -138,7 +138,7 @@ class Car:
         
         # Clamp the angle to the maximum and minimum angle
         angle_pwm = max(self.angle_pwm_min, min(angle_pwm, self.angle_pwm_max))
-        log.debug(f"Angle: {angle_degre}°, PWM: {angle_pwm}")
+        # log.debug(f"Angle: {angle_degre}°, PWM: {angle_pwm}")
         self.pwm_dir.change_duty_cycle(angle_pwm)
         
     def recule(self,angle):
@@ -194,6 +194,7 @@ class Car:
         
         lidar_data = self.lidar.rDistance[:1080]
         angle, vitesse = self.driving((lidar_data)/1000) #l'ai prend des distance en mètre et non en mm
+        log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
         if self.camera.is_running_in_reversed():
