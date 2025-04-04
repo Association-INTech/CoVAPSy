@@ -194,7 +194,7 @@ class Car:
                 log.info("Obstacle rouge détecté")
             if color == 1:
                 log.info("Obstacle vert détecté")
-            angle= -color*MAX_ANGLE
+            angle= -color*MAX_ANGLE*1.5
             self.set_direction_degre(angle)
             self.recule()
 
