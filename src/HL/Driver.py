@@ -1,10 +1,44 @@
 import math
+from matplotlib import pyplot as plt
 import scipy as sp
 from scipy.special import softmax
 import numpy as np
 import onnxruntime as ort
+import logging as log
 
 from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH
+
+if log.getLogger().isEnabledFor(log.DEBUG):
+    fig, ax = plt.subplots(4, 1, figsize=(10, 8))
+    steering_bars = ax[0].bar(range(n_actions_steering), np.zeros(n_actions_steering), color='blue')
+    steering_avg = [
+        ax[0].plot([0, 0], [0,  1], color=(i/3, 1 - i/3, 0), label='Average')[0]
+        for i in range(4)
+    ]
+    ax[0].set_ylim(0, 1) # Probabilities range from 0 to 1
+    ax[0].set_title('Steering Action Probabilities')
+
+    # Speed bars
+    speed_bars = ax[1].bar(range(n_actions_speed), np.zeros(n_actions_speed), color='blue')
+    speed_avg = ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
+    ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
+    ax[1].set_title('Speed Action Probabilities')
+
+    # LiDAR img
+    lidar_img = ax[2].imshow(
+        np.zeros((lidar_horizontal_resolution, lidar_horizontal_resolution)),
+        cmap='gray', vmin=0, vmax=np.log(31)
+    )
+    ax[2].set_title('LiDAR Image')
+
+    # Camera img
+    camera_img = ax[3].imshow(
+        np.zeros((camera_horizontal_resolution, camera_horizontal_resolution, 3)),
+        cmap='RdYlGn', vmin=-1, vmax=1
+    )
+    ax[3].set_title('Camera Image')
+
+
 
 
 
@@ -42,7 +76,28 @@ class Driver:
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
         vect_dir = softmax(vect_dir)  # distribution de probabilité
-        vect_prop = softmax(vect_prop)
+        vect_dir = softmax(vect_prop)
+
+        if log.getLogger().isEnabledFor(log.DEBUG):
+            lidar_img.set_array(np.log(1 + self.context[0, 0, :, :].cpu().numpy()))
+            camera_img.set_array(self.context[0, 1, :, :].cpu().numpy())
+
+            for i, bar in enumerate(self.steering_bars):
+                bar.set_height(vect_dir[i].item())
+
+            for i in range(4):
+                steering_avg = (vect_dir / vect_dir.sum() * np.arange(16)).sum().item()
+                steering_avg[i].set_xdata([steering_avg, steering_avg])
+
+            for i, bar in enumerate(self.speed_bars):
+                bar.set_height(vect_dir[i].item())
+
+            speed_avg = (vect_dir * np.arange(16)).sum().item()
+            speed_avg.set_xdata([speed_avg, speed_avg])
+
+            plt.draw()
+            plt.pause(1e-8)
+
 
         print(" ".join([f"{x:.1f}" for x in vect_dir]))
 

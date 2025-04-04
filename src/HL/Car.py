@@ -26,16 +26,16 @@ class Car:
             """Initialize PWM components for propulsion and steering."""
             try:
                 # Load parameters from PWM_DIR
-                self.direction_prop = PWM_DIR["direction_prop"]
-                self.pwm_stop_prop = PWM_DIR["pwm_stop_prop"]
-                self.point_mort_prop = PWM_DIR["point_mort_prop"]
-                self.delta_pwm_max_prop = PWM_DIR["delta_pwm_max_prop"]
+                self.direction_prop = PWM_PROP["direction_prop"]
+                self.pwm_stop_prop = PWM_PROP["pwm_stop_prop"]
+                self.point_mort_prop = PWM_PROP["point_mort_prop"]
+                self.delta_pwm_max_prop = PWM_PROP["delta_pwm_max_prop"]
 
                 # Load parameters from PWM_PROP
-                self.direction = PWM_PROP["direction"]
-                self.angle_pwm_min = PWM_PROP["angle_pwm_min"]
-                self.angle_pwm_max = PWM_PROP["angle_pwm_max"]
-                self.angle_pwm_centre = PWM_PROP["angle_pwm_centre"]
+                self.direction = PWM_DIR["direction"]
+                self.angle_pwm_min = PWM_DIR["angle_pwm_min"]
+                self.angle_pwm_max = PWM_DIR["angle_pwm_max"]
+                self.angle_pwm_centre = PWM_DIR["angle_pwm_centre"]
 
                 # Initialize propulsion PWM
                 self.pwm_prop = HardwarePWM(pwm_channel=0, hz=50, chip=2)
