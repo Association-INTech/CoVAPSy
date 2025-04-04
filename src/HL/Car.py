@@ -192,8 +192,8 @@ class Car:
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
         
-        lidar_data = self.lidar.rDistance[:1080]
-        angle, vitesse = self.driving((lidar_data)/1000) #l'ai prend des distance en mètre et non en mm
+        lidar_data = self.lidar.rDistance[:1080]/1000
+        angle, vitesse = self.driving(lidar_data) #l'ai prend des distance en mètre et non en mm
         log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
