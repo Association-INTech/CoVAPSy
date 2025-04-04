@@ -18,7 +18,7 @@ Il communique par Ethernet en utilisant le protocole [Secure Communications Inte
 Il faut donc choisir une adresse ip dans le bon sous-resaux. Nous avons arbitrairement choisi:
 
 ```
-192.168.0.11
+192.168.0.20
 ```
 
 ## UST-10lx specs
@@ -70,7 +70,35 @@ sensor.stop()
 
 ```
 
+!!! note
+    This class has been renamed to Lidar to be more descriptive in code.
+
+!!! note 
+    After contacting the author, he has agreed to licence his script as MIT (none before), allowing us to do the same on this repository.
+
 ## Using Hokuyolx class 
 
 This class comes from [SkoltechRobotics/hokuyolx](https://github.com/SkoltechRobotics/hokuyolx). 
 This class has considerably more options than [HokuyoReader](#using-hokuyoreader-class) but is more complicated to understand. This class is documented at [http://hokuyolx.rtfd.org/](http://hokuyolx.rtfd.org/). As of 12/12/24 it doesn't work out off the box and we use [HokuyoReader](#using-hokuyoreader-class)
+
+## Les galères
+
+On a eu pas mal de galères avec le lidar qui ce déconnecter de manière intempestive. En temps normal, soit le lidar est débranché, l’interface eth0 est Down et elle n’a pas d’IP, soit le lidar est branché et l’interface est UP avec un IP static (192.168.1.20). Malheureusement, des fois, pour des raisons un peu mystère, l’interface rester UP, mais perd son IP fixe.
+
+Débrancher et rebrancher le lidar a systématiquement marché, mais n’adresse pas la cause du problème. 2 théories : 
+- Le câble est baisé et fait un faux contact 
+- Le Network manager de la RPI fout la merde
+
+Comme la languette de rétention, Ethernet était un peu mort donc on a reserti un nouveau connecteur (Merci MiNET ❤️). Cela a résolu une grande partie du problème et nous n’avons observer que deux récidives : l’une directement après l’autre le 03/04/25 lors des essais sur piste. 
+
+###Quelques commandes utiles
+
+```bash
+ip a
+```
+Permets de voir les différentes interfaces réseau, leurs statuts et les IP associer.
+
+```bash 
+watch -n 0.1 "ip a"
+```
+Permet d’exécuter toutes les 0,1 s (le max) une commande et d’affiche le résultat, ici`ip a`.
