@@ -19,21 +19,21 @@ if log.getLogger().isEnabledFor(log.DEBUG):
     ax[0].set_title('Steering Action Probabilities')
 
     # Speed bars
-    speed_bars = ax[1].bar(range(n_actions_speed), np.zeros(n_actions_speed), color='blue')
+    speed_bars = ax[1].bar(range(16), np.zeros(16), color='blue')
     speed_avg = ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
     ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
     ax[1].set_title('Speed Action Probabilities')
 
     # LiDAR img
     lidar_img = ax[2].imshow(
-        np.zeros((lidar_horizontal_resolution, lidar_horizontal_resolution)),
+        np.zeros((128, 128)),
         cmap='gray', vmin=0, vmax=np.log(31)
     )
     ax[2].set_title('LiDAR Image')
 
     # Camera img
     camera_img = ax[3].imshow(
-        np.zeros((camera_horizontal_resolution, camera_horizontal_resolution, 3)),
+        np.zeros((128, 128, 3)),
         cmap='RdYlGn', vmin=-1, vmax=1
     )
     ax[3].set_title('Camera Image')
