@@ -48,8 +48,8 @@ class DynamicActionPlotDistributionCallback(BaseCallback):
 
         obs = self.locals["obs_tensor"].clone().detach()
 
-        self.lidar_img.set_array(obs[0, 0, -1, :].cpu().numpy())
-        self.camera_img.set_array(obs[0, 1, -1, :].cpu().numpy())
+        self.lidar_img.set_array(obs[0, 0, -1, None, :].cpu().numpy())
+        self.camera_img.set_array(obs[0, 1, -1, None, :].cpu().numpy())
         with torch.no_grad():
             latent = self.model.policy.features_extractor(obs)
             extracted = self.model.policy.mlp_extractor.policy_net(latent)
