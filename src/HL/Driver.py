@@ -81,7 +81,8 @@ class Driver:
         vect_dir = softmax(vect_prop)
 
         if log.getLogger().isEnabledFor(log.DEBUG):
-            self.lidar_img.set_array(np.log(1 + self.context[0])) 
+            log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+            self.lidar_img.set_array(np.log(1 + self.context[0]))
             self.camera_img.set_array(self.context[1])
 
             for i, bar in enumerate(self.steering_bars):
