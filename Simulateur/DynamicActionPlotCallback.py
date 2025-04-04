@@ -5,12 +5,13 @@ import torch
 import torch.nn.functional as F
 from config import *
 
+
 steering_true = (n_actions_steering + 1) // 2
 
 class DynamicActionPlotDistributionCallback(BaseCallback):
     def __init__(self, verbose=0):
         super().__init__(verbose)
-        self.fig, self.ax = plt.subplots(2, 1, figsize=(10, 8))
+        self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
 
         # Steering bars
         self.steering_bars = self.ax[0].bar(range(n_actions_steering), np.zeros(n_actions_steering), color='blue')
@@ -27,11 +28,28 @@ class DynamicActionPlotDistributionCallback(BaseCallback):
         self.ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
         self.ax[1].set_title('Speed Action Probabilities')
 
+        # LiDAR img
+        self.lidar_img = self.ax[2].imshow(
+            np.zeros((lidar_horizontal_resolution, lidar_horizontal_resolution)),
+            cmap='gray', vmin=0, vmax=np.log(31)
+        )
+        self.ax[2].set_title('LiDAR Image')
+
+        # Camera img
+        self.camera_img = self.ax[3].imshow(
+            np.zeros((camera_horizontal_resolution, camera_horizontal_resolution, 3)),
+            cmap='RdYlGn', vmin=-1, vmax=1
+        )
+        self.ax[3].set_title('Camera Image')
+
     def _on_step(self) -> bool:
         global steering_true
         # Get the action probabilities
 
         obs = self.locals["obs_tensor"].clone().detach()
+
+        self.lidar_img.set_array(np.log(1 + obs[0, 0, :, :].cpu().numpy()))
+        self.camera_img.set_array(obs[0, 1, :, :].cpu().numpy())
         with torch.no_grad():
             latent = self.model.policy.features_extractor(obs)
             extracted = self.model.policy.mlp_extractor.policy_net(latent)
