@@ -5,7 +5,7 @@ MAX_SOFT_SPEED = 1
 MIN_SOFT_SPEED = 0.1
 MAX_ANGLE = 18
 CRASH_DIST = 110
-REAR_BACKUP_DIST = 30  #mm Distance at which the car will NOT reverse due to the obstacle behind it
+REAR_BACKUP_DIST = 100  #mm Distance at which the car will NOT reverse due to the obstacle behind it
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(script_dir, "model_CNN1D.onnx")  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
