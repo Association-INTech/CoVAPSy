@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-MAX_SOFT_SPEED = 1
+MAX_SOFT_SPEED = 1.5
 MIN_SOFT_SPEED = 0.1
 MAX_ANGLE = 18
 CRASH_DIST = 110
