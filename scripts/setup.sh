@@ -19,6 +19,7 @@ pip install Adafruit-SSD1306 --break-system-packages
 pip install rpi_hardware_pwm --break-system-packages
 pip install matplotlib --break-system-packages
 pip install RPi.GPIO --break-system-packages
+<<<<<<< HEAD:scripts/setup.sh
 pip install numpy --break-system-packages 
 pip install onnxruntime --break-system-packages
 pip install netifaces2 --break-system-packages
@@ -28,3 +29,7 @@ pip install netifaces2 --break-system-packages
 # Add the cron job to run the script at reboot
 (crontab -l 2>/dev/null; echo "@reboot /home/intech/CoVAPSy/scripts/startup.sh") | crontab -
 
+=======
+
+
+>>>>>>> origin/oled_annimation:Utils/setup.sh

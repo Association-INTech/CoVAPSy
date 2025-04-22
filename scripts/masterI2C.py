@@ -12,6 +12,7 @@ def write_data(data):
     data_list = [ord(char) for char in data]
     bus.write_i2c_block_data(SLAVE_ADDRESS, 0, data_list)
 
+<<<<<<< HEAD:scripts/masterI2C.py
 import struct
 
 def read_data(length):
@@ -23,6 +24,13 @@ def read_data(length):
         return float_value
     else:
         raise ValueError("Not enough data received from I2C bus")
+=======
+def read_data(length):
+    # Read a block of data from the slave
+    data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
+    # Convert list of ASCII values to string
+    return ''.join(chr(byte) for byte in data)
+>>>>>>> origin/oled_annimation:HL/masterI2C.py
 
 if __name__ == "__main__":
     try:
