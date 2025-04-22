@@ -199,7 +199,7 @@ class Car:
         lidar_data = (self.lidar.rDistance[:1080]/1000)
         lidar_data_ai= (lidar_data-0.5)*(
             LIDAR_DATA_OFFSET + LIDAR_DATA_AMPLITUDE * np.exp(-1/2*((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
-        ) #convertir en mètre et ajouter un bruit gaussien
+        ) #convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
         angle, vitesse = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
         log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
         self.set_direction_degre(angle)
