@@ -5,6 +5,7 @@ import os
 import logging as log
 import threading
 import shutil
+import scipy as sp
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
@@ -152,16 +153,18 @@ class Camera:
         self.debug_counter += 1
         return Image.fromarray(combined_image).convert("RGB")
         
-    def is_green_or_red(self):
+    def is_green_or_red(self,lidar):
         """
         Check if the car is facing a green or red wall by analyzing the bottom half of the image.
         """
         image = self.get_last_image()
         height, _, _ = image.shape
         bottom_half = image[height // 2:, :, :]  # Slice the bottom half of the image
-
-        red_intensity = np.mean(bottom_half[:, :, 0])  # Red channel in RGB
-        green_intensity = np.mean(bottom_half[:, :, 1])  # Green channel in RGB
+        lidar= np.max(sp.ndimage.zoom(lidar[595:855], image.shape[1]/len(lidar[595:855]),mode="nearest")[None,:],0) # Resize lidar data to match the image size
+        print((lidar < 0.5).sum())
+        print(f"min lidar: {lidar.min()}, max lidar: {lidar.max()}")
+        red_intensity = np.mean(bottom_half[:, :, 0]*(lidar < 0.5))  # Red channel in RGB
+        green_intensity = np.mean(bottom_half[:, :, 1]*(lidar < 0.5))  # Green channel in RGB
 
         if green_intensity > red_intensity + COLOR_THRESHOLD:
             return COLOUR_KEY["green"]

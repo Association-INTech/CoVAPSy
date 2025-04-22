@@ -8,7 +8,7 @@ import logging as log
 
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
-from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS, REAR_BACKUP_DIST
+from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
 from Driver import Driver
 from Lidar import Lidar
 from Camera import Camera
@@ -149,7 +149,7 @@ class Car:
         time.sleep(0.2)
         self.set_vitesse_m_s(0)
         time.sleep(0.2)
-        self.set_vitesse_m_s(-2)
+        self.set_vitesse_m_s(-4)
         time.sleep(duration+0.3)
         if angle != 0:
             self.set_direction_degre(-angle)
@@ -169,7 +169,7 @@ class Car:
     
     def has_Crashed(self):
         
-        small_distances = [d for d in self.lidar.rDistance[300:780] if 0 < d < CRASH_DIST] # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
+        small_distances = [d for d in self.lidar.rDistance[200:880] if 0 < d < CRASH_DIST] # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
         log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
@@ -196,8 +196,11 @@ class Car:
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
         
-        lidar_data = self.lidar.rDistance[:1080]/1000
-        angle, vitesse = self.driving(lidar_data) #l'ai prend des distance en mètre et non en mm
+        lidar_data = (self.lidar.rDistance[:1080]/1000)
+        lidar_data_ai= (lidar_data-0.5)*(
+            LIDAR_DATA_OFFSET + LIDAR_DATA_AMPLITUDE * np.exp(-1/2*((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
+        ) #convertir en mètre et ajouter un bruit gaussien
+        angle, vitesse = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
         log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
         self.set_direction_degre(angle)
         self.set_vitesse_m_s(vitesse)
@@ -205,11 +208,21 @@ class Car:
             self.reverse_count += 1
         else:
             self.reverse_count = 0
-        if self.reverse_count > 5:
+        if self.reverse_count > 2:
             self.turn_around()
             self.reverse_count = 0
         if self.has_Crashed():
-            color= self.camera.is_green_or_red()
+            print("Obstacle détecté")
+            color= self.camera.is_green_or_red(lidar_data)
+            if color == 0:
+                small_distances = [d for d in self.lidar.rDistance if 0 < d < CRASH_DIST]
+                if len(small_distances) == 0:
+                    log.info("Aucun obstacle détecté")
+                    return
+                min_index = np.argmin(small_distances)
+                direction = MAX_ANGLE if min_index < 540 else -MAX_ANGLE #540 is the middle of the lidar
+                color = direction/direction
+                log.info("Obstacle détecté, Lidar Fallback")
             if color == -1:
                 log.info("Obstacle rouge détecté")
             if color == 1:
