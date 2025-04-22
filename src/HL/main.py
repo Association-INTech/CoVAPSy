@@ -125,7 +125,7 @@ def Auto_Driving():
     global State
     try:
         if Driving_has_not_started:
-            from driving import Car
+            from HL.Car import Car
             GR86 = Car()
         GR86.main()
         if bp_entre.is_pressed or bp_next.is_pressed:
