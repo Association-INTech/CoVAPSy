@@ -15,9 +15,9 @@ from Camera import Camera
 from ToF import ToF
 
 class Car:
-    def __init__(self, driving_strategy=Driver().farthest_distants):
+    def __init__(self, driver):
         """Initialize the car's components."""
-        
+
         def _initialize_speed_limits():
             """Set the car's speed limits."""
             self.vitesse_max_m_s_hard = 8  # Maximum hardware speed
@@ -70,7 +70,7 @@ class Car:
             except Exception as e:
                 log.error(f"Error initializing Lidar: {e}")
                 raise
-        
+
         def _initialize_camera():
             """Initialize the camera."""
             try:
@@ -103,7 +103,7 @@ class Car:
 
         # Initialize Lidar
         _initialize_lidar()
-        
+
         _initialize_camera()
         
         _initialize_tof()
@@ -117,17 +117,17 @@ class Car:
     def set_vitesse_m_s(self, vitesse_m_s):
         """Set the car's speed in meters per second."""
         # Clamp the speed to the maximum and minimum speed
-        vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft)) 
+        vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft))
         vitesse_pwm = vitesse_m_s * (self.delta_pwm_max_prop)/self.vitesse_max_m_s_hard
-        
+
         if vitesse_m_s == 0:
             pwm = self.pwm_stop_prop
         elif vitesse_m_s > 0:
             pwm= self.pwm_stop_prop + self.direction_prop*(self.point_mort_prop + vitesse_pwm)
-            
+
         elif vitesse_m_s < 0:
             pwm= self.pwm_stop_prop - self.direction_prop*(self.point_mort_prop - vitesse_pwm)
-            
+
         self.pwm_prop.change_duty_cycle(pwm)
         # log.debug(f"Vitesse: {vitesse_m_s} m/s, PWM: {pwm}")
 
@@ -135,7 +135,7 @@ class Car:
     def set_direction_degre(self, angle_degre):
         """Set the car's steering angle in degrees."""
         angle_pwm = self.angle_pwm_centre + self.direction * ((self.angle_pwm_max - self.angle_pwm_min) * angle_degre / (2 * MAX_ANGLE))
-        
+
         # Clamp the angle to the maximum and minimum angle
         angle_pwm = max(self.angle_pwm_min, min(angle_pwm, self.angle_pwm_max))
         # log.debug(f"Angle: {angle_degre}°, PWM: {angle_pwm}")
@@ -166,7 +166,7 @@ class Car:
         log.info("Arrêt du moteur")
         self.lidar.stop()
         # exit() #not to be used in prodution/library? https://www.geeksforgeeks.org/python-exit-commands-quit-exit-sys-exit-and-os-_exit/
-    
+
     def has_Crashed(self):
         
         small_distances = [d for d in self.lidar.rDistance[200:880] if 0 < d < CRASH_DIST] # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
@@ -179,7 +179,7 @@ class Car:
                 time.sleep(0.1)
             return True
         return False
-    
+
     def turn_around(self):
         """Turn the car around."""
         log.info("Turning around")
@@ -241,7 +241,7 @@ if __name__ == '__main__':
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver(128, 128)
-        GR86 = Car(Schumacher.ai)
+        GR86 = Car(Schumacher)
         log.info("Initialisation terminée")
         if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
             log.info("Depart")
@@ -252,7 +252,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         GR86.stop()
         log.info("Le programme a été arrêté par l'utilisateur")
-    
+
     except Exception as e: # catch all exceptions to stop the car
         GR86.stop()
         log.error("Erreur inconnue")

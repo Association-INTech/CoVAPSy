@@ -1,8 +1,10 @@
 import math
+from matplotlib import pyplot as plt
 import scipy as sp
 from scipy.special import softmax
 import numpy as np
 import onnxruntime as ort
+import logging as log
 
 from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Temperature
 
@@ -10,8 +12,43 @@ from Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Temperatur
 
 class Driver:
     def __init__(self, context_size=0, horizontal_size=0):
+        self.context_size = context_size
+        self.horizontal_size = horizontal_size
         self.ai_session = ort.InferenceSession(MODEL_PATH)
         self.context = np.zeros([2, context_size, horizontal_size], dtype=np.float32)
+
+        if log.getLogger().isEnabledFor(log.DEBUG):
+            self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
+            self.steering_bars = self.ax[0].bar(range(16), np.zeros(16), color='blue')
+            self.steering_avg = [
+                self.ax[0].plot([0, 0], [0,  1], color=(i/3, 1 - i/3, 0), label='Average')[0]
+                for i in range(4)
+            ]
+            self.ax[0].set_ylim(0, 1) # Probabilities range from 0 to 1
+            self.ax[0].set_title('Steering Action Probabilities')
+
+            # Speed bars
+            self.speed_bars = self.ax[1].bar(range(16), np.zeros(16), color='blue')
+            self.speed_avg = self.ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
+            self.ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
+            self.ax[1].set_title('Speed Action Probabilities')
+
+            # LiDAR img
+            self.lidar_img = self.ax[2].imshow(
+                np.zeros((128, 128)),
+                cmap='gray', vmin=0, vmax=np.log(31)
+            )
+            self.ax[2].set_title('LiDAR Image')
+
+            # Camera img
+            self.camera_img = self.ax[3].imshow(
+                np.zeros((128, 128, 3)),
+                cmap='RdYlGn', vmin=-1, vmax=1
+            )
+            self.ax[3].set_title('Camera Image')
+
+    def reset(self):
+        self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32)
 
     def omniscent(self, lidar_data, camera_data):
         return self.ai_update_lidar_camera(lidar_data, camera_data)
@@ -23,10 +60,12 @@ class Driver:
         return self.farthest_distants(lidar_data)
 
     def ai_update_lidar_camera(self, lidar_data, camera_data):
+        log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+
         lidar_data = sp.ndimage.zoom(
             np.array(lidar_data, dtype=np.float32),
             128/len(lidar_data)
-        )
+        ) / 1000 * 0.8
         camera_data = sp.ndimage.zoom(
             np.array(camera_data, dtype=np.float32),
             128/len(camera_data)
@@ -38,15 +77,40 @@ class Driver:
         ], axis=1)
 
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
-        vect = self.ai_session.run(None, {'input': self.context})[0][0]
+        vect = self.ai_session.run(None, {'input': self.context[None]})[0][0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
         vect_dir = softmax(vect_dir)  # distribution de probabilité
         vect_prop = softmax(vect_prop)
 
-        angle = sum(SPEED_LOOKUP*vect_dir)  # moyenne pondérée des angles
+        if log.getLogger().isEnabledFor(log.DEBUG):
+            log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+            self.lidar_img.set_array(np.log(1 + self.context[0]))
+            self.camera_img.set_array(self.context[1])
+
+            for i, bar in enumerate(self.steering_bars):
+                bar.set_height(vect_dir[i].item())
+
+            for i in range(4):
+                steering_avg = (vect_dir / vect_dir.sum() * np.arange(16)).sum().item()
+                self.steering_avg[i].set_xdata([steering_avg, steering_avg])
+
+            for i, bar in enumerate(self.speed_bars):
+                bar.set_height(vect_dir[i].item())
+
+            speed_avg = (vect_dir * np.arange(16)).sum().item()
+            self.speed_avg.set_xdata([speed_avg, speed_avg])
+
+            plt.draw()
+            plt.pause(1e-8)
+
+
+        print(" ".join([f"{x:.1f}" for x in vect_dir]))
+        print(" ".join([f"{x:.1f}" for x in vect_prop]), flush=True)
+
+        angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
-        vitesse = sum(ANGLE_LOOKUP*vect_prop)
+        vitesse = sum(SPEED_LOOKUP*vect_prop)
 
         return angle, vitesse
 
