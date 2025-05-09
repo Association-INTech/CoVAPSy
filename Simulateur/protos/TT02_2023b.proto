@@ -1,0 +1,137 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/vehicles/protos/abstract/Car.proto"
+EXTERNPROTO "TT02Wheel.proto"
+EXTERNPROTO "Hokuyo.proto"
+
+PROTO TT02_2023b [
+  field SFVec3f    translation     0 0 0.036               # Is `Transform.translation`.
+  field SFRotation rotation        0 0 1 0                 # Is `Transform.rotation`.
+  field SFString   name            "TT02_2023b"            # Is `Solid.name`.
+  field SFString   controller      "<generic>"             # Is `Robot.controller`.
+  field MFString   controllerArgs  []                      # Is `Robot.controllerArgs`.
+  field SFString   window          "<generic>"             # Is `Robot.window`.
+  field SFBool     synchronization TRUE                    # Is `Robot.synchronization`.
+  field SFColor    color           0.69 0.0 1.0            # Is `Material.diffuseColor`.
+  field SFInt32    lidar_horizontal_resolution 1080         # Is `Lidar.horizontalResolution`.
+  field SFInt32    camera_horizontal_resolution 1640        # Is `Camera.horizontalResolution`.
+]
+{
+  Car {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    model "TT02"
+    controller IS controller
+    controllerArgs IS controllerArgs
+    window IS window
+    synchronization IS synchronization
+    trackFront                     0.15
+    trackRear                      0.15
+    wheelbase                      0.257
+    minSteeringAngle               -0.5 # formerly -0.35
+    maxSteeringAngle               0.5 # formerly 0.35
+    suspensionFrontSpringConstant  100000
+    suspensionFrontDampingConstant 4000
+    suspensionRearSpringConstant   100000
+    suspensionRearDampingConstant  4000
+    wheelsDampingConstant          5
+    wheelFrontRight                TT02Wheel { name "front right wheel" }
+    wheelFrontLeft                 TT02Wheel { name "front left wheel"}
+    wheelRearRight                 TT02Wheel { name "rear right wheel"}
+    wheelRearLeft                  TT02Wheel { name "rear left wheel"}
+    type                    "4x4"
+    engineType              "electric"
+    engineSound             ""
+    brakeCoefficient        700
+    time0To100              10
+    engineMaxTorque         0.0234
+    engineMaxPower          32
+    engineMinRPM            1
+    engineMaxRPM            13800
+    gearRatio               [-0.62 0.62]
+    maxVelocity             36
+    extensionSlot [
+      Accelerometer {
+        name "accelerometer"
+        xAxis TRUE
+        yAxis TRUE
+        zAxis TRUE
+      }
+      Emitter {
+        name "TT02_emitter"
+      }
+      Receiver {
+        name "TT02_receiver"
+      }
+      Speaker {
+        translation 0.257 0 0
+        name "TT02_speaker"
+      }
+      Hokuyo {
+        translation 0.22 0 0.095
+        rotation 0 0 1 0
+        name "Hokuyo"
+        horizontalResolution IS lidar_horizontal_resolution
+      }
+      Camera {
+        translation 0.11 0 0.11
+        rotation 0 0 1 0
+        name "RASPI_Camera_V2"
+        fieldOfView            1.085594794740473
+        width                  IS camera_horizontal_resolution
+        height                 1
+      }
+      TouchSensor {
+        translation 0.14 0 0.005
+        name "touch_sensor"
+        type "bumper"
+        boundingObject Pose {
+          translation -0.015 0 0.035
+          children [
+            Box {
+              size 0.5 0.2 0.1
+            }
+          ]
+        }
+      }
+      Transform {
+        translation 0.127 0 -0.02
+        rotation 0 0 1 0
+        scale 1 1 1
+        children [
+          Shape {
+            appearance PBRAppearance {
+              baseColor IS color
+              roughness 1
+              metalness 0
+            }
+            geometry Mesh {
+              url [
+                "ChevroletCamaroLight.stl"
+              ]
+            }
+            castShadows FALSE
+          }
+        ]
+      }
+    ]
+    boundingObject Group {
+      children [
+        Pose {
+          translation 0.119 0 0.04
+          children [
+            Box {
+              size 0.44 0.195 0.131
+            }
+          ]
+        }
+      ]
+    }
+    physics Physics {
+      density -1
+      mass 2.331
+    }
+    radarCrossSection 100
+  }
+}

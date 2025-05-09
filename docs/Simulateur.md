@@ -24,7 +24,7 @@ Une première approche pourrairt être d'organiser notre monde avec une [Piste](
 ```mermaid
 flowchart TD
     A("`__fa:fa-car TT02_0__
-    RpLidarA2
+   Hokuyo
     (_AI model_)`")
 ```
 </div>
@@ -59,12 +59,13 @@ flowchart TD
     supervisor_receiver_n-1`")
 
     Init --> |crée| B("`__fa:fa-car TT02_0__
-    RpLidarA2
+
+    Hokuyo
     TT02_emitter
     TT02_receiver`")
 
     Init --> |crée| C("`__fa:fa-car TT02_1__
-    RpLidarA2
+    Hokuyo
     TT02_emitter
     TT02_receiver`")
 
@@ -72,7 +73,7 @@ flowchart TD
     style D fill:none,stroke:none
     linkStyle 3 stroke-width:0,marker-end:none
     Init --> |crée| E("`__fa:fa-car TT02_n-1__
-    RpLidarA2
+    Hokuyo
     TT02_emitter
     TT02_receiver`")
 ```
@@ -91,12 +92,12 @@ flowchart TD
     ...
     supervisor_emitter_n-1
     supervisor_receiver_n-1`") --> |commande| B("`__fa:fa-car TT02_0__
-    RpLidarA2
+    Hokuyo
     TT02_emitter
     TT02_receiver`")
 
     Super --> |commande| C("`__fa:fa-car TT02_1__
-    RpLidarA2
+    Hokuyo
     TT02_emitter
     TT02_receiver`")
 
@@ -105,7 +106,7 @@ flowchart TD
     linkStyle 2 stroke-width:0,marker-end:none
 
     Super --> |commande| E("`__fa:fa-car TT02_n-1__
-    RpLidarA2
+    Hokuyo
     TT02_emitter
     TT02_receiver`")
 ```

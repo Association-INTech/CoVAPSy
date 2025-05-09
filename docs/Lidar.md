@@ -1,5 +1,7 @@
 # Lidar
 
+## UST-10lx basics
+
 <img src="../img/UST-10lx.jpg" alt="an image showing a UST-10lx with an orange top. We can read Hokuyo Smart Urg underneath" title="A UST-10lx Lidar" width="200" align="right"/>
 
 
@@ -7,7 +9,6 @@ Les Lidar utiliser par INTech sont des [UST-10LX](https://www.hokuyo-aut.jp/sear
 du l'UST-10lx est [télécharchable ici](./Instruction_manual_UST-10LX_MRS0020D_en_1513910662-1.pdf)
 
 ## UST-10lx connectivity
-
 
 Il communique par Ethernet en utilisant le protocole [Secure Communications Interoperability Protocol (SCIP)](https://en.wikipedia.org/wiki/Secure_Communications_Interoperability_Protocol). Ce protocol peut faire peur a premiere vue mais nous n'utilison que les commande decrit [ici](https://sourceforge.net/p/urgnetwork/wiki/scip_en/). Pour communiquer par ethernet, les lidar possede une adresse IP: 
 
@@ -60,7 +61,7 @@ sensor.startContinuous(0, 1080)
 Distances can be retrived as a numpy array with the `HokuyoReader.rDistance()` (r standing for radial)
 
 ```python
-distance_array=sensor.rDistance
+distance_array=sensor.rDistance()
 ```
 
 Use `HokuyoReader.stop()` to gracefully shutdown the lidar
@@ -102,3 +103,4 @@ Permets de voir les différentes interfaces réseau, leurs statuts et les IP ass
 watch -n 0.1 "ip a"
 ```
 Permet d’exécuter toutes les 0,1 s (le max) une commande et d’affiche le résultat, ici`ip a`.
+

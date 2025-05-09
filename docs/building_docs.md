@@ -152,8 +152,7 @@ For full documentation, visit [mkdocs.org](https://www.mkdocs.org).
 
 ### Commands
 
-* `mkdocs serve` - Start the live-reloading docs server. It should now be accessible at [127.0.0.1:8000](http://127.0.0.1:8000/) on ***your machine***.
-* `mkdocs gh-deploy` - Build the documentation site on the gh-pages branch of your repository.
+* `mkdocs serve` - Start the live-reloading docs server. It should now be accessible at [127.0.0.1:8000](http://127.0.0.1:8000/) on ***your machine**** `mkdocs gh-deploy` - Build the documentation site on the gh-pages branch of your repository.
 
 !!! Note
     On the [Club-INTech/CoVAPSy](https://github.com/Club-INTech/CoVAPSy) repository, `mkdocs gh-deploy` is automatically called upon push to the main branch. It can still be manually called when on another branch, but [gh-pages](https://github.com/Club-INTech/CoVAPSy/tree/gh-pages) will be overwritten by any push on main.
