@@ -1,0 +1,70 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/appearances/protos/MattePaint.proto"
+
+PROTO Hokuyo [
+  field SFVec3f    translation   0 0 0.031
+  field SFRotation rotation      0 0 1 0
+  field SFString   name          "Hokuyo"
+  field SFInt32    horizontalResolution 1080
+]
+{
+  Lidar {
+    translation IS translation
+    rotation IS rotation
+    name IS name
+    children [
+      Pose {
+        translation 0.000000 0.000000 -0.020000
+        children [
+          Shape {
+            appearance MattePaint {
+              baseColor 0.000000 0.000000 0.000000
+            }
+            geometry Mesh {
+              url "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/devices/slamtec/protos/meshes/rplidar_bottom.obj"
+            }
+          }
+        ]
+      }
+      Pose {
+        translation 0.000000 0.000000 -0.000000
+        children [
+          Shape {
+            appearance MattePaint {
+              baseColor 0.110000 0.110000 0.110000
+            }
+            geometry Cylinder {
+              height 0.005
+              radius 0.037
+            }
+          }
+        ]
+      }
+    ]
+    boundingObject Pose {
+      translation 0.000000 0.000000 -0.011000
+      children [
+        Cylinder {
+          height 0.04
+          radius 0.038
+        }
+      ]
+    }
+    physics Physics {
+      density -1
+      mass 0.2
+    }
+    fieldOfView 4.71238898038469
+    horizontalResolution IS horizontalResolution
+    numberOfLayers 1
+    near 0.020000
+    defaultFrequency 40
+    maxFrequency 40
+    minRange 0.100000
+    maxRange 30.000000
+    noise 0.000833
+    resolution 0.010000
+    type "fixed"
+  }
+}
