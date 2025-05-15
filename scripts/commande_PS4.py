@@ -94,6 +94,9 @@ class MyController(Controller):
         set_vitesse_m_s(-vitesse_max_m_s_hard)
         
     def on_R3_right(self, value):
+        set_vitesse_m_s(-value*a_prop)
+        
+    def on_R3_left(self, value):
         set_vitesse_m_s(value*a_prop)
         
     def on_L2_release(self):
