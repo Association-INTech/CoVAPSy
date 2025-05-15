@@ -101,6 +101,9 @@ class MyController(Controller):
     def on_share_press(self):
         set_vitesse_m_s(vitesse_max_m_s_soft)
         
+    def on_share_release(self):
+        set_vitesse_m_s(0)
+        
     def on_L2_release(self):
         set_vitesse_m_s(0)
         
