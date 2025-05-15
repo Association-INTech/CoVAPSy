@@ -55,7 +55,7 @@ def recule():
     time.sleep(0.2)
     set_vitesse_m_s(0)
     time.sleep(0.2)
-    set_vitesse_m_s(-1)
+    set_vitesse_m_s(-2)
 
 
 a_prop = vitesse_max_m_s_soft/(65198)
