@@ -66,10 +66,10 @@ class MyController(Controller):
     def __init__(self, **kwargs):
         Controller.__init__(self, **kwargs)
         
-    def on_R2_press(self,value):
-        print("La valeur de R2 est: ",value)
-        value += 32767
-        set_vitesse_m_s(a_prop*value)
+    # def on_R2_press(self,value):
+    #     print("La valeur de R2 est: ",value)
+    #     value += 32767
+    #     set_vitesse_m_s(a_prop*value)
         
     def on_R2_release(self):
          #print("Arrêt complet")
@@ -92,6 +92,9 @@ class MyController(Controller):
         
     def on_L2_press(self, value):
         set_vitesse_m_s(-vitesse_max_m_s_hard)
+        
+    def on_R3_press(self, value):
+        set_vitesse_m_s(value*a_prop)
         
     def on_L2_release(self):
         set_vitesse_m_s(0)
