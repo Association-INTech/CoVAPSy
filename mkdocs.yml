@@ -11,7 +11,8 @@ nav:
 theme:
   title: AutoTech's Docs
   name: readthedocs
-  logo: img/autotech_logo.jpeg
+  logo: img/Logo/Logo_équipe N°20_AutoTech 2025 (long)_promo Ecole_transparent.png
+  favicon: img/favicon.ico
   theme:
   # icon: does not work idk why -Matthias
   #   admonition:
