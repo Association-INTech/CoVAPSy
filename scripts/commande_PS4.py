@@ -6,7 +6,7 @@ import time
 #Intialisation des moteurs
 ##################################################
 #paramètres de la fonction vitesse_m_s, à étalonner
-direction_prop = 1# -1 pour les variateurs inversés ou un petit rapport correspond à une marche avant
+direction_prop = -1# -1 pour les variateurs inversés ou un petit rapport correspond à une marche avant
 pwm_stop_prop = 7.37
 point_mort_prop = 0.5
 delta_pwm_max_prop = 1.1 #pwm à laquelle on atteint la vitesse maximale
