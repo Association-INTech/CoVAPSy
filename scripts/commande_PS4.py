@@ -90,14 +90,16 @@ class MyController(Controller):
     def on_L3_left(self,value):
         set_direction_degre(a_dir*value)
         
-    def on_L2_press(self, value):
-        set_vitesse_m_s(-vitesse_max_m_s_hard)
+    # def on_L2_press(self, value):
+    #     set_vitesse_m_s(-vitesse_max_m_s_hard)
         
-    def on_R3_right(self, value):
-        set_vitesse_m_s(value*a_prop)
+    # def on_R3_right(self, value):
+    #     set_vitesse_m_s(value*a_prop)
         
-    def on_R3_left(self, value):
-        set_vitesse_m_s(-value*a_prop)
+    # def on_R3_left(self, value):
+    #     set_vitesse_m_s(-value*a_prop)
+    def on_share_press(self):
+        set_vitesse_m_s(vitesse_max_m_s_soft)
         
     def on_L2_release(self):
         set_vitesse_m_s(0)
