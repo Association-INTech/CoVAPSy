@@ -31,7 +31,7 @@ jobs:
       # - name: Check for hard links and symlinks
       #   run: |
       #     find site -type l -exec echo "Symlink found: {}" \; -o -type f -links +1 -exec echo "Hard link found: {}" \;
-     - name: Upload build artifacts
+      - name: Upload build artifacts
         uses: actions/upload-pages-artifact@v3
         with:
           name: github-pages
