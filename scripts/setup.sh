@@ -14,17 +14,13 @@ sudo systemctl restart systemd-networkd
 # Add the PWM overlay configuration to the boot config file
 sudo sh -c 'echo "dtoverlay=pwm-2chan,pin=12,func=4,pin2=13,func2=4" >> /boot/firmware/config.txt'
 
-# Install necessary Python packages within the virtual environment
-pip install Adafruit-SSD1306 --break-system-packages
-pip install rpi_hardware_pwm --break-system-packages
-pip install matplotlib --break-system-packages
-pip install RPi.GPIO --break-system-packages
-<<<<<<< HEAD:scripts/setup.sh
-pip install numpy --break-system-packages 
-pip install onnxruntime --break-system-packages
-pip install netifaces2 --break-system-packages
+# Install UV if not already installed
+curl -LsSf https://astral.sh/uv/install.sh | sh
+source $HOME/.cargo/env
 
-
+# Navigate to the project directory and sync dependencies using UV
+cd /home/intech/CoVAPSy
+uv sync
 
 # Add the cron job to run the script at reboot
 (crontab -l 2>/dev/null; echo "@reboot /home/intech/CoVAPSy/scripts/startup.sh") | crontab -
