@@ -6,7 +6,7 @@ Ce répertoire contient le code pour développer une voiture autonome pour la co
 
 [Consultez les règles de la competition](https://ajuton-ens.github.io/CourseVoituresAutonomesSaclay/)
 
-[Consultez la documentation du projet](https://club-intech.github.io/CoVAPSy/Lidar/)
+[Consultez la documentation du projet](https://association-intech.github.io/CoVAPSy/)
 
 To install dependencies, use:
   `uv sync`
