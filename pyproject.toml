@@ -15,6 +15,7 @@ authors = [
 
 dependencies = [
     "gpiozero>=2.0.1",
+    "lgpio[rpi]>=0.2.2.0",
     "luma-core>=2.5.1",
     "luma-oled>=3.14.0",
     "matplotlib[rpi]>=3.10.5",
