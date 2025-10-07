@@ -6,13 +6,13 @@ bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 
 # I2C address of the slave
 SLAVE_ADDRESS = 0x08
-
+"""
 def write_data(data):
     # Convert string to list of ASCII values
     data_list = [ord(char) for char in data]
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, data_list)
-
-<<<<<<< HEAD:scripts/masterI2C.py
+    bus.write_i2c_block_data(SLAVE_ADDRESS, 48, data_list)
+"""
+"""
 import struct
 
 def read_data(length):
@@ -24,22 +24,33 @@ def read_data(length):
         return float_value
     else:
         raise ValueError("Not enough data received from I2C bus")
-=======
-def read_data(length):
-    # Read a block of data from the slave
-    data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
-    # Convert list of ASCII values to string
-    return ''.join(chr(byte) for byte in data)
->>>>>>> origin/oled_annimation:HL/masterI2C.py
+"""
+
+
+def write_data(data):
+    try:
+        bus.write_byte(I2C_SLAVE_ADDRESS, value_to_send)
+        print("sending value:", value_to_send)
+    except Exception as e:
+        print("Erreur écriture:", e)
+
+def read_data(addr):
+    try:
+        n = bus.read_byte(I2C_SLAVE_ADDRESS)
+        print("new received value:", n)
+    except Exception as e:
+        print("Erreur lecture:", e)
+
 
 if __name__ == "__main__":
     try:
         # Send data to the slave
-        write_data("Hello Slave!")
+        write_data(23)
+        print("sending value: "+str(23))
         time.sleep(1)  # Wait for the slave to process the data
 
         # Request data from the slave
-        received = read_data(13)  # Adjust length as needed
+        received = read_data(SLAVE_ADDRESS)  # Adjust length as needed
         print("Received from slave:", received)
 
     except Exception as e:
