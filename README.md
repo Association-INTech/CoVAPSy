@@ -14,5 +14,3 @@ To install with documentation dependencies:
   `uv sync --extra docs`
 To install with development dependencies:
   `uv sync --extra dev`
-
-This is a test edit
