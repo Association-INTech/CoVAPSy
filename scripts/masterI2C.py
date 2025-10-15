@@ -1,3 +1,5 @@
+#masteri2c est la pour debug la communication entre l'arduino et la pi. 
+
 import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 import time
 import numpy as np
@@ -31,18 +33,13 @@ def read_data(length):
         raise ValueError("Not enough data received from I2C bus")
 
 if __name__ == "__main__":
-    try:
-        # Send data to the slave
-        while(True):
-            vitesse= float(input("vitesse en millimetre par seconde:"))
-            rotation= float(input("rotation en degré:"))
-            write_data(vitesse,rotation)
-            time.sleep(0.1)  # Wait for the slave to process the data
-            received = read_data(8)  # Adjust length as needed
-            print("Received from slave:", received)
+    while(True):
+        vitesse= float(input("vitesse en millimetre par seconde:"))
+        rotation= float(input("rotation en degré:"))
+        write_data(vitesse,rotation)
+        time.sleep(0.1)  # Wait for the slave to process the data
+        received = read_data(8)  # Adjust length as needed
+        print("Received from slave:", received)
 
         # Request data from the slave
         
-
-    except Exception as e:
-        print("Error:", e)
