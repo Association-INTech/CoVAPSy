@@ -24,22 +24,22 @@ char command;
 float Vcons=0; 
 float old_Vcons ;//consigne
 float vitesse=0; //vitesse de la voiture
-int dir = 0;
-
+int dir = 1881;
+float dir_recue = 90.0;
 //PID
 float vieuxEcart=0;
 float vieuxTemps=0; //variable utilisee pour mesurer le temps qui passe
-float Kp=0.04; //correction prop
+float Kp=0.05; //correction prop
 float Ki=0.02; //correction integrale
 float Kd=0.; //correction derivee
 float integral=0;//valeur de l'integrale dans le PID
 float derivee=0; //valeur de la derivee dans le PID
-
+int old_out = 0;
 //mesures
 volatile int count=0; //variable utilisee pour compter le nombre de fronts montants/descendants
 volatile int vieuxCount=0; //stocke l'ancienne valeur de count pour ensuite faire la difference
 volatile byte state=LOW;
-float mesures[10]; // tableau de mesures pour lisser
+float mesures[3]; // tableau de mesures pour lisser
 
 ////I2C
 union floatToBytes {
@@ -63,7 +63,7 @@ float voltage_LiPo = 0;     // variable to store the value read
 float voltage_NiMh = 0;     // variable to store the value read
 
 
-int direction1 = 1851;
+
 //direction millieu 1851
 // tout a gaucge 1231
 // tout a droite 2471
@@ -110,6 +110,15 @@ void blink(){ //on compte tous les fronts
 
 
 float PID(float cons, float mes, float dt) {
+
+
+  if ( old_out <= 0 && cons > 0){     // pour pouvoir sauter directement dans la plage de pwm ou la roue bouge et une transition plus fluide entre marche arriere et avant 
+    integral = 2500;                  // valeur experimentale
+  }
+  else if (old_out >= 0 && cons <0 ){ // pour pouvoir sauter directement dans la plage de pwm où la roue bouge et une transition plus fluide entre marche avant et arriere
+    integral = -5000;                 // valeur experimentale
+  }
+
   // Adjust the measured speed based on the sign of the desired speed
   float adjustedMes = (cons < 0) ? -mes : mes;
 
@@ -128,7 +137,10 @@ float PID(float cons, float mes, float dt) {
   vieuxEcart = e;
   float D = Kd * derivee;
 
-  return P + I;
+  // Garde en mémoir pour passer out à 0 directe lorsque l'on change de sens pour ne pas attendre qu'elle change de sens tout seul (que c'est long mdr
+  old_out = P + I;
+  
+  return P + I + D;
 }
 
 
@@ -188,36 +200,41 @@ void loop() {
     Vcons=0;
     break;
     case 'b':
-    direction1+=100;
+    dir_recue+=10;
     break;
     case 'n':
-    direction1-=100;
+    dir_recue-=100;
     break;
     case 'j':
-    direction1+=10;
+    dir_recue+=10;
     break;
     case 'k':
-    direction1-=10;
+    dir_recue-=10;
     break;
   }
   
+
+  // Propulsion de la voiture
   int deltaT = millis()-vieuxTemps; //temps qui est passé pendant un loop (en millisecondes)
   vitesse=getMeanSpeed(deltaT); // on recup la vitesse lissée
   
   int out;
 
-  if (Vcons>=0){
+  if (Vcons == 0){
+    out = 0;
+    moteur.writeMicroseconds(out+1500);
+    Serial.print("out:");
+    Serial.print(out);
+  }
+  else if (Vcons>0){
 
     out = PID(Vcons,vitesse,float(deltaT)/1e3);
+    
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
     Serial.print("out:");
     Serial.print(constrain(1500 + out,500,2000));
-
+    
   } else if ( Vcons<0 && old_Vcons>=0 ){
-
-    out = PID(0,vitesse,float(deltaT)/1e3);
-    moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
-    delay(10);
     out = PID(-8000,vitesse,float(deltaT)/1e3);
     moteur.writeMicroseconds(constrain(1500 + out,500,1500));
     delay(200);
@@ -233,16 +250,23 @@ void loop() {
 
   old_Vcons = Vcons;
 
+
+  // Direction de la voiture
+  dir = map(dir_recue,0,180,1231,2471); // remape en degré
+  direction.writeMicroseconds(dir);
+
   //print debug
   #if 1
+     Serial.print(",integrale");
+     Serial.print(integral);
      Serial.print(",const:");
      Serial.print(200);
      Serial.print(",Vcons:");
      Serial.print(Vcons);
      Serial.print(",Vitesse:");
      Serial.print(vitesse);
-     Serial.print(",Directino:");
-     Serial.print(direction1);
+     Serial.print(",Directino en degré:");
+     Serial.print(dir_recue);
 //   Serial.print(", Ki :  ");
 //   Serial.print(Ki);
 //   Serial.print(", Kp: ");
@@ -252,7 +276,7 @@ void loop() {
      Serial.println(out);
   #endif
   delay(10);
-  direction.writeMicroseconds(direction1); // tout a droite
+   // tout a droite
   //delay(1000);
   //direction.writeMicroseconds(1761); au millieu
   //delay(1000);
@@ -261,16 +285,29 @@ void loop() {
   
   }
 void receiveEvent(int byteCount){
-  for(uint8_t index = 0; index<byteCount; index++){
-      converter.valueBuffer[index] = Wire.read();
-  }
-  Vcons = converter.valueReading;
+  // Ignorer le premier octet "commande" du Raspberry
+  if (Wire.available()) Wire.read(); // skip cmd byte
 
+  if (byteCount >= 9) { // 1 cmd + 8 data
+    byte buffer[8];
+    for (int i = 0; i < 8 && Wire.available(); i++) {
+      buffer[i] = Wire.read();
+    }
+
+    float* vals = (float*)buffer;
+    Vcons = vals[0];  // reçue en milimetre par secondes
+    dir_recue = vals[1];  //reçue en degré. 
+  } else {
+    while (Wire.available()) Wire.read(); // vide le buffer
+  }
 }
+
+
 void requestEvent(){
   const int numFloats = 2; // Number of floats to send
   float data[numFloats] = {voltage_LiPo, voltage_NiMh}; // Example float values to send
   byte* dataBytes = (byte*)data;
+  
 
   Wire.write(dataBytes, sizeof(data));
 }

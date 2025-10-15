@@ -1,6 +1,7 @@
 import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 import time
 import numpy as np
+import struct
 # Create an SMBus instance
 bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 
@@ -12,14 +13,10 @@ vitesse = 200 # en millimetre par seconde
 direction = 100 # en degré
 
 
-
-
-
 def write_data(vitesse,direction):
     # Convert string to list of ASCII values
-    buffer = np.array([vitesse, direction], dtype=np.float32)
-    buffer_list = list(buffer.tobytes())
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, buffer_list)
+    data = struct.pack('<ff', float(vitesse), float(direction))
+    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
 
 import struct
 
@@ -36,12 +33,16 @@ def read_data(length):
 if __name__ == "__main__":
     try:
         # Send data to the slave
-        write_data(200,100)
-        time.sleep(1)  # Wait for the slave to process the data
+        while(True):
+            vitesse= float(input("vitesse en millimetre par seconde:"))
+            rotation= float(input("rotation en degré:"))
+            write_data(vitesse,rotation)
+            time.sleep(0.1)  # Wait for the slave to process the data
+            received = read_data(8)  # Adjust length as needed
+            print("Received from slave:", received)
 
         # Request data from the slave
-        received = read_data(4)  # Adjust length as needed
-        print("Received from slave:", received)
+        
 
     except Exception as e:
         print("Error:", e)
