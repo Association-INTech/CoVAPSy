@@ -1,8 +1,8 @@
 import os
 import numpy as np
 
-MAX_SOFT_SPEED = 0.5
-MIN_SOFT_SPEED = 0.1
+MAX_SOFT_SPEED = 6000 # en milimetre par secondes
+MIN_SOFT_SPEED = -4000
 MAX_ANGLE = 14
 CRASH_DIST = 110
 REAR_BACKUP_DIST = 100  #mm Distance at which the car will NOT reverse due to the obstacle behind it

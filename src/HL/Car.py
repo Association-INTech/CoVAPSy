@@ -26,7 +26,7 @@ class Car:
 
         def _initialize_speed_limits():
             """Set the car's speed limits."""
-            self.vitesse_max_m_s_hard = 8  # Maximum hardware speed
+            self.vitesse_max_m_s_hard = 6000  # Maximum hardware speed
             self.vitesse_max_m_s_soft = MAX_SOFT_SPEED  # Maximum software speed
 
         def _initialize_pwm():

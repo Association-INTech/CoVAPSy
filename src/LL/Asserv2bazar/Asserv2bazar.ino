@@ -24,13 +24,13 @@ char command;
 float Vcons=0;
 float old_Vcons ;//consigne
 float vitesse=0; //vitesse de la voiture calculé
-int dir = 1881; //initialisation de la direction au centre
-float dir_recue = 90.0;
+int dir = 0; 
+float dir_recue = 90.0; //initialisation de la direction au centre
 
-float dir_max_pwm = 2471; //direction maximal physique en pwm
-float dir_min_pwm = 1231; //direction minimal physique en pwm
-float dir_max = 180;      //direction maximal recue en degré avant conversion (via map)
-float dir_min = 0;        //direction minimal reçue en degré avant conversion (via map)
+float dir_max_pwm = 2501; //direction maximal physique en pwm 2501
+float dir_min_pwm = 1261; //direction minimal physique en pwm 1261
+float dir_max = 120;      //direction maximal recue en degré avant conversion (via map)
+float dir_min = 60;        //direction minimal reçue en degré avant conversion (via map)
 
 //PID
 float vieuxEcart=0;
@@ -208,16 +208,16 @@ void loop() {
     Vcons=0;
     break;
     case 'b':
-    dir_recue+=10;
+    dir+=10;
     break;
     case 'n':
-    dir_recue-=100;
+    dir-=100;
     break;
     case 'j':
-    dir_recue+=10;
+    dir+=10;
     break;
     case 'k':
-    dir_recue-=10;
+    dir-=10;
     break;
   }
   #endif
@@ -261,7 +261,7 @@ void loop() {
 
 
   // Direction de la voiture
-  dir = map(dir_recue,0,180,dir_min_pwm,dir_max_pwm); // remape en degré
+  dir = map(dir_recue,dir_min,dir_max,dir_min_pwm,dir_max_pwm); // remape en degré
   direction.writeMicroseconds(dir);
 
   //print debug
@@ -275,7 +275,7 @@ void loop() {
      Serial.print(",Vitesse:");
      Serial.print(vitesse);
      Serial.print(",Directino en degré:");
-     Serial.print(dir_recue);
+     Serial.print(dir);
 //   Serial.print(", Ki :  ");
 //   Serial.print(Ki);
 //   Serial.print(", Kp: ");
