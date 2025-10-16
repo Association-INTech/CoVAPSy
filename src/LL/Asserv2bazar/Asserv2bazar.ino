@@ -21,11 +21,17 @@ const int distanceUnTour=79; //distance parcourue par la voiture apres un tour d
 
 //variables
 char command;
-float Vcons=0; 
+float Vcons=0;
 float old_Vcons ;//consigne
-float vitesse=0; //vitesse de la voiture
-int dir = 1881;
+float vitesse=0; //vitesse de la voiture calculé
+int dir = 1881; //initialisation de la direction au centre
 float dir_recue = 90.0;
+
+float dir_max_pwm = 2471; //direction maximal physique en pwm
+float dir_min_pwm = 1231; //direction minimal physique en pwm
+float dir_max = 180;      //direction maximal recue en degré avant conversion (via map)
+float dir_min = 0;        //direction minimal reçue en degré avant conversion (via map)
+
 //PID
 float vieuxEcart=0;
 float vieuxTemps=0; //variable utilisee pour mesurer le temps qui passe
@@ -34,7 +40,8 @@ float Ki=0.02; //correction integrale
 float Kd=0.; //correction derivee
 float integral=0;//valeur de l'integrale dans le PID
 float derivee=0; //valeur de la derivee dans le PID
-int old_out = 0;
+int old_out = 0; //anciene valeur de la sortie du PID
+
 //mesures
 volatile int count=0; //variable utilisee pour compter le nombre de fronts montants/descendants
 volatile int vieuxCount=0; //stocke l'ancienne valeur de count pour ensuite faire la difference
@@ -182,6 +189,7 @@ void setup() {
 void loop() {
   calculateVoltage();
   // Commandes pour debugger
+  #if 0
   command=Serial.read();
   switch (command){ //pour regler les parametres
     case 'a':
@@ -212,6 +220,7 @@ void loop() {
     dir_recue-=10;
     break;
   }
+  #endif
   
 
   // Propulsion de la voiture
@@ -252,7 +261,7 @@ void loop() {
 
 
   // Direction de la voiture
-  dir = map(dir_recue,0,180,1231,2471); // remape en degré
+  dir = map(dir_recue,0,180,dir_min_pwm,dir_max_pwm); // remape en degré
   direction.writeMicroseconds(dir);
 
   //print debug
@@ -276,13 +285,6 @@ void loop() {
      Serial.println(out);
   #endif
   delay(10);
-   // tout a droite
-  //delay(1000);
-  //direction.writeMicroseconds(1761); au millieu
-  //delay(1000);
-  //direction.writeMicroseconds(2140);tout a gauche
-  //delay(1000);
-  
   }
 void receiveEvent(int byteCount){
   // Ignorer le premier octet "commande" du Raspberry
