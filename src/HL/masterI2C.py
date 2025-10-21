@@ -15,7 +15,7 @@ vitesse = 200 # en millimetre par seconde
 direction = 100 # en degré
 
 
-def write_data(vitesse,direction):
+def write_vitesse_direction(vitesse,direction):
     # Convert string to list of ASCII values
     data = struct.pack('<ff', float(vitesse), float(direction))
     bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     while(True):
         vitesse= float(input("vitesse en millimetre par seconde:"))
         rotation= float(input("rotation en degré:"))
-        write_data(vitesse,rotation)
+        write_vitesse_direction(vitesse,rotation)
         time.sleep(0.1)  # Wait for the slave to process the data
         received = read_data(8)  # Adjust length as needed
         print("Received from slave:", received)

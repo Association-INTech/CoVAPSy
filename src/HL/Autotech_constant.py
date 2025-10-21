@@ -3,7 +3,8 @@ import numpy as np
 
 MAX_SOFT_SPEED = 6000 # en milimetre par secondes
 MIN_SOFT_SPEED = -4000
-MAX_ANGLE = 14
+MAX_ANGLE = 120
+MIN_ANGLE = 60
 CRASH_DIST = 110
 REAR_BACKUP_DIST = 100  #mm Distance at which the car will NOT reverse due to the obstacle behind it
 LIDAR_DATA_AMPLITUDE = 1

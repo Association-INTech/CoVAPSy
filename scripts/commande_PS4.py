@@ -1,10 +1,14 @@
 from pyPS4Controller.controller import Controller
 from rpi_hardware_pwm import HardwarePWM
 import time
+from src.HL.masterI2C import write_vitesse_direction
 
 ###################################################
 #Intialisation des moteurs
 ##################################################
+
+direction_d = 90
+vitesse_m = 0
 #paramètres de la fonction vitesse_m_s, à étalonner
 direction_prop = 1# -1 pour les variateurs inversés ou un petit rapport correspond à une marche avant
 pwm_stop_prop = 7.37
@@ -26,40 +30,23 @@ pwm_dir = HardwarePWM(pwm_channel=1, hz=50,chip=2) #use chip 2 on pi 5 in accord
 print("PWM désactivées")
 
 def set_direction_degre(angle_degre) :
-    global angle_pwm_min
-    global angle_pwm_max
-    global angle_pwm_centre
-    angle_pwm = angle_pwm_centre + direction * (angle_pwm_max - angle_pwm_min) * angle_degre /(2 * angle_degre_max )
-    if angle_pwm > angle_pwm_max : 
-        angle_pwm = angle_pwm_max
-    if angle_pwm < angle_pwm_min :
-        angle_pwm = angle_pwm_min
-    pwm_dir.change_duty_cycle(angle_pwm)
+    global direction_d
+    direction_d = angle_degre
+    write_vitesse_direction(vitesse_m, direction_d) #take the angle in degrees
     
 def set_vitesse_m_s(vitesse_m_s):
-    if vitesse_m_s > vitesse_max_m_s_soft :
-        vitesse_m_s = vitesse_max_m_s_soft
-    elif vitesse_m_s < -vitesse_max_m_s_hard :
-        vitesse_m_s = -vitesse_max_m_s_hard
-    if vitesse_m_s == 0 :
-        pwm_prop.change_duty_cycle(pwm_stop_prop)
-    elif vitesse_m_s > 0 :
-        vitesse = vitesse_m_s * (delta_pwm_max_prop)/vitesse_max_m_s_hard
-        pwm_prop.change_duty_cycle(pwm_stop_prop + direction_prop*(point_mort_prop + vitesse ))
-    elif vitesse_m_s < 0 :
-        vitesse = vitesse_m_s * (delta_pwm_max_prop)/vitesse_max_m_s_hard
-        pwm_prop.change_duty_cycle(pwm_stop_prop - direction_prop*(point_mort_prop - vitesse ))
+    global vitesse_m
+    vitesse_m = vitesse_m_s
+    write_vitesse_direction(int(vitesse_m_s * 1000), direction_d) # Convert to millimeters per second
         
 def recule():
-    set_vitesse_m_s(-vitesse_max_m_s_hard)
-    time.sleep(0.2)
-    set_vitesse_m_s(0)
-    time.sleep(0.2)
-    set_vitesse_m_s(-2)
+    global vitesse_m
+    vitesse_m = -2
+    write_vitesse_direction(int(vitesse_m_s * 1000), direction_d) # Convert to millimeters per second
 
 
 a_prop = vitesse_max_m_s_soft/(65198)
-a_dir=(angle_degre_max)/(-32767)
+a_dir=(angle_degre_max)/(-32767) 
 
 class MyController(Controller):
 
@@ -85,10 +72,10 @@ class MyController(Controller):
         set_vitesse_m_s(0)
     
     def on_L3_right(self,value):
-        set_direction_degre(a_dir*value)
+        set_direction_degre(90+a_dir*value)
 
     def on_L3_left(self,value):
-        set_direction_degre(a_dir*value)
+        set_direction_degre(90-a_dir*value)
         
     # def on_L2_press(self, value):
     #     set_vitesse_m_s(-vitesse_max_m_s_hard)
