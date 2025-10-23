@@ -1,6 +1,6 @@
 from pyPS4Controller.controller import Controller
 import time
-from src.HL.masterI2C import write_vitesse_direction
+from masterI2C import write_vitesse_direction
 
 ###################################################
 #Intialisation des moteurs
