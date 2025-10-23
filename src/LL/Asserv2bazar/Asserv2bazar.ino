@@ -275,7 +275,7 @@ void loop() {
      Serial.print(",Vitesse:");
      Serial.print(vitesse);
      Serial.print(",Directino en degré:");
-     Serial.print(dir);
+     Serial.print(dir_recue);
 //   Serial.print(", Ki :  ");
 //   Serial.print(Ki);
 //   Serial.print(", Kp: ");

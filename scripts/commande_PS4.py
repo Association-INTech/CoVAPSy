@@ -1,6 +1,7 @@
 from pyPS4Controller.controller import Controller
 import time
 from masterI2C import write_vitesse_direction
+from threading import Thread
 
 ###################################################
 #Intialisation des moteurs
@@ -25,6 +26,10 @@ angle_pwm_centre= 8.805
 angle_degre_max = +18 #vers la gauche
 angle_degre=0
 
+def envoie_direction_degre():
+    while True :
+        write_vitesse_direction(int(vitesse_m), int(direction_d))
+        time.sleep(0.001)
 #on recode map de arduino pour des soucis 
 
 def map(x, in_min,in_max, out_min, out_max):
@@ -34,17 +39,19 @@ def map(x, in_min,in_max, out_min, out_max):
 def set_direction_degre(angle_degre) :
     global direction_d
     direction_d = angle_degre
-    write_vitesse_direction(vitesse_m, direction_d) #take the angle in degrees
+    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+    #write_vitesse_direction(int(vitesse_m), int(direction_d)) #take the angle in degrees
     
-def set_vitesse_m_s(vitesse_m_s):
+def set_vitesse_m_ms(vitesse_m_ms):
     global vitesse_m
-    vitesse_m = vitesse_m_s
-    write_vitesse_direction(int(vitesse_m_s * 1000), direction_d) # Convert to millimeters per second
+    vitesse_m = vitesse_m_ms
+    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+    #write_vitesse_direction(int(vitesse_m), int(direction_d)) # Convert to millimeters per second
         
 def recule():
     global vitesse_m
-    vitesse_m = -2
-    write_vitesse_direction(int(vitesse_m * 1000), direction_d) # Convert to millimeters per second
+    vitesse_m = -2000
+    #write_vitesse_direction(int(vitesse_m), int(direction_d)) # Convert to millimeters per second
 
 
 a_prop = vitesse_max_m_s_soft/(65198)
@@ -56,32 +63,38 @@ class MyController(Controller):
         Controller.__init__(self, **kwargs)
         
     def on_R2_press(self,value):
-         print("La valeur de R2 est: ",value)
-         set_vitesse_m_s(map(value,-32252,32767,0,vitesse_max_m_s_soft))
+        vit = map(value,-32252,32767,0,vitesse_max_m_s_soft*1000)
+        if (vit < 0):
+            set_vitesse_m_ms(0)
+        else:
+            set_vitesse_m_ms(vit)
         
-    def on_R2_release(self):
-         print("Arrêt complet")
-         set_vitesse_m_s(0)
  
     def on_L3_x_at_rest(self):
-        set_direction_degre(0)
+        set_direction_degre(90)
         
     def on_R1_press(self):
-        recule()
+        set_vitesse_m_ms(0)
         
     def on_R1_release(self):
-        set_vitesse_m_s(0)
+        set_vitesse_m_ms(0)
     
     def on_L3_right(self,value):
-        print("x_r :", value)
-        set_direction_degre(90-a_dir*value)
+        print("x_r :", value, "degré : ",map(value,-32767, 32767, 60, 120))
+        dir = map(value, 0, 32767, 90, 120)
+        set_direction_degre(dir)
 
     def on_L3_left(self,value):
+        dir = map(value,-32767, 0, 60, 90)
         print("x_l :", value)
-        set_direction_degre(90-a_dir*value)
+        set_direction_degre(dir)
         
     def on_L2_press(self, value):
-         set_vitesse_m_s(map(value,-32252,32767,0,vitesse_min_m_s_soft))
+        vit = map(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
+        if (vit > 0):
+            set_vitesse_m_ms(0)
+        else:
+            set_vitesse_m_ms(vit)
         
     # def on_R3_right(self, value):
     #     set_vitesse_m_s(value*a_prop)
@@ -94,10 +107,8 @@ class MyController(Controller):
 
 controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
 try:
-    controller.listen()
-    print("hello world")
-    print("hello world")
-    print("hello world")
+    Thread(target = envoie_direction_degre, daemon=True).start()
+    controller.listen(timeout=60)
 
 except KeyboardInterrupt:
     print("Arrêt du programme")
