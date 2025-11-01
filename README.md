@@ -1,16 +1,59 @@
-# CoVAPSy
+# CoVAPSy - AutoTech Project
 
-AutoTech est un projet du Club de robotique INTech de Telecom SudParis et IMT Business School. Son objectif est de concevoir un véhicule autonome pour la compétition CoVAPSy.
+AutoTech is a project from the INTech robotics club (Telecom SudParis and IMT Business School). Our goal is to design and build an autonomous vehicle for [CoVAPSy](https://ajuton-ens.github.io/CourseVoituresAutonomesSaclay/) (Course de Voitures Autonomes de Paris-Saclay) competition.
 
-Ce répertoire contient le code pour développer une voiture autonome pour la course CoVAPSy 2025.
+This repository contains the source code for our autonomous vehicle for the 2025 and 2026 competitions.
 
-[Consultez les règles de la competition](https://ajuton-ens.github.io/CourseVoituresAutonomesSaclay/)
+## Our Approach
 
-[Consultez la documentation du projet](https://association-intech.github.io/CoVAPSy/)
+We chose to use a full Reinforcement Learning approach. We train an agent to drive the vehicle in a simulation of the race based directly on sensor inputs.
 
-To install dependencies, use:
-  `uv sync`
-To install with documentation dependencies:
-  `uv sync --extra docs`
-To install with development dependencies:
-  `uv sync --extra dev`
+We train the AI model in parallel remote environments through nammed pipes connections between the main python script and the multiple webots instances.
+
+Inside the simulations, each vehicle has access to data comming from a LiDAR and a camera.
+
+- Simulator: [Webots](https://cyberbotics.com/)
+- AI Training Library: [Stable-Baselines3](https://stable-baselines3.readthedocs.io/en/master/) with a [Pytorch](https://pytorch.org/) backend
+- AI Inference Engine: [ONNX](https://onnx.ai/)
+
+## Installation
+
+We use uv for Python environment management. So if it's not already installed go check the [official installation guide](https://docs.astral.sh/uv/getting-started/installation/)
+
+Then, just `uv sync` to create the virtual environment and get all the dependencies.
+```bash
+# dependencies for AI training
+uv sync --extra simu
+
+# dependencies for AI inference on the Raspberry PI 5
+uv sync --extra rpi
+```
+
+## Training usage
+
+Navigate to the simulator directory.
+```bash
+cd src/simulateur
+```
+
+Run the multi-process training script.
+```bash
+uv run launch_multiprocess_training.py
+```
+This will launch the Webots instances and begin the SB3 PPO training loop. All the checkpoints will be in the `checkpoints` directory. At every checkpoint, a compiled ONNX model will be stored as `model.onnx`.
+
+To change the parameters of the simulation, just modify the `config.py` file.
+
+## Inference usage
+
+(WIP)
+
+# Wiki (Documentation)
+
+For detailed information on architecture, hardware specifics and technical choices, please refer to the [INTech wiki](wiki.intech-robotics.fr).
+
+(Note: The Wiki is private and reserved to INTech members)
+
+# License
+
+This project is distributed under the MIT License. See the Licence file for details.
