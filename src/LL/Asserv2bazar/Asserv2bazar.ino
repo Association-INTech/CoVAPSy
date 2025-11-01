@@ -29,8 +29,8 @@ float dir_recue = 90.0; //initialisation de la direction au centre
 
 float dir_max_pwm = 2501; //direction maximal physique en pwm 2501
 float dir_min_pwm = 1261; //direction minimal physique en pwm 1261
-float dir_max = 120;      //direction maximal recue en degré avant conversion (via map)
-float dir_min = 60;        //direction minimal reçue en degré avant conversion (via map)
+float dir_max = 30;      //direction maximal en valeur abosule recue entre une roue tourné a fond et une roue droite en degré avant conversion (via map) 
+
 
 //PID
 float vieuxEcart=0;
@@ -261,7 +261,7 @@ void loop() {
 
 
   // Direction de la voiture
-  dir = map(dir_recue,dir_min,dir_max,dir_min_pwm,dir_max_pwm); // remape en degré
+  dir = map(dir_recue,-dir_max,dir_max,dir_min_pwm,dir_max_pwm); // remape en degré
   direction.writeMicroseconds(dir);
 
   //print debug

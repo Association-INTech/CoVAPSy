@@ -83,11 +83,11 @@ class MyController(Controller):
     
     def on_L3_right(self,value):
         print("x_r :", value, "degré : ",map(value,-32767, 32767, 60, 120))
-        dir = map(value, 0, 32767, 90, 120)
+        dir = map(value, 0, 32767, 0, angle_degre_max)
         set_direction_degre(dir)
 
     def on_L3_left(self,value):
-        dir = map(value,-32767, 0, 60, 90)
+        dir = map(value,-32767, 0, -angle_degre_max, 0 )
         print("x_l :", value)
         set_direction_degre(dir)
         
