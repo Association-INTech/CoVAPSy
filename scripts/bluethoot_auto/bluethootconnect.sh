@@ -21,18 +21,8 @@ while read -r line; do
     bluetoothctl remove "$mac"
     bluetoothctl -t 8 scan on &
     scan_pid=$!
-    sleep 4
+    sleep 7
     kill "$scan_pid" 2>/dev/null
-
-    echo "⏳ Recherche de l'appareil..."
-    # Attend jusqu'à ce que l'appareil soit détecté (max 20 s)
-    for i in $(seq 1 20); do
-        if bluetoothctl devices | grep -q "$mac"; then
-            echo "✅ Appareil détecté ($mac)"
-            break
-        fi
-        sleep 1
-    done
 
     bluetoothctl pair "$mac"
     sleep 1
