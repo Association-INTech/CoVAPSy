@@ -26,7 +26,7 @@ class Car:
         """Initialize the car's components."""
         self.vitesse_milimetres_s = 0  # Speed in millimeters per second
         self.angle_degre = 0  # Steering angle in degrees
-
+        
         def _initialize_speed_limits():
             """Set the car's speed limits."""
             self.vitesse_max_m_s_hard = 6000  # Maximum hardware speed
@@ -108,6 +108,7 @@ class Car:
         self.vitesse_milimetres_s = 0
         self.angle_degre = 0
         write_vitesse_direction(self.vitesse_milimetres_s, self.angle_degre) #stop the car
+        self.lidar.stop()
         
 
     def has_Crashed(self):
