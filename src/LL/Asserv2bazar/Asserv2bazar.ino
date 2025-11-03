@@ -40,7 +40,6 @@ float Ki=0.02; //correction integrale
 float Kd=0.; //correction derivee
 float integral=0;//valeur de l'integrale dans le PID
 float derivee=0; //valeur de la derivee dans le PID
-int old_out = 0; //anciene valeur de la sortie du PID
 
 //mesures
 volatile int count=0; //variable utilisee pour compter le nombre de fronts montants/descendants
@@ -69,7 +68,8 @@ const float r2_NiMh = 1000; // resistance of the second resistor
 float voltage_LiPo = 0;     // variable to store the value read
 float voltage_NiMh = 0;     // variable to store the value read
 
-
+int out;
+int marche_avant = 1; //on initie la marche avant au début (0 étant la marche arriérer)
 
 //direction millieu 1851
 // tout a gaucge 1231
@@ -116,7 +116,7 @@ void blink(){ //on compte tous les fronts
 }
 
 
-float PID(float cons, float mes, float dt) {
+float PID(float cons, float mes, float dt,float old_out) {
 
 
   if ( old_out <= 0 && cons > 0){     // pour pouvoir sauter directement dans la plage de pwm ou la roue bouge et une transition plus fluide entre marche arriere et avant 
@@ -125,6 +125,7 @@ float PID(float cons, float mes, float dt) {
   else if (old_out >= 0 && cons <0 ){ // pour pouvoir sauter directement dans la plage de pwm où la roue bouge et une transition plus fluide entre marche avant et arriere
     integral = -5000;                 // valeur experimentale
   }
+
 
   // Adjust the measured speed based on the sign of the desired speed
   float adjustedMes = (cons < 0) ? -mes : mes;
@@ -145,7 +146,6 @@ float PID(float cons, float mes, float dt) {
   float D = Kd * derivee;
 
   // Garde en mémoir pour passer out à 0 directe lorsque l'on change de sens pour ne pas attendre qu'elle change de sens tout seul (que c'est long mdr
-  old_out = P + I;
   
   return P + I + D;
 }
@@ -161,6 +161,8 @@ void calculateVoltage(){
   //Serial.println(voltage_LiPo);
   //Serial.println(voltage_NiMh);
 }
+
+
 void setup() {
   Serial.begin(115200);
 
@@ -227,7 +229,6 @@ void loop() {
   int deltaT = millis()-vieuxTemps; //temps qui est passé pendant un loop (en millisecondes)
   vitesse=getMeanSpeed(deltaT); // on recup la vitesse lissée
   
-  int out;
 
   if (Vcons == 0){
     out = 0;
@@ -237,24 +238,27 @@ void loop() {
   }
   else if (Vcons>0){
 
-    out = PID(Vcons,vitesse,float(deltaT)/1e3);
-    
+    out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
     Serial.print("out:");
     Serial.print(constrain(1500 + out,500,2000));
+    marche_avant = 1;
     
-  } else if ( Vcons<0 && old_Vcons>=0 ){
-    out = PID(-8000,vitesse,float(deltaT)/1e3);
+  } else if ( Vcons<0 && old_Vcons>=0 && marche_avant == 1){ //on vériefie si il faut enclencher la marche arrière
+    out = PID(-8000,vitesse,float(deltaT)/1e3,out);
     moteur.writeMicroseconds(constrain(1500 + out,500,1500));
-    delay(200);
-    out = PID(0,vitesse,float(deltaT)/1e3);
+    delay(150);
+    out = PID(0,vitesse,float(deltaT)/1e3,out);
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
     delay(10);
+    marche_avant = 0; //on est passée en marche arrière
 
   } else {
 
-    out = PID(Vcons,vitesse,float(deltaT)/1e3);
+    out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
     moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+    Serial.print("out:");
+    Serial.print(constrain(1500 + out,500,2000));
   }
 
   old_Vcons = Vcons;
