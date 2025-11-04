@@ -4,9 +4,12 @@ import sys
 from systemd.journal import JournaldLogHandler
 import zerorpc
 import struct
+import logging as log
+
+from Camera import Camera
 import smbus #type: ignore
 """
-Lanccer un serveur qui tourne h24 qui gere l'intercommunication des processus (qui sont externe a la Pi)
+Lancer un serveur qui tourne h24 qui gere l'intercommunication des processus (qui sont externe a la Pi)
 Cf envoie vitesse a l'arduino, communication avec l'ecran , avec les boutons ,avec le lidar et la camera 
 Tout doit passer par cette classe qui tourne s
 """
@@ -25,6 +28,15 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
     """
         ça controlera tout
     """
+
+    def __init__(self):
+        log.basicConfig(level=log.INFO)  # Mettre log.DEBUG pour plus de détails
+        log.info("Initialisation de la caméra...")
+        self.cam = Camera()
+        log.info("Caméra initialisée.")
+        log.info("Démarrage du thread de capture...")
+        cam.start()
+        log.info("Thread de capture démarré.")
 
     def write_vitesse_direction(self,vitesse, direction):
         # Convert string to list of ASCII values
@@ -61,6 +73,24 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         except Exception as e:
             print(f"Erreur inattendue : {e}")
             return None, None
+
+    def gen_frames(self):
+        """Générateur qui lit le flux depuis l'objet Caméra."""
+        log.info("Démarrage du flux vidéo.")
+        while True:
+            # Limite le framerate pour ne pas saturer le réseau
+            time.sleep(0.05)  # ~20 images/seconde
+
+            frame_bytes = None
+
+            # Lit l'image la plus récente de manière thread-safe
+            with self.cam.streaming_lock:
+                frame_bytes = self.cam.streaming_frame
+
+            if frame_bytes:
+                # Envoie l'image au navigateur
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
 if __name__ == '__main__':
 
