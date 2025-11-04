@@ -5,6 +5,7 @@ import logging as log
 import numpy as np
 import smbus as smbus  #type: ignore #ignore the module could not be resolved error because it is a linux only module
 from Camera import Camera
+import zerorpc
 import struct
 
 # --------------------------------------------
@@ -13,6 +14,10 @@ import struct
 app = Flask(__name__)
 CORS(app)
 
+IP_DU_RASPBERRY_PI = "192.168.1.25"
+
+c = c = zerorpc.Client()
+c.connect("tcp://127.0.0.1:4242")
 # ---------------------------
 # Creer une instance SMBus
 bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
@@ -28,33 +33,6 @@ log.info("Démarrage du thread de capture...")
 cam.start()
 log.info("Thread de capture démarré.")
 
-def lire_donnees_arduino():
-    """
-    Lit huit octets de l'Arduino et les convertit en 2 float.
-    On veut la vitesse reel et la vitesse cible
-    """
-    try:
-        # Demande 4 octets à l'esclave.
-        # read_i2c_block_data(adresse, commande, nombre_octets)
-        # La "commande" (le 0) n'est pas utilisée par notre Arduino,
-        # mais le protocole l'exige.
-        data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, 8)
-
-        # Les données arrivent sous forme de liste :
-        # data = [highByte1, lowByte1, highByte2, lowByte2]
-
-        # Reconstituer les entiers
-        vitesse_reel = struct.unpack('<f', bytearray(data[0:4]))[0]
-        vitesse_cible = struct.unpack('<f', bytearray(data[4:8]))[0]
-
-        return vitesse_reel, vitesse_cible
-
-    except IOError as e:
-        print(f"Erreur I2C : {e}")
-        return None, None
-    except Exception as e:
-        print(f"Erreur inattendue : {e}")
-        return None, None
 
 def gen_frames():
     """Générateur qui lit le flux depuis l'objet Caméra."""
