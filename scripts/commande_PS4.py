@@ -1,130 +1,361 @@
-from pyPS4Controller.controller import Controller
-import time
-from threading import Thread
-
-#Pour le protocole I2C de communication entre la rasberie Pi et l'arduino
-import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
-import numpy as np
-import struct
-
-###################################################
-#Intialisation du protocole I2C
-##################################################
-
-# Create an SMBus instance
-bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
-
-# I2C address of the slave
-SLAVE_ADDRESS = 0x08
-
-def write_vitesse_direction(vitesse,direction):
-    # Convert string to list of ASCII values
-    data = struct.pack('<ff', float(vitesse), float(direction))
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-
-###################################################
-#Intialisation des moteurs
-##################################################
-
-direction_d = 90 # angle initiale des roues en degrés
-vitesse_m = 0   # vitesse initiale en métre par milliseconde
-
-#paramètres de la fonction vitesse_m_s, à étalonner
-vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture en métre
-vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
-vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
-
-angle_degre_max = +18 #vers la gauche
+#include <Servo.h>
+#include <EnableInterrupt.h>
+#include <Wire.h>
 
 
+#define PIN_DIR 10
+#define PIN_MOT 9
+#define PIN_FOURCHE A0
 
-# fonction naturel map de ardiono pour plus de lisibilité
-def map(x, in_min,in_max, out_min, out_max):
-    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+Servo moteur;
+Servo direction;
+
+//declaration des broches des differents composants
+const int pinMoteur=PIN_MOT;
+const int pinDirection=PIN_DIR;
+const int pinFourche=PIN_FOURCHE;
+
+//constantes utiles
+const int nb_trous=16*2; //nb de trous dans la roue qui tourne devant la fourche optique
+const int distanceUnTour=79; //distance parcourue par la voiture apres un tour de roue en mm
+
+//variables
+char command;
+float Vcons=0;
+float old_Vcons ;//consigne
+float vitesse=0; //vitesse de la voiture calculé
+int dir = 0; 
+float dir_recue = 90.0; //initialisation de la direction au centre
+
+float dir_max_pwm = 2501; //direction maximal physique en pwm 2501
+float dir_min_pwm = 1261; //direction minimal physique en pwm 1261
+float dir_max = 30;      //direction maximal en valeur abosule recue entre une roue tourné a fond et une roue droite en degré avant conversion (via map) 
 
 
+//PID
+float vieuxEcart=0;
+float vieuxTemps=0; //variable utilisee pour mesurer le temps qui passe
+float Kp=0.05; //correction prop
+float Ki=0.02; //correction integrale
+float Kd=0.; //correction derivee
+float integral=0;//valeur de l'integrale dans le PID
+float derivee=0; //valeur de la derivee dans le PID
 
-def set_direction_degre(angle_degre) :
-    global direction_d
-    direction_d = angle_degre
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+//mesures
+volatile int count=0; //variable utilisee pour compter le nombre de fronts montants/descendants
+volatile int vieuxCount=0; //stocke l'ancienne valeur de count pour ensuite faire la difference
+volatile byte state=LOW;
+float mesures[3]; // tableau de mesures pour lisser
+
+////I2C
+union floatToBytes {
+      byte valueBuffer[4];
+      float valueReading;
+    } converter;
+
+////Voltage
+volatile bool dataReceived = false;
+volatile char receivedData[32]; // Buffer to hold received data
+volatile int receivedLength = 0;
+        
+const int sensorPin_Lipo = A2; // select the input pin for the battery sensor
+const int sensorPin_NiMh = A3; // select the input pin for the battery sensor
+        
+const float r1_LiPo = 560;  // resistance of the first resistor
+const float r1_NiMh = 560;  // resistance of the second resistor
+const float r2_LiPo = 1500; // resistance of the second resistor
+const float r2_NiMh = 1000; // resistance of the second resistor
+float voltage_LiPo = 0;     // variable to store the value read
+float voltage_NiMh = 0;     // variable to store the value read
+
+int out;
+int marche_avant = 1; //on initie la marche avant au début (0 étant la marche arriérer)
+float marche_arriere_time = 0;
+
+float dernier_input = millis();
+//direction millieu 1851
+// tout a gaucge 1231
+// tout a droite 2471
+
+float getMeanSpeed(float dt){
+  int length = sizeof(mesures)/sizeof(mesures[0]);
+  //ajout d'une nouvelle mesure et suppression de l'ancienne
+  for (int i=length-1;i>0;i--){
+      mesures[i]=mesures[i-1];
+  }
+  mesures[0] = getSpeed(dt);
+
+  //Calcul d'une moyenne pour lisser les mesures qui sont trop dipersées sinon
+  float sum=0;
+  for (int i=0;i<length;i++){
+    sum+=mesures[i];
+  }
+
+  //affichage debug
+  #if 0
+  for(int i=0;i<length;i++){
+    Serial.print(mesures[i]);
+    Serial.print(" , ");
+  }
+  Serial.println(sum/length);
+  #endif
+
+  return sum/length;
+}
+
+float getSpeed(float dt){  
+  int N = count - vieuxCount; //nombre de fronts montant et descendands après chaque loop
+  float V = ((float)N/(float)nb_trous)*distanceUnTour/(dt*1e-3); //16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm 
+  vieuxCount=count;
+  vieuxTemps=millis();
+  return V;
+}
+
+
+void blink(){ //on compte tous les fronts
+  //Serial.print(count);
+  count++;
+}
+
+
+float PID(float cons, float mes, float dt,float old_out) {
+
+
+  if ( old_out <= 0 && cons > 0){     // pour pouvoir sauter directement dans la plage de pwm ou la roue bouge et une transition plus fluide entre marche arriere et avant 
+    integral = 2500;                  // valeur experimentale
+  }
+  else if (old_out >= 0 && cons <0 ){ // pour pouvoir sauter directement dans la plage de pwm où la roue bouge et une transition plus fluide entre marche avant et arriere
+    integral = -5000;                 // valeur experimentale
+  }
+
+
+  // Adjust the measured speed based on the sign of the desired speed
+  float adjustedMes = (cons < 0) ? -mes : mes;
+
+  // Calculate the error
+  float e = cons - adjustedMes;
+
+  // Proportional term
+  float P = Kp * e;
+
+  // Integral term
+  integral = integral + e * dt;
+  float I = Ki * integral;
+
+  // Derivative term
+  derivee = (e - vieuxEcart) / dt;
+  vieuxEcart = e;
+  float D = Kd * derivee;
+
+  // Garde en mémoir pour passer out à 0 directe lorsque l'on change de sens pour ne pas attendre qu'elle change de sens tout seul (que c'est long mdr
+  
+  return P + I + D;
+}
+
+
+void calculateVoltage(){
+  //read from the sensor
+  // and convert the value to voltage
+  voltage_LiPo = analogRead(sensorPin_Lipo);
+  voltage_NiMh = analogRead(sensorPin_NiMh);
+  voltage_LiPo = voltage_LiPo * (5.0 / 1023.0) * ((r1_LiPo + r2_LiPo) / r1_LiPo);
+  voltage_NiMh = voltage_NiMh * (5.0 / 1023.0) * ((r1_NiMh + r2_NiMh) / r1_NiMh);
+  //Serial.println(voltage_LiPo);
+  //Serial.println(voltage_NiMh);
+}
+
+/*
+float direction_compensation(float dir_recue, float anciene_dir){
+  if (anciene_dir > )
+}*/
+
+void programme_principal(){
+  calculateVoltage();
+  // Commandes pour debugger
+  #if 0
+  command=Serial.read();
+  switch (command){ //pour regler les parametres
+    case 'a':
+    Vcons+=200;
+    break;
+    case 'z':
+    Vcons-=200;
+    break;
+    case 's':
+    Vcons=-1000;
+    break;
+    case 'd':
+    Vcons=2000;
+    break;
+    case 'q':
+    Vcons=0;
+    break;
+    case 'b':
+    dir+=10;
+    break;
+    case 'n':
+    dir-=100;
+    break;
+    case 'j':
+    dir+=10;
+    break;
+    case 'k':
+    dir-=10;
+    break;
+  }
+  #endif
+  
+
+  // Propulsion de la voiture
+  int deltaT = millis()-vieuxTemps; //temps qui est passé pendant un loop (en millisecondes)
+  vitesse=getMeanSpeed(deltaT); // on recup la vitesse lissée
+  
+
+  if (Vcons == 0){
+    out = 0;
+    moteur.writeMicroseconds(out+1500);
+    /*
+    Serial.print("out:");
+    Serial.print(out);
+    */
+    marche_arriere_time = millis();
+  }
+  else if (Vcons>0){
+
+    out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
+    moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+    /*
+    Serial.print("out:");
+    Serial.print(constrain(1500 + out,500,2000));
+    */
+    marche_avant = 1; // on est en marche avant
     
-def set_vitesse_m_ms(vitesse_m_ms):
-    global vitesse_m
-    vitesse_m = vitesse_m_ms
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
-        
-def recule(): #actuellement ne sert a rien car on peux juste envoyer une vitesse négative 
-    global vitesse_m
-    vitesse_m = -2000
+  } else if ( Vcons<0 && old_Vcons>=0 && marche_avant == 1){ //on vériefie si il faut enclencher la marche arrière
+    out = PID(-8000,vitesse,float(deltaT)/1e3,out);
+    moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+    delay(150);
+    out = PID(0,vitesse,float(deltaT)/1e3,out);
+    moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+    delay(10);
+    marche_avant = 0; //on est passée en marche arrière
+    marche_arriere_time = millis();
 
+  } else {
+    if (vitesse==0 && Vcons<0 && millis()- marche_arriere_time > 500){ //vérifie si on est bien passée en marche arrière car bug parfois et si non on passe en marche arriere
 
-class MyController(Controller):
-
-    def __init__(self, **kwargs):
-        Controller.__init__(self, **kwargs)
-        
-    def on_R2_press(self,value):
-        vit = map(value,-32252,32767,0,vitesse_max_m_s_soft*1000)
-        if (vit < 0):
-            set_vitesse_m_ms(0)
-        else:
-            set_vitesse_m_ms(vit)
-        
- 
-    def on_L3_x_at_rest(self):
-        set_direction_degre(0)
-        
-    def on_R1_press(self): #arret d'urgence
-        set_vitesse_m_ms(0)
-        
-    def on_R1_release(self):
-        set_vitesse_m_ms(0)
+      
+      out = PID(-8000,vitesse,float(deltaT)/1e3,out);
+      moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+      delay(150);
+      out = PID(0,vitesse,float(deltaT)/1e3,out);
+      moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+      delay(10);
+    }
     
-    def on_L3_right(self,value):
-        print("x_r :", value, "degré : ",map(value,-32767, 32767, 60, 120))
-        dir = map(value, 0, 32767, 0, angle_degre_max)
-        set_direction_degre(dir)
-
-    def on_L3_left(self,value):
-        dir = map(value,-32767, 0, -angle_degre_max, 0 )
-        print("x_l :", value)
-        set_direction_degre(dir)
-    
-    def on_R3_right(self,value):
-        print("x_r :", value, "degré : ",map(value,-32767, 32767, 60, 120))
-        dir = map(value, 0, 32767, 0, angle_degre_max)
-        set_direction_degre(dir)
+    out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
+    moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+    /*
+    Serial.print("out:");
+    Serial.print(constrain(1500 + out,500,2000));
+    */
+  }
+  
+  old_Vcons = Vcons;
 
 
-    def on_R3_left(self,value):
-        dir = map(value,-32767, 0, -angle_degre_max, 0 )
-        print("x_l :", value)
-        set_direction_degre(dir)
+  // Direction de la voiture
+  dir = map(dir_recue,-dir_max,dir_max,dir_min_pwm,dir_max_pwm); // remape en degré
+  direction.writeMicroseconds(dir);
+  
 
-    def on_L2_press(self, value):
-        vit = map(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
-        if (vit > 0):
-            set_vitesse_m_ms(0)
-        else:
-            set_vitesse_m_ms(vit)
+  //print debug
+  #if 1
+     Serial.print("temps en marche arriere: ");
+     Serial.print(millis()- marche_arriere_time);
+     Serial.print(",integrale");
+     Serial.print(integral);
+     Serial.print(",const:");
+     Serial.print(200);
+     Serial.print(",Vcons:");
+     Serial.print(Vcons);
+     Serial.print(",Vitesse:");
+     Serial.print(vitesse);
+     Serial.print(",Directino en degré:");
+     Serial.print(dir_recue);
+//   Serial.print(", Ki :  ");
+//   Serial.print(Ki);
+//   Serial.print(", Kp: ");
+//   Serial.print(Kp);
+//   Serial.print(", ");
+     Serial.print(",out2:");
+     Serial.println(out);
+  #endif
+  delay(10);
+}
+void receiveEvent(int byteCount){
+  // Ignorer le premier octet "commande" du Raspberry
+  if (Wire.available()) Wire.read(); // skip cmd byte
 
-#envoie de la direction et de l'angle toute les millisecondes
-def envoie_direction_degre():
-    while True :
-        write_vitesse_direction(int(vitesse_m), int(direction_d))
-        time.sleep(0.001)
+  if (byteCount >= 9) { // 1 cmd + 8 data
+
+    dernier_input = millis();
+
+    byte buffer[8];
+    for (int i = 0; i < 8 && Wire.available(); i++) {
+      buffer[i] = Wire.read();
+    }
+
+    float* vals = (float*)buffer;
+    Vcons = vals[0];  // reçue en milimetre par secondes
+    dir_recue = vals[1];  //reçue en degré. 
+  } else {
+    while (Wire.available()) Wire.read(); // vide le buffer
+  }
+}
 
 
-# boucle principal
-controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
-try:
-    Thread(target = envoie_direction_degre, daemon=True).start()
-    controller.listen(timeout=60)
+void setup() {
+  Serial.begin(115200);
 
-except KeyboardInterrupt:
-    print("Arrêt du programme")
-    controller.stop()
-    exit(0)
+  pinMode(pinMoteur,OUTPUT);
+  moteur.attach(pinMoteur,0,2000);
+
+  pinMode(pinDirection,OUTPUT);
+  direction.attach(pinDirection);
+  
+  pinMode(pinFourche,INPUT_PULLUP);
+  enableInterrupt(PIN_FOURCHE, blink, CHANGE); //on regarde a chaque fois que le signal de la fourche change (Montants et Descendants)
+  moteur.writeMicroseconds(1500);
+  delay(2000);
+  moteur.writeMicroseconds(1590);
+
+  Wire.begin(8);                  // Join I2C bus with address #8
+  Wire.onReceive(receiveEvent);   // Register receive event
+  Wire.onRequest(requestEvent);   // Register request event
+  pinMode(13,OUTPUT);
+
+  delay(10);
+  Serial.print("init");
+}
 
 
+void loop() {
+  if(millis()-dernier_input < 150){ // on vérifie si on a recue une commande dans les 100 dernière millisecondes sinon on arrete
+    programme_principal();
+  }
+  else {
+    moteur.writeMicroseconds(1500);
+    dir = map(0,-dir_max,dir_max,dir_min_pwm,dir_max_pwm);
+    direction.writeMicroseconds(dir);
+  }
+}
+
+
+void requestEvent(){
+  const int numFloats = 2; // Number of floats to send
+  float data[numFloats] = {voltage_LiPo, voltage_NiMh}; // Example float values to send
+  byte* dataBytes = (byte*)data;
+  
+
+  Wire.write(dataBytes, sizeof(data));
+}
