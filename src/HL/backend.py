@@ -1,10 +1,11 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, Response
 from flask_cors import CORS
 import time
 import logging as log
 import numpy as np
 import smbus as smbus  #type: ignore #ignore the module could not be resolved error because it is a linux only module
 from Camera import Camera
+import struct
 
 # --------------------------------------------
 
@@ -29,7 +30,7 @@ log.info("Thread de capture démarré.")
 
 def lire_donnees_arduino():
     """
-    Lit 4 octets de l'Arduino et les convertit en 2 entiers.
+    Lit huit octets de l'Arduino et les convertit en 2 float.
     On veut la vitesse reel et la vitesse cible
     """
     try:
@@ -43,10 +44,10 @@ def lire_donnees_arduino():
         # data = [highByte1, lowByte1, highByte2, lowByte2]
 
         # Reconstituer les entiers
-        valeur1 = (data[0] << 24) | (data[1] << 16) |(data[2] << 8) | data[3]
-        valeur2 = (data[4] << 24) | (data[5] << 16) |(data[6] << 8) | data[7]
+        vitesse_reel = struct.unpack('<f', bytearray(data[0:4]))[0]
+        vitesse_cible = struct.unpack('<f', bytearray(data[4:8]))[0]
 
-        return valeur1, valeur2
+        return vitesse_reel, vitesse_cible
 
     except IOError as e:
         print(f"Erreur I2C : {e}")
