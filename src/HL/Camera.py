@@ -6,6 +6,8 @@ import logging as log
 import threading
 import shutil
 import scipy as sp
+import io  # <-- NOUVEL IMPORT
+import cv2 # <-- NOUVEL IMPORT
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
@@ -36,6 +38,10 @@ class Camera:
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
         os.makedirs(DEBUG_DIR, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
         os.makedirs(DEBUG_DIR_wayfinding, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
+        # --- VARIABLES POUR LE STREAMING ---
+        self.streaming_frame = None  # Contiendra les bytes de l'image JPEG
+        self.streaming_lock = threading.Lock()  # Sécurité pour le thread
+        # ---------------------------------------------
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
     def capture_image(self):
@@ -44,6 +50,22 @@ class Camera:
         frame = self.picam2.capture_array()
         image = Image.fromarray(frame).convert("RGB")
         image.save(self.image_path)
+        # Pour l'envoie du flux video
+        # Redimensionner l'image pour un flux plus léger (ex: 640x360)
+        # Note: 1920x1080 -> 16:9. Gardons le ratio.
+        stream_width = 640
+        stream_height = int(stream_width * (1080 / 1920))  # 640x360
+
+        stream_frame = cv2.resize(frame, (stream_width, stream_height))
+
+        # Encoder cette petite image en JPEG
+        ret, buffer = cv2.imencode('.jpg', stream_frame)
+
+        if ret:
+            # Stocker les bytes de l'image de manière sécurisée
+            with self.streaming_lock:
+                self.streaming_frame = buffer.tobytes()
+        #Fin de la partie ajouté
         self.image_no += 1
         return image
     

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Pi Complet</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f2f5; }
+        h1, h2 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+
+        /* Conteneur principal pour organiser en colonnes */
+        .container {
+            display: flex;
+            flex-wrap: wrap; /* Permet de passer à la ligne sur petits écrans */
+            gap: 20px;
+        }
+
+        /* Colonne de gauche (Vidéo) */
+        .video-col {
+            flex: 2; /* Prend 2/3 de la largeur */
+            min-width: 640px;
+        }
+
+        /* Colonne de droite (Données) */
+        .data-col {
+            flex: 1; /* Prend 1/3 de la largeur */
+            min-width: 300px;
+        }
+
+        /* Styles pour les boîtes de données */
+        .data-box {
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .data-box h2 {
+            margin-top: 0;
+        }
+        .data-box div {
+            font-size: 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .data-box div strong {
+            font-size: 22px;
+            color: #0056b3;
+        }
+
+        /* Style pour la vidéo */
+        #video-stream {
+            display: block;
+            width: 100%; /* S'adapte à la largeur de sa colonne */
+            height: auto;
+            border-radius: 8px;
+            background-color: #000;
+        }
+
+        #status { font-size: 14px; color: grey; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h1>Dashboard Raspberry Pi</h1>
+
+<div class="container">
+
+    <div class="video-col">
+        <div class="data-box">
+            <h2>Flux en direct</h2>
+            <img id="video-stream"
+                 src="http://[VOTRE_IP_RASPBERRY_PI]:5000/video_feed"
+                 alt="Flux vidéo du Raspberry Pi">
+        </div>
+    </div>
+
+    <div class="data-col">
+
+        <div class="data-box">
+            <h2>Analyse Caméra</h2>
+            <div>Total Vert : <strong id="cam-green">--</strong></div>
+            <div>Total Rouge : <strong id="cam-red">--</strong></div>
+            <div>Somme Matrice : <strong id="cam-sum">--</strong></div>
+        </div>
+
+        <div class="data-box">
+            <h2>Données Arduino (I2C)</h2>
+            <div>Capteur A0 : <strong id="arduino-a0">--</strong></div>
+            <div>Compteur : <strong id="arduino-count">--</strong></div>
+        </div>
+
+        <div id="status">En attente de données...</div>
+    </div>
+
+</div>
+
+<script>
+    // ###############################################################
+    // ##  IMPORTANT : REMPLACEZ PAR L'ADRESSE IP DE VOTRE PI       ##
+    // ###############################################################
+    const RASPBERRY_PI_IP = "[VOTRE_IP_RASPBERRY_PI]";
+    // ###############################################################
+
+    // --- SECTION SCRIPT (MISE À JOUR) ---
+
+    const apiUrl = `http://${RASPBERRY_PI_IP}:5000/data`;
+
+    // Sélection des éléments d'analyse caméra
+    const camGreenEl = document.getElementById('cam-green');
+    const camRedEl = document.getElementById('cam-red');
+    const camSumEl = document.getElementById('cam-sum');
+
+    // Sélection des nouveaux éléments Arduino
+    const arduinoA0El = document.getElementById('arduino-a0');
+    const arduinoCountEl = document.getElementById('arduino-count');
+
+    const statusElement = document.getElementById('status');
+    const videoElement = document.getElementById('video-stream');
+
+    // Configure la source vidéo (une seule fois)
+    videoElement.src = `http://${RASPBERRY_PI_IP}:5000/video_feed`;
+
+    async function fetchData() {
+        statusElement.textContent = "Mise à jour...";
+        try {
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error(`Erreur HTTP: ${response.status}`);
+            }
+
+            // Récupère l'objet JSON complet
+            const data = await response.json();
+
+            // --- Mise à jour des données Caméra ---
+            if (data.camera && !data.camera.error) {
+                camGreenEl.textContent = data.camera.total_green;
+                camRedEl.textContent = data.camera.total_red;
+                camSumEl.textContent = data.camera.matrix_sum;
+            } else {
+                camGreenEl.textContent = "Erreur";
+                camRedEl.textContent = "Erreur";
+                camSumEl.textContent = "Erreur";
+            }
+
+            // --- Mise à jour des données Arduino ---
+            if (data.arduino && data.arduino.capteur_A0 !== null) {
+                arduinoA0El.textContent = data.arduino.capteur_A0;
+                arduinoCountEl.textContent = data.arduino.compteur;
+            } else {
+                // Gère le cas où l'I2C échoue (retourne null)
+                arduinoA0El.textContent = "Erreur I2C";
+                arduinoCountEl.textContent = "Erreur I2C";
+            }
+
+            statusElement.textContent = `Dernière mise à jour : ${new Date().toLocaleTimeString()}`;
+
+        } catch (error) {
+            console.error("Impossible de récupérer les données:", error);
+            statusElement.textContent = `Erreur de connexion au Pi (${error.message})`;
+        }
+    }
+
+    // Appelle la fonction une première fois au chargement
+    fetchData();
+
+    // Met à jour les données toutes les 5 secondes (5000 ms)
+    // (Vous pouvez réduire à 2000ms si vous voulez plus de réactivité)
+    setInterval(fetchData, 5000);
+
+</script>
+</body>
+</html>
