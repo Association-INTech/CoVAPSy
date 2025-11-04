@@ -108,6 +108,8 @@ class Car:
         self.vitesse_milimetres_s = 0
         self.angle_degre = 0
         write_vitesse_direction(self.vitesse_milimetres_s, self.angle_degre) #stop the car
+        log.info("Arrêt du moteur")
+        self.lidar.stop()
         
 
     def has_Crashed(self):
