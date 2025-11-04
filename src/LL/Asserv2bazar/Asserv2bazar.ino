@@ -70,7 +70,7 @@ float voltage_NiMh = 0;     // variable to store the value read
 
 int out;
 int marche_avant = 1; //on initie la marche avant au début (0 étant la marche arriérer)
-
+float marche_arriere_time = 0;
 //direction millieu 1851
 // tout a gaucge 1231
 // tout a droite 2471
@@ -235,6 +235,7 @@ void loop() {
     moteur.writeMicroseconds(out+1500);
     Serial.print("out:");
     Serial.print(out);
+    marche_arriere_time = millis();
   }
   else if (Vcons>0){
 
@@ -242,7 +243,7 @@ void loop() {
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
     Serial.print("out:");
     Serial.print(constrain(1500 + out,500,2000));
-    marche_avant = 1;
+    marche_avant = 1; // on est en marche avant
     
   } else if ( Vcons<0 && old_Vcons>=0 && marche_avant == 1){ //on vériefie si il faut enclencher la marche arrière
     out = PID(-8000,vitesse,float(deltaT)/1e3,out);
@@ -252,15 +253,26 @@ void loop() {
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
     delay(10);
     marche_avant = 0; //on est passée en marche arrière
+    marche_arriere_time = millis();
 
   } else {
+    if (vitesse==0 && Vcons<0 && millis()- marche_arriere_time > 500){ //vérifie si on est bien passée en marche arrière car bug parfois et si non on passe en marche arriere
 
+      
+      out = PID(-8000,vitesse,float(deltaT)/1e3,out);
+      moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+      delay(150);
+      out = PID(0,vitesse,float(deltaT)/1e3,out);
+      moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+      delay(10);
+    }
+    
     out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
     moteur.writeMicroseconds(constrain(1500 + out,500,1500));
     Serial.print("out:");
     Serial.print(constrain(1500 + out,500,2000));
   }
-
+  
   old_Vcons = Vcons;
 
 
@@ -270,6 +282,8 @@ void loop() {
 
   //print debug
   #if 1
+     Serial.print("temps en marche arriere: ");
+     Serial.print(millis()- marche_arriere_time);
      Serial.print(",integrale");
      Serial.print(integral);
      Serial.print(",const:");
