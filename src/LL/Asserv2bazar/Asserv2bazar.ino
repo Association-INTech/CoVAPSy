@@ -71,6 +71,8 @@ float voltage_NiMh = 0;     // variable to store the value read
 int out;
 int marche_avant = 1; //on initie la marche avant au début (0 étant la marche arriérer)
 float marche_arriere_time = 0;
+
+float dernier_input = millis();
 //direction millieu 1851
 // tout a gaucge 1231
 // tout a droite 2471
@@ -162,33 +164,12 @@ void calculateVoltage(){
   //Serial.println(voltage_NiMh);
 }
 
+/*
+float direction_compensation(float dir_recue, float anciene_dir){
+  if (anciene_dir > )
+}*/
 
-void setup() {
-  Serial.begin(115200);
-
-  pinMode(pinMoteur,OUTPUT);
-  moteur.attach(pinMoteur,0,2000);
-
-  pinMode(pinDirection,OUTPUT);
-  direction.attach(pinDirection);
-  
-  pinMode(pinFourche,INPUT_PULLUP);
-  enableInterrupt(PIN_FOURCHE, blink, CHANGE); //on regarde a chaque fois que le signal de la fourche change (Montants et Descendants)
-  moteur.writeMicroseconds(1500);
-  delay(2000);
-  moteur.writeMicroseconds(1590);
-
-  Wire.begin(8);                  // Join I2C bus with address #8
-  Wire.onReceive(receiveEvent);   // Register receive event
-  Wire.onRequest(requestEvent);   // Register request event
-  pinMode(13,OUTPUT);
-
-  delay(10);
-  Serial.print("init");
-}
-
-
-void loop() {
+void programme_principal(){
   calculateVoltage();
   // Commandes pour debugger
   #if 0
@@ -233,16 +214,20 @@ void loop() {
   if (Vcons == 0){
     out = 0;
     moteur.writeMicroseconds(out+1500);
+    /*
     Serial.print("out:");
     Serial.print(out);
+    */
     marche_arriere_time = millis();
   }
   else if (Vcons>0){
 
     out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
     moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
+    /*
     Serial.print("out:");
     Serial.print(constrain(1500 + out,500,2000));
+    */
     marche_avant = 1; // on est en marche avant
     
   } else if ( Vcons<0 && old_Vcons>=0 && marche_avant == 1){ //on vériefie si il faut enclencher la marche arrière
@@ -269,8 +254,10 @@ void loop() {
     
     out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
     moteur.writeMicroseconds(constrain(1500 + out,500,1500));
+    /*
     Serial.print("out:");
     Serial.print(constrain(1500 + out,500,2000));
+    */
   }
   
   old_Vcons = Vcons;
@@ -279,6 +266,7 @@ void loop() {
   // Direction de la voiture
   dir = map(dir_recue,-dir_max,dir_max,dir_min_pwm,dir_max_pwm); // remape en degré
   direction.writeMicroseconds(dir);
+  
 
   //print debug
   #if 1
@@ -303,12 +291,15 @@ void loop() {
      Serial.println(out);
   #endif
   delay(10);
-  }
+}
 void receiveEvent(int byteCount){
   // Ignorer le premier octet "commande" du Raspberry
   if (Wire.available()) Wire.read(); // skip cmd byte
 
   if (byteCount >= 9) { // 1 cmd + 8 data
+
+    dernier_input = millis();
+
     byte buffer[8];
     for (int i = 0; i < 8 && Wire.available(); i++) {
       buffer[i] = Wire.read();
@@ -319,6 +310,43 @@ void receiveEvent(int byteCount){
     dir_recue = vals[1];  //reçue en degré. 
   } else {
     while (Wire.available()) Wire.read(); // vide le buffer
+  }
+}
+
+
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(pinMoteur,OUTPUT);
+  moteur.attach(pinMoteur,0,2000);
+
+  pinMode(pinDirection,OUTPUT);
+  direction.attach(pinDirection);
+  
+  pinMode(pinFourche,INPUT_PULLUP);
+  enableInterrupt(PIN_FOURCHE, blink, CHANGE); //on regarde a chaque fois que le signal de la fourche change (Montants et Descendants)
+  moteur.writeMicroseconds(1500);
+  delay(2000);
+  moteur.writeMicroseconds(1590);
+
+  Wire.begin(8);                  // Join I2C bus with address #8
+  Wire.onReceive(receiveEvent);   // Register receive event
+  Wire.onRequest(requestEvent);   // Register request event
+  pinMode(13,OUTPUT);
+
+  delay(10);
+  Serial.print("init");
+}
+
+
+void loop() {
+  if(millis()-dernier_input < 150){ // on vérifie si on a recue une commande dans les 100 dernière millisecondes sinon on arrete
+    programme_principal();
+  }
+  else {
+    moteur.writeMicroseconds(1500);
+    dir = map(0,-dir_max,dir_max,dir_min_pwm,dir_max_pwm);
+    direction.writeMicroseconds(dir);
   }
 }
 
