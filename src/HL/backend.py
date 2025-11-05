@@ -33,8 +33,8 @@ def get_data():
     Cette route exécute votre analyse d'image
     et renvoie les résultats.
     """
-    vitesse_reelle,vitesse_cible = c.lire_donnees_arduino()
-    donnees = {'vitesse_reelles':vitesse_reelle,'vitesse_cible':vitesse_cible}
+    vitesse_reelle = c.read_data(3)[2]
+    donnees = {'vitesse_reelles':vitesse_reelle}
     try:
         matrix = c.cam.camera_matrix()
 
