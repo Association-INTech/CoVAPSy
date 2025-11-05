@@ -352,10 +352,8 @@ void loop() {
 
 
 void requestEvent(){
-  const int numFloats = 2; // Number of floats to send
-  float data[numFloats] = {voltage_LiPo, voltage_NiMh}; // Example float values to send
+  const int numFloats = 3; // Number of floats to send
+  float data[numFloats] = {voltage_LiPo, voltage_NiMh, vitesse}; // Example float values to send
   byte* dataBytes = (byte*)data;
-  
-
   Wire.write(dataBytes, sizeof(data));
 }
