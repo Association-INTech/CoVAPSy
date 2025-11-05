@@ -34,15 +34,15 @@ def read_data(num_floats=3):
         return list(float_values)
     else:
         raise ValueError("Not enough data received from I2C bus")
-
+vitesse = 1000
+rotation = 0
 if __name__ == "__main__":
     while(True):
-        vitesse= float(input("vitesse en millimetre par seconde:"))
-        rotation= float(input("rotation en degré:"))
+        #vitesse= float(input("vitesse en millimetre par seconde:"))
+        #rotation= float(input("rotation en degré:"))
         write_vitesse_direction(vitesse,rotation)
         time.sleep(0.1)  # Wait for the slave to process the data
-        received = read_data(5)  # Adjust length as needed
-        received = [elem for elem in received]
+        received = read_data(3)  # Adjust length as needed
         print("Received from slave:", received[0],received[1], received[2])
 
         # Request data from the slave
