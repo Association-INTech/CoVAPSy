@@ -1,7 +1,6 @@
 import time
 import logging
 import sys
-from systemd.journal import JournaldLogHandler
 import zerorpc
 import struct
 import logging as log
@@ -35,7 +34,7 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         self.cam = Camera()
         log.info("Caméra initialisée.")
         log.info("Démarrage du thread de capture...")
-        cam.start()
+        self.cam.start()
         log.info("Thread de capture démarré.")
 
     def write_vitesse_direction(self,vitesse, direction):
