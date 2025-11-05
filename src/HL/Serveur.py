@@ -43,36 +43,19 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         data = struct.pack('<ff', float(vitesse), float(direction))
         bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
 
-    def read_data(self,length):
+    def read_data(self,num_floats=3):
+
+        # Each float is 4 bytes
+        length = num_floats * 4
         # Read a block of data from the slave
         data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
-        # Convert the byte data to a float
-        if len(data) >= 4:
-            float_value = struct.unpack('f', bytes(data[:4]))[0]
-            return float_value
+        # Convert the byte data to floats
+        if len(data) >= length:
+            float_values = struct.unpack('f' * num_floats, bytes(data[:length]))
+            return list(float_values)
         else:
             raise ValueError("Not enough data received from I2C bus")
 
-    def lire_donnees_arduino(self):
-        """
-        Lit huit octets de l'Arduino et les convertit en 2 float.
-        On veut la vitesse reel et la vitesse cible
-        """
-        try:
-            # Demande 8 octets à l'esclave.
-            data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, 8)
-            # Reconstituer les entiers
-            vitesse_reel = struct.unpack('<f', bytearray(data[0:4]))[0]
-            vitesse_cible = struct.unpack('<f', bytearray(data[4:8]))[0]
-
-            return vitesse_reel, vitesse_cible
-
-        except IOError as e:
-            print(f"Erreur I2C : {e}")
-            return None, None
-        except Exception as e:
-            print(f"Erreur inattendue : {e}")
-            return None, None
 
     def gen_frames(self):
         """Générateur qui lit le flux depuis l'objet Caméra."""
