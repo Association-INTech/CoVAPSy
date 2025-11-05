@@ -41,7 +41,8 @@ if __name__ == "__main__":
         rotation= float(input("rotation en degré:"))
         write_vitesse_direction(vitesse,rotation)
         time.sleep(0.1)  # Wait for the slave to process the data
-        received = read_data(3)  # Adjust length as needed
+        received = read_data(5)  # Adjust length as needed
+        received = [elem for elem in received]
         print("Received from slave:", received[0],received[1], received[2])
 
         # Request data from the slave
