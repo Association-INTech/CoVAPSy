@@ -7,6 +7,7 @@ from gpiozero import LED, Button
 import logging as log
 import smbus # type: ignore #ignore the module could not be resolved error because it is a linux only module
 import struct
+from masterI2C import write_vitesse_direction
 
 SLAVE_ADDRESS = 0x08
 # Create an SMBus instance
@@ -23,39 +24,13 @@ from ToF import ToF
 class Car:
     def __init__(self, driver):
         """Initialize the car's components."""
+        self.vitesse_milimetres_s = 0  # Speed in millimeters per second
+        self.angle_degre = 0  # Steering angle in degrees
 
         def _initialize_speed_limits():
             """Set the car's speed limits."""
-            self.vitesse_max_m_s_hard = 8  # Maximum hardware speed
+            self.vitesse_max_m_s_hard = 6000  # Maximum hardware speed
             self.vitesse_max_m_s_soft = MAX_SOFT_SPEED  # Maximum software speed
-
-        def _initialize_pwm():
-            """Initialize PWM components for propulsion and steering."""
-            try:
-                # Load parameters from PWM_DIR
-                self.direction_prop = PWM_PROP["direction_prop"]
-                self.pwm_stop_prop = PWM_PROP["pwm_stop_prop"]
-                self.point_mort_prop = PWM_PROP["point_mort_prop"]
-                self.delta_pwm_max_prop = PWM_PROP["delta_pwm_max_prop"]
-
-                # Load parameters from PWM_PROP
-                self.direction = PWM_DIR["direction"]
-                self.angle_pwm_min = PWM_DIR["angle_pwm_min"]
-                self.angle_pwm_max = PWM_DIR["angle_pwm_max"]
-                self.angle_pwm_centre = PWM_DIR["angle_pwm_centre"]
-
-                # Initialize propulsion PWM
-                self.pwm_prop = HardwarePWM(pwm_channel=0, hz=50, chip=2)
-                self.pwm_prop.start(self.pwm_stop_prop)
-
-                # Initialize steering PWM
-                self.pwm_dir = HardwarePWM(pwm_channel=1, hz=50, chip=2)
-                self.pwm_dir.start(self.angle_pwm_centre)
-
-                log.info("PWM initialized successfully")
-            except Exception as e:
-                log.error(f"Error initializing PWM: {e}")
-                raise
 
         def _initialize_ai():
             """Initialize the AI session."""
@@ -101,9 +76,6 @@ class Car:
         # Initialize speed limits
         _initialize_speed_limits()
 
-        # Initialize PWM components
-        _initialize_pwm()
-
         # Initialize AI session
         _initialize_ai()
 
@@ -122,56 +94,21 @@ class Car:
 
     def set_vitesse_m_s(self, vitesse_m_s):
         """Set the car's speed in meters per second."""
-        # Clamp the speed to the maximum and minimum speed
-        vitesse_m_s = max(-self.vitesse_max_m_s_hard, min(vitesse_m_s, self.vitesse_max_m_s_soft))
-        vitesse_pwm = vitesse_m_s * (self.delta_pwm_max_prop)/self.vitesse_max_m_s_hard
-
-        if vitesse_m_s == 0:
-            pwm = self.pwm_stop_prop
-        elif vitesse_m_s > 0:
-            pwm= self.pwm_stop_prop + self.direction_prop*(self.point_mort_prop + vitesse_pwm)
-
-        elif vitesse_m_s < 0:
-            pwm= self.pwm_stop_prop - self.direction_prop*(self.point_mort_prop - vitesse_pwm)
-
-        self.pwm_prop.change_duty_cycle(pwm)
-        # log.debug(f"Vitesse: {vitesse_m_s} m/s, PWM: {pwm}")
+        self.vitesse_milimetres_s = int(vitesse_m_s * 1000)  # Convert to millimeters per second
+        write_vitesse_direction(self.vitesse_milimetres_s,self.angle_degre) #take the vitesse in milimeters per second
 
 
-    def set_direction_degre(self, angle_degre):
+    def set_direction_degre(self, n_angle_degre):
         """Set the car's steering angle in degrees."""
-        angle_pwm = self.angle_pwm_centre + self.direction * ((self.angle_pwm_max - self.angle_pwm_min) * angle_degre / (2 * MAX_ANGLE))
-
-        # Clamp the angle to the maximum and minimum angle
-        angle_pwm = max(self.angle_pwm_min, min(angle_pwm, self.angle_pwm_max))
-        # log.debug(f"Angle: {angle_degre}°, PWM: {angle_pwm}")
-        self.pwm_dir.change_duty_cycle(angle_pwm)
+        self.angle_degre = n_angle_degre
+        write_vitesse_direction(self.vitesse_milimetres_s, self.angle_degre) #take the angle in degrees
         
-    def recule(self,angle,duration=0.5):
-        """Set the car to reverse."""
-        log.info("Recule")
-        self.set_direction_degre(angle)
-        self.set_vitesse_m_s(-self.vitesse_max_m_s_hard)
-        time.sleep(0.2)
-        self.set_vitesse_m_s(0)
-        time.sleep(0.2)
-        self.set_vitesse_m_s(-4)
-        time.sleep(duration+0.3)
-        if angle != 0:
-            self.set_direction_degre(-angle)
-            self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
-            time.sleep(duration)
-        else:
-            self.set_direction_degre(10)
-            self.set_vitesse_m_s(MAX_SOFT_SPEED*0.25)
-            time.sleep(duration)
     
     def stop(self):
-        self.pwm_dir.stop()
-        self.pwm_prop.start(self.pwm_stop_prop)
-        log.info("Arrêt du moteur")
-        self.lidar.stop()
-        # exit() #not to be used in prodution/library? https://www.geeksforgeeks.org/python-exit-commands-quit-exit-sys-exit-and-os-_exit/
+        self.vitesse_milimetres_s = 0
+        self.angle_degre = 0
+        write_vitesse_direction(self.vitesse_milimetres_s, self.angle_degre) #stop the car
+        
 
     def has_Crashed(self):
         
@@ -192,8 +129,8 @@ class Car:
         
         self.set_vitesse_m_s(0)
         self.set_direction_degre(MAX_ANGLE)
-        self.recule(MAX_ANGLE,duration=1.5) #blocing call
-        time.sleep(0.3)
+        self.set_vitesse_m_s(-2) #blocing call
+        time.sleep(1.8) # Wait for the car to turn around
         if self.camera.is_running_in_reversed():
             self.turn_around()
 
@@ -234,7 +171,8 @@ class Car:
             if color == 1:
                 log.info("Obstacle vert détecté")
             angle= -color*MAX_ANGLE
-            self.recule(angle)
+            self.set_vitesse_m_s(-2)
+            self.set_direction_degre(angle)
 
 
 
