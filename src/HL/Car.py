@@ -131,7 +131,7 @@ class Car:
         
         self.set_vitesse_m_s(0)
         self.set_direction_degre(MAX_ANGLE)
-        self.set_vitesse_m_s(-2) #blocing call
+        self.set_vitesse_m_s(-2)
         time.sleep(1.8) # Wait for the car to turn around
         if self.camera.is_running_in_reversed():
             self.turn_around()
