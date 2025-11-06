@@ -20,8 +20,6 @@ bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 SLAVE_ADDRESS = 0x08
 
 
-vitesse = 200 # en millimetre par seconde
-direction = 100 # en degré
 
 
 class ApiVoiture(): # pylint: disable=too-few-public-methods
@@ -30,6 +28,8 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
     """
 
     def __init__(self):
+        self.vitesse = 0 #vitesse en metre par seconde
+        self.direction = 0 # direction en degrés avec 0 le degré du centre
         log.basicConfig(level=log.INFO)  # Mettre log.DEBUG pour plus de détails
         log.info("Initialisation de la caméra...")
         self.cam = Camera()
