@@ -77,7 +77,7 @@ def envoie_direction_degre():
         time.sleep(0.001)
 
 Thread(target = envoie_direction_degre, daemon=True).start()
-print(fini)
+print("fini")
 try : 
     lidar.startContinuous(0, 1080)  #scan[i][2] : distance    
     #############################################
