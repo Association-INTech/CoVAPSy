@@ -79,23 +79,23 @@ def envoie_direction_degre():
 Thread(target = envoie_direction_degre, daemon=True).start()
 print("fini")
 try : 
-    lidar.startContinuous(0, 1080)  #scan[i][2] : distance    
-    #############################################
-    ## Code de conduite (issu du simulateur ou non)
-    #############################################
-    lidar_data = (lidar.rDistance[:1080]/1000)
-    print(str(lidar_data[3]) + str(lidar_data[1077]))
-    #l'angle de la direction est la différence entre les mesures  
-    #des rayons du lidar à -60 et +60°  
-    angle_degre = 0.02*(lidar_data[3]-lidar_data[1077])
-    set_direction_degre(angle_degre)
-    vitesse_m_s = 0.5
-    set_vitesse_m_s(vitesse_m_s)    
-    ##############################################
+    while True:
+        lidar.startContinuous(0, 1080)  #scan[i][2] : distance    
+        #############################################
+        ## Code de conduite (issu du simulateur ou non)
+        #############################################
+        lidar_data = (lidar.rDistance[:1080]/1000)
+        print(str(lidar_data[3]) + str(lidar_data[1077]))
+        #l'angle de la direction est la différence entre les mesures  
+        #des rayons du lidar à -60 et +60°  
+        angle_degre = 0.02*(lidar_data[3]-lidar_data[1077])
+        set_direction_degre(angle_degre)
+        vitesse_m_s = 0.5
+        set_vitesse_m_s(vitesse_m_s)    
+        ##############################################
 except KeyboardInterrupt: #récupération du CTRL+C
     print("fin des acquisitions")
 
 #arrêt et déconnexion du lidar et des moteurs
 lidar.stop()
 time.sleep(1)
-lidar.disconnect()
