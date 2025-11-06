@@ -49,8 +49,8 @@ vitesse_m = 0   # vitesse initiale en métre par milliseconde
 
 #paramètres de la fonction vitesse_m_s, à étalonner
 vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture en métre
-vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
-vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
+vitesse_max_m_s_soft = 1 #vitesse maximale que l'on souhaite atteindre en métre par seconde
+vitesse_min_m_s_soft = -1 #vitesse arriere que l'on souhaite atteindre en métre
 
 angle_degre_max = +18 #vers la gauche
 
@@ -73,7 +73,7 @@ def set_direction_degre(angle_degre) :
 
 def envoie_direction_degre():
     while True :
-        write_vitesse_direction(int(vitesse_m), int(direction_d))
+        write_vitesse_direction(int(vitesse_m_s), int(direction_d))
         time.sleep(0.001)
 
 Thread(target = envoie_direction_degre, daemon=True).start()
@@ -85,7 +85,7 @@ try :
         ## Code de conduite (issu du simulateur ou non)
         #############################################
         lidar_data = (lidar.rDistance[:1080]/1000)
-        print(str(lidar_data[3]) + str(lidar_data[1077]))
+        print(str(lidar_data[5]) + "   " + str(lidar_data[1030]))
         #l'angle de la direction est la différence entre les mesures  
         #des rayons du lidar à -60 et +60°  
         angle_degre = 0.02*(lidar_data[3]-lidar_data[1077])
