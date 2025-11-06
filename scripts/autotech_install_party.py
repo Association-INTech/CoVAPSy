@@ -1,4 +1,4 @@
-from lidar import lidar
+from Lidar import Lidar
 import time
 from threading import Thread
 
