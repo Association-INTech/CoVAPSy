@@ -19,7 +19,7 @@ try:
     lidar.stop()
     lidar.startContinuous(0, 1080)
 except Exception as e:
-    raise
+    print("pas reussi")
 while(True):
     lidar_data = (lidar.rDistance[:1080]/1000)
     print("premiere valeur", lidar_data[1])
