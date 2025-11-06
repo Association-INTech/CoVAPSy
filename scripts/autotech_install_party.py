@@ -18,9 +18,8 @@ try:
     lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
     lidar.stop()
     lidar.startContinuous(0, 1080)
-    log.info("Lidar initialized successfully")
+    print("Lidar initialized successfully")
 except Exception as e:
-    log.error(f"Error initializing Lidar: {e}")
     raise
 
 
@@ -93,10 +92,11 @@ try :
     #############################################
     ## Code de conduite (issu du simulateur ou non)
     #############################################
-        
+    lidar_data = (lidar.rDistance[:1080]/1000)
+
     #l'angle de la direction est la différence entre les mesures  
     #des rayons du lidar à -60 et +60°  
-    angle_degre = 0.02*(tableau_lidar_mm[1]-tableau_lidar_mm[-60])
+    angle_degre = 0.02*(lidar_data[3]-lidar_data[1077])
     set_direction_degre(angle_degre)
     vitesse_m_s = 0.5
     set_vitesse_m_s(vitesse_m_s)    
