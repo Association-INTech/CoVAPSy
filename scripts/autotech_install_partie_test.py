@@ -12,10 +12,7 @@ SOCKET_ADRESS = {
     "PORT": 10940
 }
 
-while(True):
-    lidar_data = (self.lidar.rDistance[:1080]/1000)
-    print("premiere valeur", lidar_data[1])
-    print("deuxieme valeur", lidar_data[1075])
+
 """Initialize the Lidar sensor."""
 try:
     lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
@@ -25,3 +22,7 @@ try:
 except Exception as e:
     log.error(f"Error initializing Lidar: {e}")
     raise
+while(True):
+    lidar_data = (lidar.rDistance[:1080]/1000)
+    print("premiere valeur", lidar_data[1])
+    print("deuxieme valeur", lidar_data[1075])
