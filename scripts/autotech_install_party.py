@@ -96,7 +96,6 @@ except KeyboardInterrupt: #récupération du CTRL+C
     print("fin des acquisitions")
 
 #arrêt et déconnexion du lidar et des moteurs
-lidar.stop_motor()
 lidar.stop()
 time.sleep(1)
 lidar.disconnect()
