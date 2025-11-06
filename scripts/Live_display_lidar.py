@@ -1,5 +1,5 @@
 import time
-from ..src.HL.Lidar import Lidar
+from Lidar import Lidar
 
 
 IP = '192.168.0.10'
