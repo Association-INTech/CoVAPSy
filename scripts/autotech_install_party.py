@@ -1,4 +1,4 @@
-from rplidar import RPLidar
+from lidar import lidar
 import time
 from threading import Thread
 
@@ -6,6 +6,25 @@ from threading import Thread
 import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 import numpy as np
 import struct
+
+SOCKET_ADRESS = {
+    "IP": '192.168.0.10',
+    "PORT": 10940
+}
+
+
+"""Initialize the Lidar sensor."""
+try:
+    lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
+    lidar.stop()
+    lidar.startContinuous(0, 1080)
+    log.info("Lidar initialized successfully")
+except Exception as e:
+    log.error(f"Error initializing Lidar: {e}")
+    raise
+
+
+
 
 ###################################################
 #Intialisation du protocole I2C
