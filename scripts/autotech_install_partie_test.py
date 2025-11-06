@@ -18,9 +18,7 @@ try:
     lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
     lidar.stop()
     lidar.startContinuous(0, 1080)
-    log.info("Lidar initialized successfully")
 except Exception as e:
-    log.error(f"Error initializing Lidar: {e}")
     raise
 while(True):
     lidar_data = (lidar.rDistance[:1080]/1000)
