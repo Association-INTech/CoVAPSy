@@ -89,23 +89,18 @@ def envoie_direction_degre():
 Thread(target = envoie_direction_degre, daemon=True).start()
 
 try : 
-    for scan in lidar.iter_scans(scan_type='express') : 
-    #Le tableau se remplissant continuement, la boucle est infinie
-        #rangement des données dans le tableau
-        for i in range(len(scan)) :
-            angle = min(359,max(0,359-int(scan[i][1]))) #scan[i][1] : angle 
-            tableau_lidar_mm[angle]=scan[i][2]  #scan[i][2] : distance    
-        #############################################
-        ## Code de conduite (issu du simulateur ou non)
-        #############################################
-            
-        #l'angle de la direction est la différence entre les mesures  
-        #des rayons du lidar à -60 et +60°  
-        angle_degre = 0.02*(tableau_lidar_mm[60]-tableau_lidar_mm[-60])
-        set_direction_degre(angle_degre)
-        vitesse_m_s = 0.5
-        set_vitesse_m_s(vitesse_m_s)    
-        ##############################################
+    lidar.startContinuous(0, 1080)  #scan[i][2] : distance    
+    #############################################
+    ## Code de conduite (issu du simulateur ou non)
+    #############################################
+        
+    #l'angle de la direction est la différence entre les mesures  
+    #des rayons du lidar à -60 et +60°  
+    angle_degre = 0.02*(tableau_lidar_mm[1]-tableau_lidar_mm[-60])
+    set_direction_degre(angle_degre)
+    vitesse_m_s = 0.5
+    set_vitesse_m_s(vitesse_m_s)    
+    ##############################################
 except KeyboardInterrupt: #récupération du CTRL+C
     print("fin des acquisitions")
 
