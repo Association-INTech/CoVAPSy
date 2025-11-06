@@ -69,15 +69,6 @@ def set_direction_degre(angle_degre) :
     global direction_d
     direction_d = angle_degre
     
-    
-#connexion et démarrage du lidar
-lidar = RPLidar("/dev/ttyUSB0",baudrate=256000)
-lidar.connect()
-print (lidar.get_info())
-lidar.start_motor()
-time.sleep(1)
-
-tableau_lidar_mm = [0]*360 #création d'un tableau de 360 zéros
 
 
 def envoie_direction_degre():
@@ -86,14 +77,14 @@ def envoie_direction_degre():
         time.sleep(0.001)
 
 Thread(target = envoie_direction_degre, daemon=True).start()
-
+print(fini)
 try : 
     lidar.startContinuous(0, 1080)  #scan[i][2] : distance    
     #############################################
     ## Code de conduite (issu du simulateur ou non)
     #############################################
     lidar_data = (lidar.rDistance[:1080]/1000)
-
+    print(str(lidar_data[3]) + str(lidar_data[1077]))
     #l'angle de la direction est la différence entre les mesures  
     #des rayons du lidar à -60 et +60°  
     angle_degre = 0.02*(lidar_data[3]-lidar_data[1077])
