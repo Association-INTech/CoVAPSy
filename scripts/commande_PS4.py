@@ -26,7 +26,7 @@ def write_vitesse_direction(vitesse,direction):
 #Intialisation des moteurs
 ##################################################
 
-direction_d = 90 # angle initiale des roues en degrés
+direction_d = 0 # angle initiale des roues en degrés
 vitesse_m = 0   # vitesse initiale en métre par milliseconde
 
 #paramètres de la fonction vitesse_m_s, à étalonner
