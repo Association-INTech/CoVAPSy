@@ -70,7 +70,10 @@ class MyController(Controller):
             set_vitesse_m_ms(0)
         else:
             set_vitesse_m_ms(vit)
-        
+    def on_R2_release(self,value): # arrete la voiture lorsque L2 est arrété d'étre préssé. 
+        set_vitesse_m_ms(0)
+    
+    
  
     def on_L3_x_at_rest(self):
         set_direction_degre(0)
@@ -98,6 +101,9 @@ class MyController(Controller):
             set_vitesse_m_ms(0)
         else:
             set_vitesse_m_ms(vit)
+    
+    def on_L2_release(self,value): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
+        set_vitesse_m_ms(0)
 
 #envoie de la direction et de l'angle toute les millisecondes
 def envoie_direction_degre():
