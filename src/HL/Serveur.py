@@ -1,7 +1,7 @@
 import time
 import logging
 import sys
-from systemd.journal import JournaldLogHandler
+from systemd.journal import JournalHandler
 import zerorpc
 import struct
 import logging as log
