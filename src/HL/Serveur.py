@@ -100,8 +100,11 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
 
 if __name__ == '__main__':
 
-    s  = zerorpc.Server(ApiVoiture())
-    s.bind("tcp://0.0.0.0:4242")
-    print("serveur lancé?")
-    s.run()
-    print("ok?")
+    try:
+        api = ApiVoiture()
+        s = zerorpc.Server(api)
+        s.bind("tcp://0.0.0.0:4242")
+        print("Serveur ZERORPC lancé sur tcp://0.0.0.0:4242")
+        s.run()
+    except Exception as e:
+        print("Erreur au démarrage :", e)
