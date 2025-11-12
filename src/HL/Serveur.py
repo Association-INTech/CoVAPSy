@@ -39,7 +39,7 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         self.cam = Camera()
         log.info("Caméra initialisée.")
         log.info("Démarrage du thread de capture...")
-        cam.start()
+        self.cam.start()
         log.info("Thread de capture démarré.")
         self.vitesse_m_s = 0
         self.direction = 0
