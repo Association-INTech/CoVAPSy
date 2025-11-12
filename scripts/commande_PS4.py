@@ -84,18 +84,25 @@ class MyController(Controller):
     def on_R1_release(self):
         set_vitesse_m_ms(0)
     
+    def on_L3_up(self,value):
+        pass
+    def on_L3_down(self,value):
+        pass
+
+
     def on_L3_right(self,value):
-        print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        # print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
         dir = map_range(value, 0, 32767, 0, angle_degre_max)
         set_direction_degre(dir)
 
     def on_L3_left(self,value):
+        print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
         dir = map_range(value,-32767, 0, -angle_degre_max, 0 )
-        print("x_l :", value)
         set_direction_degre(dir)
 
 
     def on_L2_press(self, value):
+        print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
         vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
         if (vit > 0):
             set_vitesse_m_ms(0)
