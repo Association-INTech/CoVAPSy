@@ -24,7 +24,7 @@ bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 SLAVE_ADDRESS = 0x08
 
 
-
+print("lancement...")
 
 class ApiVoiture(): # pylint: disable=too-few-public-methods
     """
