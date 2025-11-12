@@ -8,6 +8,10 @@ import logging as log
 
 from Camera import Camera
 import smbus #type: ignore
+
+# uv pip install systemd-python
+# uv pip install picamera2
+# sudo apt install python3-libcamera
 """
 Lancer un serveur qui tourne h24 qui gere l'intercommunication des processus (qui sont externe a la Pi)
 Cf envoie vitesse a l'arduino, communication avec l'ecran , avec les boutons ,avec le lidar et la camera 
@@ -99,3 +103,4 @@ if __name__ == '__main__':
     s  = zerorpc.Server(ApiVoiture())
     s.bind("tcp://0.0.0.0:4242")
     s.run()
+    print("ok?")
