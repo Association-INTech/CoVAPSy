@@ -1,3 +1,4 @@
+print("lancement...?")
 import time
 import logging
 import sys
