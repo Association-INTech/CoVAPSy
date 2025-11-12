@@ -102,5 +102,6 @@ if __name__ == '__main__':
 
     s  = zerorpc.Server(ApiVoiture())
     s.bind("tcp://0.0.0.0:4242")
+    print("serveur lancé?")
     s.run()
     print("ok?")
