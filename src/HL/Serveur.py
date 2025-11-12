@@ -37,6 +37,8 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         log.info("Démarrage du thread de capture...")
         cam.start()
         log.info("Thread de capture démarré.")
+        self.vitesse_m_s = 0
+        self.direction = 0
 
     def write_vitesse_direction(self,vitesse, direction):
         # Convert string to list of ASCII values
