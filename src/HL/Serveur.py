@@ -47,6 +47,7 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
 
     def write_vitesse_direction(self,vitesse, direction):
         # Convert string to list of ASCII values
+        print("write_vitesse_direction")
         data = struct.pack('<ff', float(vitesse), float(direction))
         bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
 
