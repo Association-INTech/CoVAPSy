@@ -1,4 +1,3 @@
-print("lancement...?")
 import time
 import logging
 import sys
@@ -25,16 +24,17 @@ bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 SLAVE_ADDRESS = 0x08
 
 
-print("lancement...")
-
 class ApiVoiture(): # pylint: disable=too-few-public-methods
     """
         ça controlera tout
     """
 
     def __init__(self):
-        self.vitesse = 0 #vitesse en metre par seconde
+        self.vitesse_r = 0 # vitesse en metre par seconde réel
+        self.vitesse_d = 0 # vitesse demander en metre par seconde
         self.direction = 0 # direction en degrés avec 0 le degré du centre
+        self.voltage_lipo = 0
+        self.voltage_nimh = 0
         log.basicConfig(level=log.INFO)  # Mettre log.DEBUG pour plus de détails
         log.info("Initialisation de la caméra...")
         # self.cam = Camera()
@@ -46,8 +46,10 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         self.direction = 0
 
     def write_vitesse_direction(self,vitesse, direction):
-        # Convert string to list of ASCII values
-        print("write_vitesse_direction")
+
+        self.vitesse_d = vitesse #on enregistre la vitesse demandé
+        self.direction = direction # on enregistre la direction voulue
+
         data = struct.pack('<ff', float(vitesse), float(direction))
         bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
 
@@ -61,31 +63,16 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         if len(data) >= length:
             float_values = struct.unpack('f' * num_floats, bytes(data[:length]))
             list_valeur = list(float_values)
-            self.vitesse = list_valeur[2]
+
+            # on enregistre les valeur
+            self.voltage_lipo = list_valeur[0]
+            self.voltage_nimh = list_valeur[1]
+            self.vitesse_r = list_valeur[2]
+
             return list_valeur
         else:
             raise ValueError("Not enough data received from I2C bus")
 
-    def lire_donnees_arduino(self):
-        """
-        Lit huit octets de l'Arduino et les convertit en 2 float.
-        On veut la vitesse reel et la vitesse cible
-        """
-        try:
-            # Demande 8 octets à l'esclave.
-            data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, 8)
-            # Reconstituer les entiers
-            vitesse_reel = struct.unpack('<f', bytearray(data[0:4]))[0]
-            vitesse_cible = struct.unpack('<f', bytearray(data[4:8]))[0]
-
-            return vitesse_reel, vitesse_cible
-
-        except IOError as e:
-            print(f"Erreur I2C : {e}")
-            return None, None
-        except Exception as e:
-            print(f"Erreur inattendue : {e}")
-            return None, None
 
     def gen_frames(self):
         """Générateur qui lit le flux depuis l'objet Caméra."""
