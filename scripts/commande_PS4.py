@@ -1,130 +1,132 @@
 from pyPS4Controller.controller import Controller
-from rpi_hardware_pwm import HardwarePWM
 import time
+from threading import Thread
+
+#Pour le protocole I2C de communication entre la rasberie Pi et l'arduino
+import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
+import numpy as np
+import struct
+
+###################################################
+#Intialisation du protocole I2C
+##################################################
+
+# Create an SMBus instance
+bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
+
+# I2C address of the slave
+SLAVE_ADDRESS = 0x08
+
+def write_vitesse_direction(vitesse,direction):
+    # Convert string to list of ASCII values
+    data = struct.pack('<ff', float(vitesse), float(direction))
+    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
 
 ###################################################
 #Intialisation des moteurs
 ##################################################
+
+direction_d = 0 # angle initiale des roues en degrés
+vitesse_m = 0   # vitesse initiale en métre par milliseconde
+
 #paramètres de la fonction vitesse_m_s, à étalonner
-direction_prop = 1# -1 pour les variateurs inversés ou un petit rapport correspond à une marche avant
-pwm_stop_prop = 7.37
-point_mort_prop = 0.5
-delta_pwm_max_prop = 1.1 #pwm à laquelle on atteint la vitesse maximale
+vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture en métre
+vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
+vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
 
-vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture
-vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre
-
-direction = -1 #1 pour angle_pwm_min a gauche, -1 pour angle_pwm_min à droite
-angle_pwm_min = 6.91  #min
-angle_pwm_max = 10.7  #max
-angle_pwm_centre= 8.805
 angle_degre_max = +18 #vers la gauche
-angle_degre=0
 
-pwm_prop = HardwarePWM(pwm_channel=0, hz=50,chip=2) #use chip 2 on pi 5 in accordance with the documentation
-pwm_dir = HardwarePWM(pwm_channel=1, hz=50,chip=2) #use chip 2 on pi 5 in accordance with the documentation
-print("PWM désactivées")
+
+
+# fonction naturel map de arduino pour plus de lisibilité
+def map_range(x, in_min,in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+
 
 def set_direction_degre(angle_degre) :
-    global angle_pwm_min
-    global angle_pwm_max
-    global angle_pwm_centre
-    angle_pwm = angle_pwm_centre + direction * (angle_pwm_max - angle_pwm_min) * angle_degre /(2 * angle_degre_max )
-    if angle_pwm > angle_pwm_max : 
-        angle_pwm = angle_pwm_max
-    if angle_pwm < angle_pwm_min :
-        angle_pwm = angle_pwm_min
-    pwm_dir.change_duty_cycle(angle_pwm)
+    global direction_d
+    direction_d = angle_degre
+    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
     
-def set_vitesse_m_s(vitesse_m_s):
-    if vitesse_m_s > vitesse_max_m_s_soft :
-        vitesse_m_s = vitesse_max_m_s_soft
-    elif vitesse_m_s < -vitesse_max_m_s_hard :
-        vitesse_m_s = -vitesse_max_m_s_hard
-    if vitesse_m_s == 0 :
-        pwm_prop.change_duty_cycle(pwm_stop_prop)
-    elif vitesse_m_s > 0 :
-        vitesse = vitesse_m_s * (delta_pwm_max_prop)/vitesse_max_m_s_hard
-        pwm_prop.change_duty_cycle(pwm_stop_prop + direction_prop*(point_mort_prop + vitesse ))
-    elif vitesse_m_s < 0 :
-        vitesse = vitesse_m_s * (delta_pwm_max_prop)/vitesse_max_m_s_hard
-        pwm_prop.change_duty_cycle(pwm_stop_prop - direction_prop*(point_mort_prop - vitesse ))
+def set_vitesse_m_ms(vitesse_m_ms):
+    global vitesse_m
+    vitesse_m = vitesse_m_ms
+    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
         
-def recule():
-    set_vitesse_m_s(-vitesse_max_m_s_hard)
-    time.sleep(0.2)
-    set_vitesse_m_s(0)
-    time.sleep(0.2)
-    set_vitesse_m_s(-2)
+def recule(): #actuellement ne sert a rien car on peux juste envoyer une vitesse négative 
+    global vitesse_m
+    vitesse_m = -2000
 
-
-a_prop = vitesse_max_m_s_soft/(65198)
-a_dir=(angle_degre_max)/(-32767)
 
 class MyController(Controller):
 
     def __init__(self, **kwargs):
         Controller.__init__(self, **kwargs)
         
-    # def on_R2_press(self,value):
-    #     print("La valeur de R2 est: ",value)
-    #     value += 32767
-    #     set_vitesse_m_s(a_prop*value)
-        
-    def on_R2_release(self):
-         #print("Arrêt complet")
-         set_vitesse_m_s(0)
+    def on_R2_press(self,value):
+        vit = map_range(value,-32252,32767,0,vitesse_max_m_s_soft*1000)
+        if (vit < 0):
+            set_vitesse_m_ms(0)
+        else:
+            set_vitesse_m_ms(vit)
+    def on_R2_release(self): # arrete la voiture lorsque L2 est arrété d'étre préssé. 
+        set_vitesse_m_ms(0)
+    
+    
  
     def on_L3_x_at_rest(self):
         set_direction_degre(0)
         
-    def on_R1_press(self):
-        recule()
+    def on_R1_press(self): #arret d'urgence
+        set_vitesse_m_ms(0)
         
     def on_R1_release(self):
-        set_vitesse_m_s(0)
+        set_vitesse_m_ms(0)
     
+    def on_L3_up(self,value):
+        pass
+    def on_L3_down(self,value):
+        pass
+
+
     def on_L3_right(self,value):
-        set_direction_degre(a_dir*value)
+        # print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        dir = map_range(value, 0, 32767, 0, angle_degre_max)
+        set_direction_degre(dir)
 
     def on_L3_left(self,value):
-        set_direction_degre(a_dir*value)
-        
-    # def on_L2_press(self, value):
-    #     set_vitesse_m_s(-vitesse_max_m_s_hard)
-        
-    # def on_R3_right(self, value):
-    #     set_vitesse_m_s(value*a_prop)
-        
-    # def on_R3_left(self, value):
-    #     set_vitesse_m_s(-value*a_prop)
-    def on_share_press(self):
-        set_vitesse_m_s(vitesse_max_m_s_soft)
-        
-    def on_share_release(self):
-        set_vitesse_m_s(0)
-        
-    def on_L2_release(self):
-        set_vitesse_m_s(0)
-        
-    def on_x_press(self):
-        pwm_prop.stop()
-        pwm_dir.stop()
-        print("PWM désactivées")
-        
-    def on_circle_press(self):
-        pwm_prop.start(pwm_stop_prop)
-        pwm_dir.start(angle_pwm_centre)
-        print("PWM activées")
+        print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
+        dir = map_range(value,-32767, 0, -angle_degre_max, 0 )
+        set_direction_degre(dir)
 
 
+    def on_L2_press(self, value):
+        print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
+        if (vit > 0):
+            set_vitesse_m_ms(0)
+        else:
+            set_vitesse_m_ms(vit)
+    
+    def on_L2_release(self): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
+        set_vitesse_m_ms(0)
+
+#envoie de la direction et de l'angle toute les millisecondes
+def envoie_direction_degre():
+    while True :
+        write_vitesse_direction(int(vitesse_m), int(direction_d))
+        time.sleep(0.001)
+
+
+# boucle principal
 controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
 try:
-    controller.listen()
+    Thread(target = envoie_direction_degre, daemon=True).start()
+    controller.listen(timeout=60)
+
 except KeyboardInterrupt:
     print("Arrêt du programme")
-    pwm_prop.stop()
-    pwm_dir.stop()
     controller.stop()
     exit(0)
 
