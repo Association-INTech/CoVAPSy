@@ -7,7 +7,7 @@ import zerorpc
 import struct
 import logging as log
 
-from Camera import Camera
+# from Camera import Camera
 import smbus #type: ignore
 
 # uv pip install systemd-python
@@ -37,10 +37,10 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         self.direction = 0 # direction en degrés avec 0 le degré du centre
         log.basicConfig(level=log.INFO)  # Mettre log.DEBUG pour plus de détails
         log.info("Initialisation de la caméra...")
-        self.cam = Camera()
+        # self.cam = Camera()
         log.info("Caméra initialisée.")
         log.info("Démarrage du thread de capture...")
-        self.cam.start()
+        # self.cam.start()
         log.info("Thread de capture démarré.")
         self.vitesse_m_s = 0
         self.direction = 0
