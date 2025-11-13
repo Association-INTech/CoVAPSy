@@ -51,7 +51,7 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         data = struct.pack('<ff', float(vitesse), float(direction))
         bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
 
-    def read_data(num_floats=3):
+    def read_data(self, num_floats=3):
 
         # Each float is 4 bytes
         length = num_floats * 4
@@ -60,7 +60,9 @@ class ApiVoiture(): # pylint: disable=too-few-public-methods
         # Convert the byte data to floats
         if len(data) >= length:
             float_values = struct.unpack('f' * num_floats, bytes(data[:length]))
-            return list(float_values)
+            list_valeur = list(float_values)
+            self.vitesse = list_valeur[2]
+            return list_valeur
         else:
             raise ValueError("Not enough data received from I2C bus")
 
