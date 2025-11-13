@@ -1,9 +1,8 @@
 import zerorpc
-
-IP_DU_RASPBERRY_PI = "192.168.1.25"
+import time
 
 c = zerorpc.Client()
-c.connect(f"tcp://{IP_DU_RASPBERRY_PI}:4242")
+c.connect(f"tcp://0.0.0.0:4242")
 
 
 if __name__ == "__main__":
