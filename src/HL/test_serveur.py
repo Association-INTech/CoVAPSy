@@ -25,8 +25,10 @@ socket.connect("tcp://127.0.0.1:5555")
 
 
 def envoie_donnee(vitesse,rotation):
-    socket.send_json({"cmd": "set_speed", "value": vitesse})
+    socket.send_json({"cmd": "set_speed", "speed": vitesse})
+    resp = socket.recv_json()
     socket.send_json({"cmd": "set_direction", "value": rotation})
+    resp = socket.recv_json()
 
 if __name__ == "__main__":
     while(True):
