@@ -131,7 +131,7 @@ def Idle(): #Enable chossing between states
     
     if (Screen == 0):
         ip=get_ip()
-            text = "Ready to SSH\nIP:"+ip
+        text = "Ready to SSH\nIP:"+ip
     elif (Screen <= len(programme)):
         text = programme[Screen]
 
