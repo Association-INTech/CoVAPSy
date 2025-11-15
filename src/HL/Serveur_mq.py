@@ -19,9 +19,6 @@ length_i2c_received = 3 #le nombre de donnée récupéré par l'i2c
 # on recoit les inoformations
 received = context.socket(zmq.REP)
 received.bind("tcp://0.0.0.0:5555")
-# on envoie les informations
-send = context.socket(zmq.PUB)
-send.bind("tcp://0.0.0.0:5556")
 
 vitesse_d = 0
 vitesse_r = 0
@@ -45,7 +42,9 @@ def i2c_loop():
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(0.05)
             else: # on renvoie zero si il on a pas recue de message depuis moins de 100 milisecondes
-                data = struct.pack('<ff', float(0), float(0))
+                vitesse_d = 0
+                direction = 0
+                data = struct.pack('<ff', float(vitesse_d), float(direction))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(0.05)
         except :

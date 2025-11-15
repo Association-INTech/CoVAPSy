@@ -38,28 +38,23 @@ rpi = [
     # Note: picamera2 causes UV to auto-include rpi extras even when not requested
     # This is likely a UV bug. Add back when needed:
     # "picamera2>=0.3.0",
-
     # AI Inference
     "onnxruntime>=1.8.0",
-
     # Raspberry Pi specific hardware control
     "rpi-hardware-pwm>=0.1.0",
     "RPi.GPIO>=0.7.1",
     "gpiozero>=1.6.0",
-
     # I2C and SPI communication (Linux specific)
     "smbus>=1.1.post2",
     "spidev>=3.5",
-
     # OLED display support
     "luma.oled>=3.8.0",
     "luma.core>=2.3.0",
     "Adafruit-SSD1306>=1.6.0",
-
     # Time-of-Flight sensor support
     "adafruit-circuitpython-vl53l0x>=3.6.0",
     "adafruit-blinka>=8.0.0",
-
     # PS4 controller support
     "pyPS4Controller>=1.2.0",
+    "zmq>=0.0.0",
 ]

@@ -22,7 +22,7 @@ import time
 # on envoie les données au serveur
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
-socket.connect("tcp://127.0.0.1:5555")
+socket.connect("tcp://192.168.1.10:5555")
 
 # on récupère les données
 
