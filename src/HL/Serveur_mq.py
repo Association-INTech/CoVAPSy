@@ -30,16 +30,24 @@ direction = 0
 voltage_lipo = 0
 voltage_nimh = 0
 
+initial_time = time.time()
+last_cmd_time = 0
+
 
 def i2c_loop():
     """Envoie vitesse/direction régulièrement au microcontroleur."""
-    global vitesse_d, direction
+    global vitesse_d, direction, last_cmd_time
 
     while True:
         try : 
-            data = struct.pack('<ff', float(vitesse_d), float(direction))
-            bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-            time.sleep(0.05)
+            if (time.time()- last_cmd_time > 100):
+                data = struct.pack('<ff', float(vitesse_d), float(direction))
+                bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+                time.sleep(0.05)
+            else: # on renvoie zero si il on a pas recue de message depuis moins de 100 milisecondes
+                data = struct.pack('<ff', float(0), float(d0))
+                bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+                time.sleep(0.05)
         except :
             print("i2c mort")
             time.sleep(1)
@@ -65,22 +73,26 @@ def i2c_received():
 
 
 def msg_received():
-    global vitesse_d, direction
+    global vitesse_d, direction, last_cmd_time
     while True :
         req = received.recv_json()
 
         if req["cmd"] == "set_speed":
             vitesse_d = req["value"]
             received.send_json({"status": "ok"})
+            last_cmd_time = time.time()
+
         elif req["cmd"] == "set_direction":
             direction = req["value"]
             received.send_json({"status": "ok"})
+            last_cmd_time = time.time()
+
         elif req["cmd"] == "info":
             received.send_json({
             "voltage_lipo": voltage_lipo,
             "voltage_nimh": voltage_nimh,
             "vitesse_reelle": vitesse_r,
-            "timestamp": time.time()
+            "timestamp": time.time() - initial_time
         })
         else:
             received.send_json({"error": "unknown"})
