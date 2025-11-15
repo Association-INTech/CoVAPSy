@@ -1,5 +1,4 @@
 import time
-import logging
 import sys
 # from systemd.journal import JournalHandler #il y a des soucis dessus pour linstant
 import zerorpc
