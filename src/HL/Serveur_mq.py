@@ -67,14 +67,14 @@ def i2c_received():
 def msg_received():
     global vitesse_d, direction
     while True :
-        req = sock.recv_json()
+        req = received.recv_json()
 
         if req["cmd"] == "set_speed":
             vitesse_d = rec["value"]
         elif req["cmd"] == "set_direction":
             direction = rec["value"]
         else:
-            sock.send_json({"error": "unknown"})
+            received.send_json({"error": "unknown"})
 
 
 threading.Thread(target=i2c_loop, daemon=True).start()

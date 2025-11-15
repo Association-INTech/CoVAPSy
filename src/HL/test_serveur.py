@@ -1,3 +1,4 @@
+"""
 import zerorpc
 import time
 
@@ -13,5 +14,25 @@ if __name__ == "__main__":
         time.sleep(0.1)  # Wait for the slave to process the data
         received = c.read_data(3)  # Adjust length as needed
         print("Received from slave:", received[0], received[1], received[2] )
+
+        # Request data from the slave"""
+
+import zmq
+
+context = zmq.Context()
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://127.0.0.1:5555")
+
+
+def envoie_donnee(vitesse,rotation):
+    socket.send_json({"cmd": "set_speed", "value": vitesse})
+    socket.send_json({"cmd": "set_direction", "value": rotation})
+
+if __name__ == "__main__":
+    while(True):
+        vitesse= float(input("vitesse en millimetre par seconde:"))
+        rotation= float(input("rotation en degré:"))
+        c.write_vitesse_direction(vitesse,rotation)
+        time.sleep(0.1)  # Wait for the slave to process the data+ù
 
         # Request data from the slave
