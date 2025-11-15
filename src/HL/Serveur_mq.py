@@ -225,5 +225,7 @@ def msg_received():
 if __name__ == "__main__":
     threading.Thread(target=i2c_loop, daemon=True).start()
     threading.Thread(target=i2c_received, daemon=True).start()
-    msg_received()
-
+    threading.Thread(target=msg_received, daemon=True).start()
+    
+    while True:
+        Idle()
