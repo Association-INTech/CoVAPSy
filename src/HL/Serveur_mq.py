@@ -5,8 +5,9 @@ import time
 import threading
 import smbus
 import logging as log
+import struct
 #on démarre les log
-log.basicConfig(level=log.INFO, format=Format)
+log.basicConfig(level=log.INFO)
 
 bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 
@@ -74,12 +75,19 @@ def msg_received():
         elif req["cmd"] == "set_direction":
             direction = req["value"]
             received.send_json({"status": "ok"})
+        elif req["cmd"] == "info":
+            received.send_json({
+            "voltage_lipo": voltage_lipo,
+            "voltage_nimh": voltage_nimh,
+            "vitesse_reelle": vitesse_r,
+            "timestamp": time.time()
+        })
         else:
             received.send_json({"error": "unknown"})
+
 
 if __name__ == "__main__":
     threading.Thread(target=i2c_loop, daemon=True).start()
     threading.Thread(target=i2c_received, daemon=True).start()
-
     msg_received()
 

@@ -18,23 +18,36 @@ if __name__ == "__main__":
         # Request data from the slave"""
 
 import zmq
-
+import time
+# on envoie les données au serveur
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
 socket.connect("tcp://127.0.0.1:5555")
 
+# on récupère les données
+
+# Pour recevoir la télémétrie
+sub = context.socket(zmq.SUB)
+sub.connect("tcp://127.0.0.1:5556")
+sub.setsockopt_string(zmq.SUBSCRIBE, "")
 
 def envoie_donnee(vitesse,rotation):
-    socket.send_json({"cmd": "set_speed", "speed": vitesse})
+    socket.send_json({"cmd": "set_speed", "value": vitesse})
     resp = socket.recv_json()
     socket.send_json({"cmd": "set_direction", "value": rotation})
     resp = socket.recv_json()
+def recoit_donnee():
+    socket.send_json({"cmd": "info"})
+    resp = socket.recv_json()
+    print(resp)
 
 if __name__ == "__main__":
     while(True):
+        
         vitesse= float(input("vitesse en millimetre par seconde:"))
         rotation= float(input("rotation en degré:"))
-        c.write_vitesse_direction(vitesse,rotation)
+        envoie_donnee(vitesse,rotation)
+        recoit_donnee()
         time.sleep(0.1)  # Wait for the slave to process the data+ù
 
         # Request data from the slave
