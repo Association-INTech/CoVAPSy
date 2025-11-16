@@ -132,7 +132,6 @@ def Idle(): #Enable chossing between states
     if (Screen <= len(programme)):
         text = programme[Screen]["name"] + "\n" + process_output
 
-    print(Screen)
     display_combined_im(text)
 
     if bp_next.is_pressed:
@@ -219,9 +218,11 @@ def msg_received():
 #---------------------------------------------------------------------------------------------------
 def stream_process_output(proc):
     global process_output
-    process_output = ""  # reset
     for line in proc.stdout:
         process_output = line.decode().strip()
+    lines = stdout.split("\n")
+    size = 10
+    chunks = [l[i * size : (i+1) * size] for l in lines for i in range(len(l) // size + 1)]
     
 def start_process(num_programme):
     global process, programme, process_output

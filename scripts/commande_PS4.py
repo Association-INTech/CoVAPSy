@@ -5,22 +5,21 @@ from threading import Thread
 #Pour le protocole I2C de communication entre la rasberie Pi et l'arduino
 import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 import numpy as np
-import struct
 
 ###################################################
 #Intialisation du protocole I2C
 ##################################################
+import zmq
+# on envoie les données au serveur
+context = zmq.Context()
+socket = context.socket(zmq.REQ)
+socket.connect("tcp://192.168.1.10:5555")
 
-# Create an SMBus instance
-bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
-
-# I2C address of the slave
-SLAVE_ADDRESS = 0x08
-
-def write_vitesse_direction(vitesse,direction):
-    # Convert string to list of ASCII values
-    data = struct.pack('<ff', float(vitesse), float(direction))
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+def envoie_donnee(vitesse,rotation):
+    socket.send_json({"cmd": "set_speed", "value": vitesse})
+    resp = socket.recv_json()
+    socket.send_json({"cmd": "set_direction", "value": rotation})
+    resp = socket.recv_json()
 
 ###################################################
 #Intialisation des moteurs
@@ -108,7 +107,7 @@ def envoie_direction_degre():
 # boucle principal
 controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
 try:
-    Thread(target = envoie_direction_degre, daemon=True).start()
+    Thread(target = envoie_donnee, daemon=True).start()
     controller.listen(timeout=60)
 
 except KeyboardInterrupt:
