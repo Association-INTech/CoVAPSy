@@ -50,25 +50,40 @@ voltage_nimh = 0
 initial_time = time.time()
 last_cmd_time = 0
 
-ip = get_ip
+ip = get_ip()
 
+
+process_output = ""
 programme = {
+    0: {
+        "name" : "Ssh to :\n" + ip,
+        "type" : "",
+        "path" : "",
+        "info" : ""
+    },
     1: {
         "name" : "Auto Driving",
         "type" : "python",
         "path" : "",
-        "info" : "Ia for CoVaPSY"
+        "info" : ""
     },
     2: {
-        "name" : "Manual Driving With PS4 Controller",
+        "name" : "PS4 Controller",
+        "type" : "python",
         "path" : "./scripts/commande_PS4.py",
-        "info" : "Commande_PS4 from bluetooth"
+        "info" : ""
     },
     3: {
-        "name" : "Connect PS4 Controller",
+        "name" : "Connect Controller",
         "type" : "bash",
         "path" : "./scripts/bluetooth_auto/bluethootconnect.sh",
-        "info" : "Autoconnect Controller"
+        "info" : ""
+    },
+    4: {
+        "name" : "Kill all",
+        "type" : "",
+        "path" : "",
+        "info" : ""
     }
 }
 
@@ -78,12 +93,8 @@ State = 0
 # fonction utile
 #-----------------------------------------------------------------------------------------------------
 def make_voltage_im():
-    try: #Will fail if arduino is rest ex: temporary power loss when plugu=ing in usb
-        received = [voltage_lipo , voltage_nimh]  # Adjust length as needed
-    except OSError:
-        received = [0.0, 0.0]
-        print("I2C bus error")
-    
+    global voltage_lipo, voltage_nimh
+    received = [voltage_lipo , voltage_nimh]  # Adjust length as needed
     # filter out values below 6V and round to 2 decimal places
     received = [round(elem, 2) if elem > 6 else 0.0 for elem in received]
     text = f"LiP:{received[0]:.2f}V|NiH:{received[1]:.2f}V"
@@ -117,40 +128,22 @@ def Idle(): #Enable chossing between states
         Screen=1
     if not check_ssh_connections():
         led1.off()
-    match Screen: #Display on OLED
-        case 0: #IP and ssh status
-            ip=get_ip()
-            text = "Ready to SSH\nIP:"+ip
-        case 1: #AutoDriving mode
-            text = "Auto Driving"
-        case 2: #Manual Driving mode
-            text = "Manual Driving With PS4 Controller"
-            #PS4 controller status
-        case 3: #Kill all processus
-            text = "Kill all the process"
     
-    if (Screen == 0):
-        ip=get_ip()
-        text = "Ready to SSH\nIP:"+ip
-    elif (Screen <= len(programme)):
-        text = programme[Screen]
+    if (Screen <= len(programme)):
+        text = programme[Screen]["name"] + "\n" + process_output
 
-    if (State==Screen):
-        text+=": (en cours)"
-
+    print(Screen)
     display_combined_im(text)
-
 
     if bp_next.is_pressed:
         bp_next.wait_for_release()
         Screen+=1
-        if Screen>len(programme):
+        if Screen<=len(programme):
             Screen=0
     if bp_entre.is_pressed:
         bp_entre.wait_for_release() 
         State=Screen
-        if (Screen == 3): #pour teste
-            subprocess.run("./bluethootconnect.sh", shell=True, check=True)
+        start_process(Screen)
 
 
 #---------------------------------------------------------------------------------------------------
@@ -191,9 +184,8 @@ def i2c_received():
             voltage_lipo = list_valeur[0]
             voltage_nimh = list_valeur[1]
             vitesse_r = list_valeur[2]
+        time.sleep(0.1)
 
-        else:
-            pass
 
 
 def msg_received():
@@ -221,6 +213,40 @@ def msg_received():
         else:
             received.send_json({"error": "unknown"})
 
+
+#---------------------------------------------------------------------------------------------------
+# Processus
+#---------------------------------------------------------------------------------------------------
+def stream_process_output(proc):
+    global process_output
+    process_output = ""  # reset
+    for line in proc.stdout:
+        process_output = line.decode().strip()
+    
+def start_process(num_programme):
+    global process, programme, process_output
+    try :
+        process.kill()
+    except :
+        pass
+
+    programme_actuel = programme[num_programme]
+    if programme_actuel["type"] == "bash":
+        process = subprocess.Popen(
+            programme_actuel["path"],
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+    elif programme_actuel["type"] == "python":
+        process = subprocess.Popen(["uv run",programme_actuel["path"]])
+
+
+    process_output = ""
+    threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
+#---------------------------------------------------------------------------------------------------
+# main
+#---------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     threading.Thread(target=i2c_loop, daemon=True).start()

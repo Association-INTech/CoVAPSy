@@ -24,13 +24,6 @@ context = zmq.Context()
 socket = context.socket(zmq.REQ)
 socket.connect("tcp://192.168.1.10:5555")
 
-# on récupère les données
-
-# Pour recevoir la télémétrie
-sub = context.socket(zmq.SUB)
-sub.connect("tcp://127.0.0.1:5556")
-sub.setsockopt_string(zmq.SUBSCRIBE, "")
-
 def envoie_donnee(vitesse,rotation):
     socket.send_json({"cmd": "set_speed", "value": vitesse})
     resp = socket.recv_json()

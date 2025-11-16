@@ -141,6 +141,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/fc/de/0a176512f6fab96eb
 name = "autotech"
 version = "0.1.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "luma-core" },
+    { name = "luma-oled" },
+    { name = "smbus" },
+    { name = "zmq" },
+]
 
 [package.optional-dependencies]
 docs = [
@@ -180,7 +186,9 @@ requires-dist = [
     { name = "adafruit-circuitpython-vl53l0x", marker = "extra == 'rpi'", specifier = ">=3.6.0" },
     { name = "adafruit-ssd1306", marker = "extra == 'rpi'", specifier = ">=1.6.0" },
     { name = "gpiozero", marker = "extra == 'rpi'", specifier = ">=1.6.0" },
+    { name = "luma-core", specifier = ">=2.5.1" },
     { name = "luma-core", marker = "extra == 'rpi'", specifier = ">=2.3.0" },
+    { name = "luma-oled", specifier = ">=3.14.0" },
     { name = "luma-oled", marker = "extra == 'rpi'", specifier = ">=3.8.0" },
     { name = "matplotlib", marker = "extra == 'simu'", specifier = ">=3.4.0" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.4.0" },
@@ -194,10 +202,12 @@ requires-dist = [
     { name = "pyps4controller", marker = "extra == 'rpi'", specifier = ">=1.2.0" },
     { name = "rpi-gpio", marker = "extra == 'rpi'", specifier = ">=0.7.1" },
     { name = "rpi-hardware-pwm", marker = "extra == 'rpi'", specifier = ">=0.1.0" },
+    { name = "smbus", specifier = ">=1.1.post2" },
     { name = "smbus", marker = "extra == 'rpi'", specifier = ">=1.1.post2" },
     { name = "spidev", marker = "extra == 'rpi'", specifier = ">=3.5" },
     { name = "stable-baselines3", marker = "extra == 'simu'", specifier = ">=1.6.0" },
     { name = "torch", marker = "extra == 'simu'", specifier = ">=1.9.0" },
+    { name = "zmq", specifier = ">=0.0.0" },
     { name = "zmq", marker = "extra == 'rpi'", specifier = ">=0.0.0" },
 ]
 provides-extras = ["docs", "simu", "rpi"]

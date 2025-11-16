@@ -14,6 +14,10 @@ authors = [
 ]
 
 dependencies = [
+    "luma-core>=2.5.1",
+    "luma-oled>=3.14.0",
+    "smbus>=1.1.post2",
+    "zmq>=0.0.0",
 ]
 
 [project.optional-dependencies]
