@@ -25,7 +25,7 @@ def envoie_donnee(vitesse,rotation):
 #Intialisation des moteurs
 ##################################################
 
-direction_d = 90 # angle initiale des roues en degrés
+direction_d = 0 # angle initiale des roues en degrés
 vitesse_m = 0   # vitesse initiale en métre par milliseconde
 
 #paramètres de la fonction vitesse_m_s, à étalonner
@@ -37,8 +37,8 @@ angle_degre_max = +18 #vers la gauche
 
 
 
-# fonction naturel map de ardiono pour plus de lisibilité
-def map(x, in_min,in_max, out_min, out_max):
+# fonction naturel map de arduino pour plus de lisibilité
+def map_range(x, in_min,in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
@@ -64,15 +64,18 @@ class MyController(Controller):
         Controller.__init__(self, **kwargs)
         
     def on_R2_press(self,value):
-        vit = map(value,-32252,32767,0,vitesse_max_m_s_soft*1000)
+        vit = map_range(value,-32252,32767,0,vitesse_max_m_s_soft*1000)
         if (vit < 0):
             set_vitesse_m_ms(0)
         else:
             set_vitesse_m_ms(vit)
-        
+    def on_R2_release(self): # arrete la voiture lorsque L2 est arrété d'étre préssé. 
+        set_vitesse_m_ms(0)
+    
+    
  
     def on_L3_x_at_rest(self):
-        set_direction_degre(90)
+        set_direction_degre(0)
         
     def on_R1_press(self): #arret d'urgence
         set_vitesse_m_ms(0)
@@ -80,22 +83,33 @@ class MyController(Controller):
     def on_R1_release(self):
         set_vitesse_m_ms(0)
     
+    def on_L3_up(self,value):
+        pass
+    def on_L3_down(self,value):
+        pass
+
+
     def on_L3_right(self,value):
-        print("x_r :", value, "degré : ",map(value,-32767, 32767, 60, 120))
-        dir = map(value, 0, 32767, 90, 120)
+        # print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        dir = map_range(value, 0, 32767, 0, angle_degre_max)
         set_direction_degre(dir)
 
     def on_L3_left(self,value):
-        dir = map(value,-32767, 0, 60, 90)
-        print("x_l :", value)
+        print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
+        dir = map_range(value,-32767, 0, -angle_degre_max, 0 )
         set_direction_degre(dir)
-        
+
+
     def on_L2_press(self, value):
-        vit = map(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
+        print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
         if (vit > 0):
             set_vitesse_m_ms(0)
         else:
             set_vitesse_m_ms(vit)
+    
+    def on_L2_release(self): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
+        set_vitesse_m_ms(0)
 
 #envoie de la direction et de l'angle toute les millisecondes
 def envoie_direction_degre():
