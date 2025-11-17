@@ -6,6 +6,8 @@ import threading
 import smbus
 import logging as log
 import struct
+import os, signal
+
 
 from luma.core.interface.serial import i2c
 from luma.core.render import canvas
@@ -54,12 +56,13 @@ ip = get_ip()
 
 
 process_output = ""
+last_programme = 0
 programme = {
     0: {
         "name" : "Ssh to :\n" + ip,
         "type" : "",
         "path" : "",
-        "info" : ""
+        "info" : "no"
     },
     1: {
         "name" : "Auto Driving",
@@ -77,7 +80,7 @@ programme = {
         "name" : "Connect Controller",
         "type" : "bash",
         "path" : "./scripts/bluetooth_auto/bluethootconnect.sh",
-        "info" : ""
+        "info" : "no"
     },
     4: {
         "name" : "Kill all",
@@ -130,7 +133,7 @@ def Idle(): #Enable chossing between states
         led1.off()
     
     if (Screen <= len(programme)):
-        text = programme[Screen]["name"] + "\n" + process_output
+        text = programme[Screen]["name"] + "\n" + programme[Screen]["info"] + "\n" + process_output
 
     display_combined_im(text)
 
@@ -157,13 +160,13 @@ def i2c_loop():
             if (time.time()- last_cmd_time < 0.2):
                 data = struct.pack('<ff', float(vitesse_d), float(direction))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-                time.sleep(0.05)
+                time.sleep(0.01)
             else: # on renvoie zero si il on a pas recue de message depuis moins de 200 milisecondes
                 vitesse_d = 0
                 direction = 0
                 data = struct.pack('<ff', float(vitesse_d), float(direction))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-                time.sleep(0.05)
+                time.sleep(0.01)
         except :
             print("i2c mort")
             time.sleep(1)
@@ -226,9 +229,16 @@ def stream_process_output(proc):
     print(chunks)
     
 def start_process(num_programme):
-    global process, programme, process_output
+    global process, programme, process_output, last_programme
+
+    if programme[last_programme]["info"] != "no":
+        programme[last_programme]["info"] = ""
+    if programme[num_programme]["info"] != "no":
+        programme[num_programme]["info"] = "(running)"
+    
+    last_programme = num_programme
     try :
-        process.kill()
+        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
     except :
         pass
 
@@ -238,10 +248,15 @@ def start_process(num_programme):
             programme_actuel["path"],
             shell=True,
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
+            stderr=subprocess.STDOUT,
+            preexec_fn=os.setsid
         )
     elif programme_actuel["type"] == "python":
-        process = subprocess.Popen(["uv","run",programme_actuel["path"]])
+        process = subprocess.Popen(["uv","run",programme_actuel["path"]],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            preexec_fn=os.setsid
+        )
 
 
     process_output = ""
