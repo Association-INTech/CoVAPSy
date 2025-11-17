@@ -48,7 +48,7 @@ voltage_lipo = 0
 voltage_nimh = 0
 
 initial_time = time.time()
-last_cmd_time = 0
+last_cmd_time = time.time()
 
 ip = get_ip()
 
@@ -137,7 +137,7 @@ def Idle(): #Enable chossing between states
     if bp_next.is_pressed:
         bp_next.wait_for_release()
         Screen+=1
-        if Screen<=len(programme):
+        if Screen>=len(programme):
             Screen=0
     if bp_entre.is_pressed:
         bp_entre.wait_for_release() 
@@ -153,12 +153,12 @@ def i2c_loop():
     global vitesse_d, direction, last_cmd_time
 
     while True:
-        try : 
-            if (time.time()- last_cmd_time > 100):
+        try :
+            if (time.time()- last_cmd_time < 0.2):
                 data = struct.pack('<ff', float(vitesse_d), float(direction))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(0.05)
-            else: # on renvoie zero si il on a pas recue de message depuis moins de 100 milisecondes
+            else: # on renvoie zero si il on a pas recue de message depuis moins de 200 milisecondes
                 vitesse_d = 0
                 direction = 0
                 data = struct.pack('<ff', float(vitesse_d), float(direction))
@@ -241,7 +241,7 @@ def start_process(num_programme):
             stderr=subprocess.STDOUT
         )
     elif programme_actuel["type"] == "python":
-        process = subprocess.Popen(["uv run",programme_actuel["path"]])
+        process = subprocess.Popen(["uv","run",programme_actuel["path"]])
 
 
     process_output = ""

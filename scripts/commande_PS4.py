@@ -12,6 +12,7 @@ socket = context.socket(zmq.REQ)
 socket.connect("tcp://127.0.0.1:5555")
 
 def envoie_donnee():
+    global vitesse_m , direction_d
     while(True):
         socket.send_json({"cmd": "set_speed", "value": vitesse_m})
         resp = socket.recv_json()
