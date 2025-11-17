@@ -28,12 +28,27 @@ direction_d = 0 # angle initiale des roues en degrés
 vitesse_m = 0   # vitesse initiale en métre par milliseconde
 
 #paramètres de la fonction vitesse_m_s, à étalonner
-vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture en métre
 vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
 vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
 
 angle_degre_max = +18 #vers la gauche
 
+MAX_LEFT = -32767 + 3000   # deadzone 3000
+alpha = 0.3
+filtered = 0
+
+def stable_direction(value):
+    global filtered
+
+    # Deadzone
+    if value < MAX_LEFT:
+        target = -angle_degre_max
+    else:
+        target = map_range(value, -32767, 0, -angle_degre_max, 0)
+
+    # Low-pass filtering
+    filtered = filtered * (1 - alpha) + target * alpha
+    return filtered
 
 
 # fonction naturel map de arduino pour plus de lisibilité
@@ -95,7 +110,7 @@ class MyController(Controller):
 
     def on_L3_left(self,value):
         #print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
-        dir = map_range(value,-32767, 0, -angle_degre_max, 0 )
+        dir = stable_direction(value)
         set_direction_degre(dir)
 
 
