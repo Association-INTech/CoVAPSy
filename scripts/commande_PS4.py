@@ -2,24 +2,22 @@ from pyPS4Controller.controller import Controller
 import time
 from threading import Thread
 
-#Pour le protocole I2C de communication entre la rasberie Pi et l'arduino
-import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
-import numpy as np
-
 ###################################################
-#Intialisation du protocole I2C
+#Intialisation du protocole zmq
 ##################################################
 import zmq
 # on envoie les données au serveur
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
-socket.connect("tcp://192.168.1.10:5555")
+socket.connect("tcp://127.0.0.1:5555")
 
-def envoie_donnee(vitesse,rotation):
-    socket.send_json({"cmd": "set_speed", "value": vitesse})
-    resp = socket.recv_json()
-    socket.send_json({"cmd": "set_direction", "value": rotation})
-    resp = socket.recv_json()
+def envoie_donnee():
+    while(True):
+        socket.send_json({"cmd": "set_speed", "value": vitesse_m})
+        resp = socket.recv_json()
+        socket.send_json({"cmd": "set_direction", "value": direction_d})
+        resp = socket.recv_json()
+        time.sleep(0.02)
 
 ###################################################
 #Intialisation des moteurs
@@ -110,12 +108,6 @@ class MyController(Controller):
     
     def on_L2_release(self): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
         set_vitesse_m_ms(0)
-
-#envoie de la direction et de l'angle toute les millisecondes
-def envoie_direction_degre():
-    while True :
-        write_vitesse_direction(int(vitesse_m), int(direction_d))
-        time.sleep(0.001)
 
 
 # boucle principal
