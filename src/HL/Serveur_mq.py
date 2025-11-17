@@ -220,9 +220,10 @@ def stream_process_output(proc):
     global process_output
     for line in proc.stdout:
         process_output = line.decode().strip()
-    lines = stdout.split("\n")
-    size = 10
+    lines = proc.stdout.split("\n")
+    size = 3
     chunks = [l[i * size : (i+1) * size] for l in lines for i in range(len(l) // size + 1)]
+    print(chunks)
     
 def start_process(num_programme):
     global process, programme, process_output
