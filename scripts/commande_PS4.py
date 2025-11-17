@@ -45,12 +45,12 @@ def map_range(x, in_min,in_max, out_min, out_max):
 def set_direction_degre(angle_degre) :
     global direction_d
     direction_d = angle_degre
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+    #print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
     
 def set_vitesse_m_ms(vitesse_m_ms):
     global vitesse_m
     vitesse_m = vitesse_m_ms
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+    #print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
         
 def recule(): #actuellement ne sert a rien car on peux juste envoyer une vitesse négative 
     global vitesse_m
@@ -94,13 +94,13 @@ class MyController(Controller):
         set_direction_degre(dir)
 
     def on_L3_left(self,value):
-        print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
+        #print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
         dir = map_range(value,-32767, 0, -angle_degre_max, 0 )
         set_direction_degre(dir)
 
 
     def on_L2_press(self, value):
-        print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        #print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
         vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
         if (vit > 0):
             set_vitesse_m_ms(0)
