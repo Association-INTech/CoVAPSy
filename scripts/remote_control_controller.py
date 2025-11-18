@@ -7,19 +7,15 @@ from threading import Thread
 # Init ZMQ
 ###################################################
 context = zmq.Context()
-socket = context.socket(zmq.REQ)
-socket.connect("tcp://192.168.1.10:5555")
+socket = context.socket(zmq.PUB)
+socket.connect("tcp://192.168.1.10:5556")
 
 def envoie_donnee():
     global vitesse_m, direction_d
     while True:
         socket.send_json({"cmd": "set_speed", "value": vitesse_m})
-        socket.recv_json()
-
         socket.send_json({"cmd": "set_direction", "value": direction_d})
-        socket.recv_json()
-
-        time.sleep(0.02)
+        time.sleep(0.01)
 
 ###################################################
 # Paramètres véhicule
@@ -37,12 +33,11 @@ def map_range(x, in_min, in_max, out_min, out_max):
 def set_direction_degre(angle_degre):
     global direction_d
     direction_d = angle_degre
-    print("direction:", direction_d, "vitesse:", vitesse_m)
+    print(direction_d, vitesse_m)
 
 def set_vitesse_m_ms(vit):
     global vitesse_m
     vitesse_m = vit
-    print("direction:", direction_d, "vitesse:", vitesse_m)
 
 ###################################################
 # Init pygame + manette
@@ -76,7 +71,6 @@ try:
         axis_lx = joy.get_axis(0)         # Gauche droite
         axis_l2 = joy.get_axis(2)         # Accélération inverse
         axis_r2 = joy.get_axis(5)         # Accélération
-        
 
         # Direction
         direction = map_range(axis_lx, -1, 1, -angle_degre_max, angle_degre_max)

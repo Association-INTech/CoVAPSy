@@ -39,11 +39,17 @@ TEXT_HEIGHT = 11
 TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 
 # on recoit les inoformations
-private = context.socket(zmq.REP)
+private = context.socket(zmq.SUB)
 private.bind("tcp://127.0.0.1:5555")
+private.setsockopt_string(zmq.SUBSCRIBE, "")
 
-public = context.socket(zmq.REP)
-public.bind("tcp://192.168.1.10:5556")
+public = context.socket(zmq.SUB)
+public.bind("tcp://0.0.0.0:5556")
+public.setsockopt_string(zmq.SUBSCRIBE, "")
+
+telemetry = context.socket(zmq.REQ)
+telemetry.bind("tcp://127.0.0.1:5557")
+
 
 remote_control = False # on initialise le remote control à False
 
@@ -90,7 +96,7 @@ programme = {
     4: {
         "name" : "Remote control",
         "type" : "function",
-        "path" : switch_remote_control,
+        "path" : lambda: switch_remote_control(),
         "info" : ""
     },
     5: {
@@ -205,28 +211,30 @@ def msg_received(socket, is_private):
     """ on regarde si il s'agit de lappelle pour le control interne 
      (is_private) ou si on veux prendre le controle depuis le pc."""
     global vitesse_d, direction, last_cmd_time, remote_control
-    while is_private or remote_control: 
+    
+    while is_private or remote_control:
         req = socket.recv_json()
+        # info = telemetry.recv_json()
 
         if req["cmd"] == "set_speed":
+            print("lololol")
             vitesse_d = req["value"]
-            socket.send_json({"status": "ok"})
             last_cmd_time = time.time()
 
         elif req["cmd"] == "set_direction":
             direction = req["value"]
-            socket.send_json({"status": "ok"})
             last_cmd_time = time.time()
-
-        elif req["cmd"] == "info":
-            socket.send_json({
+        
+        else:
+            socket.send_json({"error": "unknown"})
+        """
+        elif info["cmd"] == "info":
+            telemetry.send_json({
             "voltage_lipo": voltage_lipo,
             "voltage_nimh": voltage_nimh,
             "vitesse_reelle": vitesse_r,
             "timestamp": time.time() - initial_time
-        })
-        else:
-            socket.send_json({"error": "unknown"})
+        })"""
 
 
 #---------------------------------------------------------------------------------------------------
@@ -236,10 +244,11 @@ def stream_process_output(proc):
     global process_output
     for line in proc.stdout:
         process_output = line.decode().strip()
+    """
     lines = proc.stdout.split("\n")
     size = 3
     chunks = [l[i * size : (i+1) * size] for l in lines for i in range(len(l) // size + 1)]
-    print(chunks)
+    print(chunks)"""
     
 def start_process(num_programme):
     global process, programme, process_output, last_programme
@@ -248,13 +257,14 @@ def start_process(num_programme):
         programme[last_programme]["info"] = ""
     if programme[num_programme]["info"] != "no":
         programme[num_programme]["info"] = "(running)"
-    
+
+    process_output = ""
     last_programme = num_programme
     if process is not None:
         try:
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-        except:
-            pass
+        except Exception as e:
+            print(e)
 
     programme_actuel = programme[num_programme]
     if programme_actuel["type"] == "bash":
@@ -265,17 +275,21 @@ def start_process(num_programme):
             stderr=subprocess.STDOUT,
             preexec_fn=os.setsid
         )
+
+        threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
     elif programme_actuel["type"] == "python":
         process = subprocess.Popen(["uv","run",programme_actuel["path"]],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             preexec_fn=os.setsid
         )
+
+        threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
     elif programme_actuel["type"] == "function":
         programme_actuel["path"]()
 
-    process_output = ""
-    threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
+    
+    
 
 
 #---------------------------------------------------------------------------------------------------
@@ -283,9 +297,10 @@ def start_process(num_programme):
 #---------------------------------------------------------------------------------------------------
 
 def switch_remote_control():
-    global remote_control
+    global remote_control, last_programme
     if remote_control:
         remote_control = False
+        programme[last_programme]["info"] = ""
     else:
         remote_control = True
     threading.Thread(target=msg_received, args=(public,False,), daemon=True).start()
