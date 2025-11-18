@@ -53,7 +53,7 @@ public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 public.bind(("0.0.0.0", 5556))
 
 private = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-private.bind(("0.0.0.0", 5555))
+private.bind(("127.0.0.1", 5555))
 
 telemetry = context.socket(zmq.REQ)
 telemetry.bind("tcp://127.0.0.1:5557")

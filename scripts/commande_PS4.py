@@ -16,7 +16,7 @@ def envoie_donnee():
     global vitesse_m, direction_d
     while True:
         packet = struct.pack("ff", vitesse_m, direction_d)
-        sock.sendto(packet, ("127.0.0.1", 5556))
+        sock.sendto(packet, ("127.0.0.1", 5555))
         time.sleep(0.05)
 
 
