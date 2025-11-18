@@ -217,7 +217,6 @@ def msg_received(socket, is_private):
         # info = telemetry.recv_json()
 
         if req["cmd"] == "set_speed":
-            print("lololol")
             vitesse_d = req["value"]
             last_cmd_time = time.time()
 

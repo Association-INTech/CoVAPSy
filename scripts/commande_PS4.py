@@ -8,17 +8,15 @@ from threading import Thread
 import zmq
 # on envoie les données au serveur
 context = zmq.Context()
-socket = context.socket(zmq.REQ)
+socket = context.socket(zmq.PUB)
 socket.connect("tcp://127.0.0.1:5555")
 
 def envoie_donnee():
-    global vitesse_m , direction_d
-    while(True):
+    global vitesse_m, direction_d
+    while True:
         socket.send_json({"cmd": "set_speed", "value": vitesse_m})
-        resp = socket.recv_json()
         socket.send_json({"cmd": "set_direction", "value": direction_d})
-        resp = socket.recv_json()
-        time.sleep(0.02)
+        time.sleep(0.01)
 
 ###################################################
 #Intialisation des moteurs
