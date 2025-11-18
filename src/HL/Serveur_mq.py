@@ -43,7 +43,7 @@ private = context.socket(zmq.REP)
 private.bind("tcp://127.0.0.1:5555")
 
 public = context.socket(zmq.REP)
-public.bind("tcp://192.168.0.10:5556")
+public.bind("tcp://192.168.1.10:5556")
 
 remote_control = False # on initialise le remote control à False
 
@@ -59,9 +59,9 @@ last_cmd_time = time.time()
 
 ip = get_ip()
 
-
 process_output = ""
 last_programme = 0
+process = None
 programme = {
     0: {
         "name" : "Ssh to :\n" + ip,
@@ -90,7 +90,7 @@ programme = {
     4: {
         "name" : "Remote control",
         "type" : "function",
-        "path" : switch_remote_control(),
+        "path" : switch_remote_control,
         "info" : ""
     },
     5: {
@@ -250,10 +250,11 @@ def start_process(num_programme):
         programme[num_programme]["info"] = "(running)"
     
     last_programme = num_programme
-    try :
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-    except :
-        pass
+    if process is not None:
+        try:
+            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+        except:
+            pass
 
     programme_actuel = programme[num_programme]
     if programme_actuel["type"] == "bash":
@@ -271,7 +272,7 @@ def start_process(num_programme):
             preexec_fn=os.setsid
         )
     elif programme_actuel["type"] == "function":
-        programme_actuel["path"]
+        programme_actuel["path"]()
 
     process_output = ""
     threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
