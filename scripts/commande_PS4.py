@@ -5,18 +5,20 @@ from threading import Thread
 ###################################################
 #Intialisation du protocole zmq
 ##################################################
-import zmq
-# on envoie les données au serveur
-context = zmq.Context()
-socket = context.socket(zmq.PUB)
-socket.connect("tcp://127.0.0.1:5555")
+import socket
+import struct
+###################################################
+# Init ZMQ
+###################################################
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def envoie_donnee():
     global vitesse_m, direction_d
     while True:
-        socket.send_json({"cmd": "set_speed", "value": vitesse_m})
-        socket.send_json({"cmd": "set_direction", "value": direction_d})
-        time.sleep(0.01)
+        packet = struct.pack("ff", vitesse_m, direction_d)
+        sock.sendto(packet, ("127.0.0.1", 5556))
+        time.sleep(0.05)
+
 
 ###################################################
 #Intialisation des moteurs

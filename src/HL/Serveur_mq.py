@@ -15,6 +15,7 @@ from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 from gpiozero import LED, Button, Buzzer
 import textwrap
+import socket
 
 from get_ip import get_ip, check_ssh_connections
 import subprocess
@@ -39,6 +40,7 @@ TEXT_HEIGHT = 11
 TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 
 # on recoit les inoformations
+"""
 private = context.socket(zmq.SUB)
 private.bind("tcp://127.0.0.1:5555")
 private.setsockopt_string(zmq.SUBSCRIBE, "")
@@ -46,6 +48,12 @@ private.setsockopt_string(zmq.SUBSCRIBE, "")
 public = context.socket(zmq.SUB)
 public.bind("tcp://0.0.0.0:5556")
 public.setsockopt_string(zmq.SUBSCRIBE, "")
+"""
+public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+public.bind(("0.0.0.0", 5556))
+
+private = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+private.bind(("0.0.0.0", 5555))
 
 telemetry = context.socket(zmq.REQ)
 telemetry.bind("tcp://127.0.0.1:5557")
@@ -103,6 +111,12 @@ programme = {
         "name" : "Kill all",
         "type" : "",
         "path" : "",
+        "info" : ""
+    },
+    6: {
+        "name" : "reboot",
+        "type" : "bash",
+        "path" : "poweroff",
         "info" : ""
     }
 }
@@ -174,7 +188,8 @@ def i2c_loop():
 
     while True:
         try :
-            if (time.time()- last_cmd_time < 0.2):
+            
+            if (time.time()- last_cmd_time < 0.5):
                 data = struct.pack('<ff', float(vitesse_d), float(direction))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(0.01)
@@ -213,6 +228,10 @@ def msg_received(socket, is_private):
     global vitesse_d, direction, last_cmd_time, remote_control
     
     while is_private or remote_control:
+        data, _ = socket.recvfrom(1024)
+        vitesse_d, direction = struct.unpack("ff", data)
+        last_cmd_time = time.time()
+        """
         req = socket.recv_json()
         # info = telemetry.recv_json()
 
@@ -223,10 +242,7 @@ def msg_received(socket, is_private):
         elif req["cmd"] == "set_direction":
             direction = req["value"]
             last_cmd_time = time.time()
-        
-        else:
-            socket.send_json({"error": "unknown"})
-        """
+        """ """
         elif info["cmd"] == "info":
             telemetry.send_json({
             "voltage_lipo": voltage_lipo,
