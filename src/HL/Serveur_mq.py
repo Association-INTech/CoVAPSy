@@ -39,8 +39,13 @@ TEXT_HEIGHT = 11
 TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 
 # on recoit les inoformations
-received = context.socket(zmq.REP)
-received.bind("tcp://0.0.0.0:5555")
+private = context.socket(zmq.REP)
+private.bind("tcp://127.0.0.1:5555")
+
+public = context.socket(zmq.REP)
+public.bind("tcp://192.168.0.10:5556")
+
+remote_control = False # on initialise le remote control à False
 
 vitesse_d = 0
 vitesse_r = 0
@@ -83,6 +88,12 @@ programme = {
         "info" : "no"
     },
     4: {
+        "name" : "Remote control",
+        "type" : "function",
+        "path" : switch_remote_control(),
+        "info" : ""
+    },
+    5: {
         "name" : "Kill all",
         "type" : "",
         "path" : "",
@@ -190,30 +201,32 @@ def i2c_received():
 
 
 
-def msg_received():
-    global vitesse_d, direction, last_cmd_time
-    while True :
-        req = received.recv_json()
+def msg_received(socket, is_private):
+    """ on regarde si il s'agit de lappelle pour le control interne 
+     (is_private) ou si on veux prendre le controle depuis le pc."""
+    global vitesse_d, direction, last_cmd_time, remote_control
+    while is_private or remote_control: 
+        req = socket.recv_json()
 
         if req["cmd"] == "set_speed":
             vitesse_d = req["value"]
-            received.send_json({"status": "ok"})
+            socket.send_json({"status": "ok"})
             last_cmd_time = time.time()
 
         elif req["cmd"] == "set_direction":
             direction = req["value"]
-            received.send_json({"status": "ok"})
+            socket.send_json({"status": "ok"})
             last_cmd_time = time.time()
 
         elif req["cmd"] == "info":
-            received.send_json({
+            socket.send_json({
             "voltage_lipo": voltage_lipo,
             "voltage_nimh": voltage_nimh,
             "vitesse_reelle": vitesse_r,
             "timestamp": time.time() - initial_time
         })
         else:
-            received.send_json({"error": "unknown"})
+            socket.send_json({"error": "unknown"})
 
 
 #---------------------------------------------------------------------------------------------------
@@ -257,10 +270,25 @@ def start_process(num_programme):
             stderr=subprocess.STDOUT,
             preexec_fn=os.setsid
         )
-
+    elif programme_actuel["type"] == "function":
+        programme_actuel["path"]
 
     process_output = ""
     threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
+
+
+#---------------------------------------------------------------------------------------------------
+# car function 
+#---------------------------------------------------------------------------------------------------
+
+def switch_remote_control():
+    global remote_control
+    if remote_control:
+        remote_control = False
+    else:
+        remote_control = True
+    threading.Thread(target=msg_received, args=(public,False,), daemon=True).start()
+
 #---------------------------------------------------------------------------------------------------
 # main
 #---------------------------------------------------------------------------------------------------
@@ -268,7 +296,7 @@ def start_process(num_programme):
 if __name__ == "__main__":
     threading.Thread(target=i2c_loop, daemon=True).start()
     threading.Thread(target=i2c_received, daemon=True).start()
-    threading.Thread(target=msg_received, daemon=True).start()
+    threading.Thread(target=msg_received, args=(private,True,), daemon=True).start()
     
     while True:
         Idle()
