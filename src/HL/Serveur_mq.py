@@ -222,7 +222,7 @@ def i2c_received():
 
 
 
-def msg_received(socket, is_private):
+def car_controle(socket, is_private):
     """ on regarde si il s'agit de lappelle pour le control interne 
      (is_private) ou si on veux prendre le controle depuis le pc."""
     global vitesse_d, direction, last_cmd_time, remote_control
@@ -231,26 +231,21 @@ def msg_received(socket, is_private):
         data, _ = socket.recvfrom(1024)
         vitesse_d, direction = struct.unpack("ff", data)
         last_cmd_time = time.time()
-        """
-        req = socket.recv_json()
-        # info = telemetry.recv_json()
 
-        if req["cmd"] == "set_speed":
-            vitesse_d = req["value"]
-            last_cmd_time = time.time()
-
-        elif req["cmd"] == "set_direction":
-            direction = req["value"]
-            last_cmd_time = time.time()
-        """ """
-        elif info["cmd"] == "info":
+def envoie_donnee(socket):
+    """ on regarde si il s'agit de lappelle pour le control interne 
+     (is_private) ou si on veux prendre le controle depuis le pc."""
+    global vitesse_d, direction, last_cmd_time, remote_control
+    
+    while is_private or remote_control:
+        info = telemetry.recv_json()
+        if info["cmd"] == "info":
             telemetry.send_json({
             "voltage_lipo": voltage_lipo,
             "voltage_nimh": voltage_nimh,
             "vitesse_reelle": vitesse_r,
             "timestamp": time.time() - initial_time
-        })"""
-
+        })
 
 #---------------------------------------------------------------------------------------------------
 # Processus
@@ -327,7 +322,7 @@ def switch_remote_control():
 if __name__ == "__main__":
     threading.Thread(target=i2c_loop, daemon=True).start()
     threading.Thread(target=i2c_received, daemon=True).start()
-    threading.Thread(target=msg_received, args=(private,True,), daemon=True).start()
+    threading.Thread(target=car_controle, args=(private,True,), daemon=True).start()
     
     while True:
         Idle()
