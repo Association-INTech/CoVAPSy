@@ -116,7 +116,7 @@ programme = {
     6: {
         "name" : "reboot",
         "type" : "bash",
-        "path" : "poweroff",
+        "path" : "sudo reboot",
         "info" : ""
     }
 }
@@ -189,7 +189,7 @@ def i2c_loop():
     while True:
         try :
             
-            if (time.time()- last_cmd_time < 0.5):
+            if (time.time()- last_cmd_time < 1):
                 data = struct.pack('<ff', float(vitesse_d), float(direction))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(0.01)
