@@ -14,7 +14,7 @@ def envoie_donnee():
     while True:
         packet = struct.pack("ff", vitesse_m, direction_d)
         sock.sendto(packet, ("192.168.1.10", 5556))
-        time.sleep(0.05)
+        time.sleep(0.1)
 
 ###################################################
 # Paramètres véhicule
