@@ -194,7 +194,7 @@ def i2c_loop():
             if (time.time()- last_cmd_time < 1):
                 data = struct.pack('<ff', float(round(vitesse_d)), float(round(direction)))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-                time.sleep(0.01)
+                #time.sleep(0.00005)
             else: # on renvoie zero si il on a pas recue de message depuis moins de 200 milisecondes
                 vitesse_d = 0
                 direction = 0
