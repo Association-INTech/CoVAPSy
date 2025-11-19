@@ -177,8 +177,11 @@ def Idle(): #Enable chossing between states
         led1.off()
     
     if (Screen <= len(programme)):
-        text = programme[Screen]["name"] + "\n" + programme[Screen]["info"] + "\n" + process_output
-
+        if programme[Screen]["info"] != "no" : 
+            text = programme[Screen]["name"] + "\n" + programme[Screen]["info"] + "\n" + process_output
+        else : 
+            text = programme[Screen]["name"] + "\n" + process_output
+            
     display_combined_im(text)
 
     if bp_next.is_pressed:
