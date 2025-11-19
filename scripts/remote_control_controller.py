@@ -73,7 +73,7 @@ try:
 
         # Direction
         direction = map_range(axis_lx, -1, 1, -angle_degre_max, angle_degre_max)
-        set_direction_degre(direction)
+        set_direction_degre(round(direction))
 
         # Accélération
         accel = (axis_r2 + 1)/2
@@ -84,12 +84,12 @@ try:
         # Avant
         if accel > 0.05:
             vit = accel * vitesse_max_m_s_soft * 1000
-            set_vitesse_m_ms(vit)
+            set_vitesse_m_ms(round(vit))
 
         # Arrière
         elif brake > 0.05:
             vit = brake * vitesse_min_m_s_soft * 1000
-            set_vitesse_m_ms(vit)
+            set_vitesse_m_ms(round(vit))
         else :
             set_vitesse_m_ms(0)
         time.sleep(0.01)

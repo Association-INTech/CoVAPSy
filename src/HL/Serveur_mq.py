@@ -49,13 +49,15 @@ public = context.socket(zmq.SUB)
 public.bind("tcp://0.0.0.0:5556")
 public.setsockopt_string(zmq.SUBSCRIBE, "")
 """
+# on envoie en udp les commandes de la ps4
 public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 public.bind(("0.0.0.0", 5556))
 
 private = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 private.bind(("127.0.0.1", 5555))
 
-telemetry = context.socket(zmq.REQ)
+# on utilise tcp pour les infos des différents informations
+telemetry = context.socket(zmq.REP)
 telemetry.bind("tcp://127.0.0.1:5557")
 
 
@@ -190,7 +192,7 @@ def i2c_loop():
         try :
             
             if (time.time()- last_cmd_time < 1):
-                data = struct.pack('<ff', float(vitesse_d), float(direction))
+                data = struct.pack('<ff', float(round(vitesse_d)), float(round(direction)))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(0.01)
             else: # on renvoie zero si il on a pas recue de message depuis moins de 200 milisecondes
@@ -237,15 +239,17 @@ def envoie_donnee(socket):
      (is_private) ou si on veux prendre le controle depuis le pc."""
     global vitesse_d, direction, last_cmd_time, remote_control
     
-    while is_private or remote_control:
-        info = telemetry.recv_json()
+    while True:
+        info = socket.recv_json()
         if info["cmd"] == "info":
-            telemetry.send_json({
+            socket.send_json({
             "voltage_lipo": voltage_lipo,
             "voltage_nimh": voltage_nimh,
             "vitesse_reelle": vitesse_r,
             "timestamp": time.time() - initial_time
         })
+        else :
+            socket.send_json({"Error" : "not understand"})
 
 #---------------------------------------------------------------------------------------------------
 # Processus
@@ -323,6 +327,7 @@ if __name__ == "__main__":
     threading.Thread(target=i2c_loop, daemon=True).start()
     threading.Thread(target=i2c_received, daemon=True).start()
     threading.Thread(target=car_controle, args=(private,True,), daemon=True).start()
-    
+    threading.Thread(target=envoie_donnee, args=(telemetry,), daemon=True).start()
+
     while True:
         Idle()
