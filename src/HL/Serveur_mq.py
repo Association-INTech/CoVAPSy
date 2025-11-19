@@ -169,6 +169,7 @@ def display_combined_im(text):
 def Idle(): #Enable chossing between states
     global Screen
     global State
+    
     if Screen==0 and check_ssh_connections():
         led1.on()
         Screen=1

@@ -15,5 +15,6 @@ cd /home/intech/CoVAPSy
 # Pull the latest changes from the repository
 git pull 
 
-# Run the main Python script
-python /home/intech/CoVAPSy/src/HL/main.py 
+/home/intech/.local/bin/uv sync
+/home/intech/.local/bin/uv sync --extra rpi
+/home/intech/.local/bin/uv run /home/intech/CoVAPSy/src/HL/Serveur_mq.py
