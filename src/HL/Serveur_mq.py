@@ -200,7 +200,7 @@ def _initialize_lidar():
         print("Lidar initialized successfully")
     except Exception as e:
         print(f"Error initializing Lidar: {e}")
-        raise
+
 #---------------------------------------------------------------------------------------------------
 # fonction pour la communication
 #---------------------------------------------------------------------------------------------------
