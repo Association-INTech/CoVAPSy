@@ -19,6 +19,9 @@ import socket
 
 from get_ip import get_ip, check_ssh_connections
 import subprocess
+from Lidar import Lidar
+from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
+
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)
 #on démarre les log
@@ -75,6 +78,7 @@ last_cmd_time = time.time()
 
 ip = get_ip()
 
+#donnée des process
 process_output = ""
 last_programme = 0
 process = None
@@ -123,6 +127,12 @@ programme = {
     }
 }
 
+#donnée du lidar
+lidar = None
+rDistance = []
+xTheta = 0
+
+# donnée de l'écran
 Screen = 0
 State = 0
 #-----------------------------------------------------------------------------------------------------
@@ -180,7 +190,17 @@ def Idle(): #Enable chossing between states
         State=Screen
         start_process(Screen)
 
-
+def _initialize_lidar():
+    """Initialize the Lidar sensor."""
+    global lidar
+    try:
+        lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
+        lidar.stop()
+        lidar.startContinuous(0, 1080)
+        print("Lidar initialized successfully")
+    except Exception as e:
+        print(f"Error initializing Lidar: {e}")
+        raise
 #---------------------------------------------------------------------------------------------------
 # fonction pour la communication
 #---------------------------------------------------------------------------------------------------
@@ -251,6 +271,17 @@ def envoie_donnee(socket):
         else :
             socket.send_json({"Error" : "not understand"})
 
+def lidar_update_data():
+    global rDistance, xTheta
+    _initialize_lidar()
+    while True:
+        try :
+            rDistance = lidar.rDistance
+            xTheta = lidar.xTheta
+            time.sleep(0.1)
+        except :
+            print("pas lidar")
+            time.sleep(1)
 #---------------------------------------------------------------------------------------------------
 # Processus
 #---------------------------------------------------------------------------------------------------
@@ -328,6 +359,7 @@ if __name__ == "__main__":
     threading.Thread(target=i2c_received, daemon=True).start()
     threading.Thread(target=car_controle, args=(private,True,), daemon=True).start()
     threading.Thread(target=envoie_donnee, args=(telemetry,), daemon=True).start()
+    threading.Thread(target=lidar_update_data, daemon=True).start()
 
     while True:
         Idle()
