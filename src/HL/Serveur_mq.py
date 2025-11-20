@@ -114,15 +114,9 @@ programme = {
         "info" : ""
     },
     5: {
-        "name" : "Kill all",
-        "type" : "",
-        "path" : "",
-        "info" : ""
-    },
-    6: {
-        "name" : "reboot",
+        "name" : "poweroff",
         "type" : "bash",
-        "path" : "sudo reboot",
+        "path" : "sudo poweroff",
         "info" : ""
     }
 }
@@ -218,7 +212,7 @@ def i2c_loop():
     while True:
         try :
             
-            if (time.time()- last_cmd_time < 1):
+            if (time.time()- last_cmd_time < 0.5):
                 data = struct.pack('<ff', float(round(vitesse_d)), float(round(direction)))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 #time.sleep(0.00005)
@@ -308,17 +302,20 @@ def start_process(num_programme):
 
     if programme[last_programme]["info"] != "no":
         programme[last_programme]["info"] = ""
-    if programme[num_programme]["info"] != "no":
-        programme[num_programme]["info"] = "(running)"
-
-    process_output = ""
-    last_programme = num_programme
+    
     if process is not None:
         try:
             os.killpg(os.getpgid(process.pid), signal.SIGTERM)
         except Exception as e:
             print(e)
 
+    if (num_programme == last_programme):
+        return # si on est sur le même programme on kill et c'est tout
+    
+    if programme[num_programme]["info"] != "no":
+        programme[num_programme]["info"] = "(running)"
+    process_output = ""
+    last_programme = num_programme
     programme_actuel = programme[num_programme]
     if programme_actuel["type"] == "bash":
         process = subprocess.Popen(
