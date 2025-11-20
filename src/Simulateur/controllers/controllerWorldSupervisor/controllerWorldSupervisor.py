@@ -1,16 +1,8 @@
 import re
 from typing import *
 import numpy as np
-import random
 import gymnasium as gym
-import time
-import math
 
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
-
-from checkpoint import Checkpoint
 from checkpointmanager import CheckpointManager, checkpoints
 
 from controller import Supervisor
@@ -18,6 +10,7 @@ supervisor = Supervisor()
 
 import torch.nn as nn
 
+import psutil
 import os
 import sys
 
@@ -64,24 +57,17 @@ checkpoint_positions = [
     [-2.01029, -2.51669, 0.0391],
 ]
 
-import matplotlib.pyplot as plt
-
 def log(s: str):
     if B_DEBUG:
         print(s, file=open("/tmp/autotech/logs", "a"))
 
+# webots precess launches webots-bin internally who is the process that launches the controllers 
+# that's why we need to get the pppid
+proc = psutil.Process(os.getpid()) #current
+parent = proc.parent() #parent
+grandparent = parent.parent() if parent else None #grandparent
+pppid = str(grandparent.pid)
 
-with open(f"/proc/{os.getppid()}/status") as f:
-    log("youpi j'ai réussi à choper un truc I guess")
-    for line in f:
-        log(line)
-        if line.startswith("PPid:"):
-            log("found it bro")
-            pppid = line.split()[1]
-            log(pppid)
-            break
-
-log(pppid)
 
 simulation_rank = int(
     re.search(
