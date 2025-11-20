@@ -181,18 +181,21 @@ def Idle(): #Enable chossing between states
             text = programme[Screen]["name"] + "\n" + programme[Screen]["info"] + "\n" + process_output
         else : 
             text = programme[Screen]["name"] + "\n" + process_output
-            
+
     display_combined_im(text)
 
-    if bp_next.is_pressed:
-        bp_next.wait_for_release()
-        Screen+=1
-        if Screen>=len(programme):
-            Screen=0
-    if bp_entre.is_pressed:
-        bp_entre.wait_for_release() 
-        State=Screen
-        start_process(Screen)
+def bouton_next():
+    global Screen
+    Screen+=1
+    if Screen>=len(programme):
+        Screen=0
+
+def bouton_entre(num=None):
+    global Screen, State
+    if num!=None:
+        Screen = num
+    State=Screen
+    start_process(Screen)
 
 def _initialize_lidar():
     """Initialize the Lidar sensor."""
@@ -254,9 +257,10 @@ def car_controle(socket, is_private):
     global vitesse_d, direction, last_cmd_time, remote_control
     
     while is_private or remote_control:
-        data, _ = socket.recvfrom(1024)
+        data, ip = socket.recvfrom(1024)
         vitesse_d, direction = struct.unpack("ff", data)
         last_cmd_time = time.time()
+        print(ip)
 
 def envoie_donnee(socket):
     """ on regarde si il s'agit de lappelle pour le control interne 
@@ -359,6 +363,10 @@ def switch_remote_control():
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
+
+    bp_next.when_pressed = bouton_next
+    bp_entre.when_pressed = bouton_entre
+
     threading.Thread(target=i2c_loop, daemon=True).start()
     threading.Thread(target=i2c_received, daemon=True).start()
     threading.Thread(target=car_controle, args=(private,True,), daemon=True).start()
