@@ -310,6 +310,7 @@ def start_process(num_programme):
             print(e)
 
     if (num_programme == last_programme):
+        last_programme = 0 # pour pouvoir lancer le programme en rapuyant sur le bouton
         return # si on est sur le même programme on kill et c'est tout
     
     if programme[num_programme]["info"] != "no":
