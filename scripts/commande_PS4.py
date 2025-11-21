@@ -2,25 +2,23 @@ from pyPS4Controller.controller import Controller
 import time
 from threading import Thread
 
-#Pour le protocole I2C de communication entre la rasberie Pi et l'arduino
-import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
-import numpy as np
-import struct
-
 ###################################################
-#Intialisation du protocole I2C
+#Intialisation du protocole zmq
 ##################################################
+import socket
+import struct
+###################################################
+# Init ZMQ
+###################################################
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-# Create an SMBus instance
-bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
+def envoie_donnee():
+    global vitesse_m, direction_d
+    while True:
+        packet = struct.pack("ff", vitesse_m, direction_d)
+        sock.sendto(packet, ("127.0.0.1", 5555))
+        time.sleep(0.05)
 
-# I2C address of the slave
-SLAVE_ADDRESS = 0x08
-
-def write_vitesse_direction(vitesse,direction):
-    # Convert string to list of ASCII values
-    data = struct.pack('<ff', float(vitesse), float(direction))
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
 
 ###################################################
 #Intialisation des moteurs
@@ -30,12 +28,27 @@ direction_d = 0 # angle initiale des roues en degrés
 vitesse_m = 0   # vitesse initiale en métre par milliseconde
 
 #paramètres de la fonction vitesse_m_s, à étalonner
-vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture en métre
 vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
 vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
 
 angle_degre_max = +18 #vers la gauche
 
+MAX_LEFT = -32767 + 3000   # deadzone 3000
+alpha = 0.3
+filtered = 0
+
+def stable_direction(value):
+    global filtered
+
+    # Deadzone
+    if value < MAX_LEFT:
+        target = -angle_degre_max
+    else:
+        target = map_range(value, -32767, 0, -angle_degre_max, 0)
+
+    # Low-pass filtering
+    filtered = filtered * (1 - alpha) + target * alpha
+    return filtered
 
 
 # fonction naturel map de arduino pour plus de lisibilité
@@ -47,12 +60,12 @@ def map_range(x, in_min,in_max, out_min, out_max):
 def set_direction_degre(angle_degre) :
     global direction_d
     direction_d = angle_degre
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+    #print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
     
 def set_vitesse_m_ms(vitesse_m_ms):
     global vitesse_m
     vitesse_m = vitesse_m_ms
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+    #print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
         
 def recule(): #actuellement ne sert a rien car on peux juste envoyer une vitesse négative 
     global vitesse_m
@@ -96,13 +109,13 @@ class MyController(Controller):
         set_direction_degre(dir)
 
     def on_L3_left(self,value):
-        print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
-        dir = map_range(value,-32767, 0, -angle_degre_max, 0 )
+        #print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
+        dir = stable_direction(value)
         set_direction_degre(dir)
 
 
     def on_L2_press(self, value):
-        print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        #print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
         vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
         if (vit > 0):
             set_vitesse_m_ms(0)
@@ -112,17 +125,11 @@ class MyController(Controller):
     def on_L2_release(self): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
         set_vitesse_m_ms(0)
 
-#envoie de la direction et de l'angle toute les millisecondes
-def envoie_direction_degre():
-    while True :
-        write_vitesse_direction(int(vitesse_m), int(direction_d))
-        time.sleep(0.001)
-
 
 # boucle principal
 controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
 try:
-    Thread(target = envoie_direction_degre, daemon=True).start()
+    Thread(target = envoie_donnee, daemon=True).start()
     controller.listen(timeout=60)
 
 except KeyboardInterrupt:

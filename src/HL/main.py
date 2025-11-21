@@ -2,8 +2,6 @@
 # 0 - Idle
 # 1 - Auto Driving
 # 2 - Manual Driving with ps4 controller
-# 3 - tune prop_pwm
-# 4 - tune dir_pwm
 
 from gpiozero import LED, Button, Buzzer
 from luma.core.interface.serial import i2c
@@ -16,11 +14,17 @@ import textwrap
 
 from get_ip import get_ip, check_ssh_connections
 
+from multiprocessing import Processus #pour pouvoir lancer les programme sur un cpu différent
+
 bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 #oled
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)
 
+auto_driving_p = Process(target=Auto_Driving)
+manual_driving_p = Process(target=Manual_Driving)
+
+list_p = [auto_driving_p,manual_driving_p] #liste tout les processus possible
 
 SLAVE_ADDRESS = 0x08  # I2C address of the slave arduino or stm32
 bp_next = Button("GPIO5", bounce_time=0.1)
@@ -107,25 +111,36 @@ def Idle(): #Enable chossing between states
         case 2: #Manual Driving mode
             text = "Manual Driving With PS4 Controller"
             #PS4 controller status
-        case 3: #tune prop_pwm
-            text = "Tune Prop PWM"
-            #PS4 controller status
-
-        case 4: #tune dir_pwm
-            text = "Tune Dir PWM"
-            #PS4 controller status
+        case 3: #Kill all processus
+            text = "Kill all the process"
     
+    if (State==Screen):
+        text+=": (en cours)"
+
     display_combined_im(text)
+
+
     if bp_next.is_pressed:
         bp_next.wait_for_release()
         Screen+=1
-        if Screen>4:
+        if Screen>len(list_p):
             Screen=0
     if bp_entre.is_pressed:
         bp_entre.wait_for_release() 
         State=Screen
+        p_choisie(State-1) # -1 because of the process cases begin at 1 and the list_p indexe at 0
 
-        
+def p_choisie(p_id):
+    """ Kill tout les processus et lance celui choisie par p_id dans la liste list_p
+        (Donner un p_id plus grand que len(list_p) tue tout les processus
+    """
+    for i in range(len(list_p)):
+        if (i!= p_id):
+            list_p[i].terminate()
+
+    if (p_id<len(list_p)): #vérifie que le p_id soit valide dans
+        if not list_[p_id].is_alive(): #evite de relancer le programme si déjà selectionée
+            list_p[p_id].start()
 
 
 def Auto_Driving():
@@ -147,29 +162,10 @@ def Manual_Driving():
     global State
     print("Manual Driving")
     State=0
-def tune_prop_pwm():
-    global State
-    print("Tune Prop PWM")
-    State=0
-def tune_dir_pwm():
-    global State
-    print("Tune Dir PWM")
-    State=0
-
 
 def main():
     while True:
-        match State:
-            case 0: #Idle
-                Idle()
-            case 1: #Auto Driving
-               Auto_Driving()
-            case 2: #Manual Driving with ps4 controller
-                Manual_Driving()
-            case 3: #tune prop_pwm
-                tune_prop_pwm()
-            case 4: #tune dir_pwm
-                tune_dir_pwm()
+        Idle()
             
         
 if __name__ == "__main__":
