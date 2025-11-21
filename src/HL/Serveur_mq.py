@@ -391,6 +391,7 @@ class Serveur():
         threading.Thread(target=self.car_controle, args=(private,True,), daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
+        
         while True:
             Idle()
 

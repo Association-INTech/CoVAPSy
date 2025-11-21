@@ -141,16 +141,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/fc/de/0a176512f6fab96eb
 name = "autotech"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
-    { name = "gpiozero" },
-    { name = "lgpio" },
-    { name = "luma-core" },
-    { name = "luma-oled" },
-    { name = "matplotlib" },
-    { name = "netifaces" },
-    { name = "smbus" },
-    { name = "zmq" },
-]
 
 [package.optional-dependencies]
 docs = [
@@ -189,20 +179,14 @@ requires-dist = [
     { name = "adafruit-blinka", marker = "extra == 'rpi'", specifier = ">=8.0.0" },
     { name = "adafruit-circuitpython-vl53l0x", marker = "extra == 'rpi'", specifier = ">=3.6.0" },
     { name = "adafruit-ssd1306", marker = "extra == 'rpi'", specifier = ">=1.6.0" },
-    { name = "gpiozero", specifier = ">=2.0.1" },
     { name = "gpiozero", marker = "extra == 'rpi'", specifier = ">=1.6.0" },
-    { name = "lgpio", extras = ["rpi"], specifier = ">=0.2.2.0" },
-    { name = "luma-core", specifier = ">=2.5.1" },
     { name = "luma-core", marker = "extra == 'rpi'", specifier = ">=2.3.0" },
-    { name = "luma-oled", specifier = ">=3.14.0" },
     { name = "luma-oled", marker = "extra == 'rpi'", specifier = ">=3.8.0" },
     { name = "matplotlib", marker = "extra == 'simu'", specifier = ">=3.4.0" },
-    { name = "matplotlib", extras = ["rpi"], specifier = ">=3.10.5" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.4.0" },
     { name = "mkdocs-git-authors-plugin", marker = "extra == 'docs'", specifier = ">=0.6.0" },
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'docs'", specifier = ">=1.1.0" },
     { name = "mkdocs-mermaid2-plugin", marker = "extra == 'docs'", specifier = ">=0.6.0" },
-    { name = "netifaces", specifier = ">=0.11.0" },
     { name = "numpy", marker = "extra == 'simu'", specifier = ">=1.21.0" },
     { name = "onnx", marker = "extra == 'simu'", specifier = ">=1.8.0" },
     { name = "onnxruntime", marker = "extra == 'rpi'", specifier = ">=1.8.0" },
@@ -210,12 +194,10 @@ requires-dist = [
     { name = "pyps4controller", marker = "extra == 'rpi'", specifier = ">=1.2.0" },
     { name = "rpi-gpio", marker = "extra == 'rpi'", specifier = ">=0.7.1" },
     { name = "rpi-hardware-pwm", marker = "extra == 'rpi'", specifier = ">=0.1.0" },
-    { name = "smbus", specifier = ">=1.1.post2" },
     { name = "smbus", marker = "extra == 'rpi'", specifier = ">=1.1.post2" },
     { name = "spidev", marker = "extra == 'rpi'", specifier = ">=3.5" },
     { name = "stable-baselines3", marker = "extra == 'simu'", specifier = ">=1.6.0" },
     { name = "torch", marker = "extra == 'simu'", specifier = ">=1.9.0" },
-    { name = "zmq", specifier = ">=0.0.0" },
     { name = "zmq", marker = "extra == 'rpi'", specifier = ">=0.0.0" },
 ]
 provides-extras = ["docs", "simu", "rpi"]
@@ -1007,23 +989,6 @@ wheels = [
 ]
 
 [[package]]
-name = "lgpio"
-version = "0.2.2.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/56/33/26ec2e8049eaa2f077bf23a12dc61ca559fbfa7bea0516bf263d657ae275/lgpio-0.2.2.0.tar.gz", hash = "sha256:11372e653b200f76a0b3ef8a23a0735c85ec678a9f8550b9893151ed0f863fff", size = 90087, upload-time = "2024-03-29T21:59:55.901Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/40/b9/d23f9539bbddf47c01a14fc96158a42d9de454fd9d04f7be1347ca6db8fd/lgpio-0.2.2.0-cp310-cp310-linux_armv7l.whl", hash = "sha256:97fe5fb0e888c96031e8899e8c0eca64c63076a6d1f1e774acad8696430b2ff6", size = 376674, upload-time = "2024-03-29T22:00:41.969Z" },
-    { url = "https://files.pythonhosted.org/packages/9c/db/fbbade15dbc9febdbd06bd82531c0a78206f96262003145d6953396d9554/lgpio-0.2.2.0-cp310-cp310-manylinux_2_34_aarch64.whl", hash = "sha256:f8f1a2818ed4293182999679ac8559aea70d45743f5a3ae8025837e529d9e0d4", size = 356711, upload-time = "2024-04-01T22:49:43.455Z" },
-    { url = "https://files.pythonhosted.org/packages/d5/ca/1c5278b2548e956a52a07efae91ce2300f81c8cf4ad3d7d6b98ce8987e15/lgpio-0.2.2.0-cp310-cp310-manylinux_2_34_x86_64.whl", hash = "sha256:d245f315e4bc5ba1b72df9fd935a16c99e56ccf6b41d9f66a87804c1dfd91c86", size = 362126, upload-time = "2024-04-13T14:08:11.879Z" },
-    { url = "https://files.pythonhosted.org/packages/78/4e/5721ae44b29e4fe9175f68c881694e3713066590739a7c87f8cee2835c25/lgpio-0.2.2.0-cp311-cp311-linux_armv7l.whl", hash = "sha256:5b3c403e1fba9c17d178f1bde102726c548fc5c4fc1ccf5ec3e18f3c08e07e04", size = 382992, upload-time = "2024-03-29T22:00:45.039Z" },
-    { url = "https://files.pythonhosted.org/packages/88/53/e57a22fe815fc68d0991655c1105b8ed872a68491d32e4e0e7d10ffb5c4d/lgpio-0.2.2.0-cp311-cp311-manylinux_2_34_aarch64.whl", hash = "sha256:a2f71fb95b149d8ac82c7c6bae70f054f6dc42a006ad35c90c7d8e54921fbcf4", size = 364848, upload-time = "2024-04-01T22:49:45.889Z" },
-    { url = "https://files.pythonhosted.org/packages/a4/71/11f4e3d76400e4ca43f9f9b014f5a86d9a265340c0bea45cce037277eb34/lgpio-0.2.2.0-cp311-cp311-manylinux_2_34_x86_64.whl", hash = "sha256:e9f4f3915abe5ae0ffdb4b96f485076d80a663876d839e2d3fd9218a71b9873e", size = 370183, upload-time = "2024-04-13T14:08:14.139Z" },
-    { url = "https://files.pythonhosted.org/packages/fe/73/e56c9afb845df53492d42bdea01df9895272bccfdd5128f34719c3a07990/lgpio-0.2.2.0-cp312-cp312-linux_armv7l.whl", hash = "sha256:6c65ac42e878764d04a71ed12fe6d46089b36e9e8127722bf29bb2e4bc91de22", size = 383956, upload-time = "2024-03-29T22:00:47.315Z" },
-    { url = "https://files.pythonhosted.org/packages/3b/1c/becd00f66d2c65feed9a668ff9d91732394cb6baba7bec505d55de0e30c9/lgpio-0.2.2.0-cp312-cp312-manylinux_2_34_aarch64.whl", hash = "sha256:d907db79292c721c605af08187385ddb3b7af09907e1ffca56cf0cd6558ace0a", size = 366058, upload-time = "2024-04-01T22:49:47.615Z" },
-    { url = "https://files.pythonhosted.org/packages/4c/7a/e3b4e5225c9792c4092b2cc07504746acbe62d0a8e4cb023bdf65f6430cf/lgpio-0.2.2.0-cp312-cp312-manylinux_2_34_x86_64.whl", hash = "sha256:2aadff092f642fcdada8457c158f87259dfda3a89ec19bae0b99ff22b34aac4b", size = 372103, upload-time = "2024-04-13T14:08:16.351Z" },
-]
-
-[[package]]
 name = "luma-core"
 version = "2.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1332,12 +1297,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/e0/47/dd32fa426cc721143
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl", hash = "sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c", size = 536198, upload-time = "2023-03-07T16:47:09.197Z" },
 ]
-
-[[package]]
-name = "netifaces"
-version = "0.11.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae239e93ffc1918cf33fd9bab35c04d1e963b311e347a73/netifaces-0.11.0.tar.gz", hash = "sha256:043a79146eb2907edf439899f262b3dfe41717d34124298ed281139a8b93ca32", size = 30106, upload-time = "2021-05-31T08:33:02.506Z" }
 
 [[package]]
 name = "networkx"
