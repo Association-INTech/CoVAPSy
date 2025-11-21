@@ -129,9 +129,28 @@ xTheta = 0
 # donnée de l'écran
 Screen = 0
 State = 0
+scroll_offset = 3
 #-----------------------------------------------------------------------------------------------------
 # affichage de l'écrans
 #-----------------------------------------------------------------------------------------------------
+def affichage_oled(selected): #test
+    global scroll_offset
+    im = Image.new("1", (128, 64), "black")
+    draw = ImageDraw.Draw(im)
+    font = ImageFont.load_default()
+
+    for num, i in enumerate(range(max(selected - scroll_offset, 0), min(len(programme), selected + scroll_offset))):
+        y = num * TEXT_HEIGHT
+
+        if i == selected:
+            draw.rectangle((0, y, 127, y + TEXT_HEIGHT), fill="white")
+            draw.text((3, y), programme[i]["name"], fill="black", font=font)
+        else:
+            draw.text((3, y), programme[i]["name"], fill="white", font=font)
+
+    with canvas(device) as display:
+        display.bitmap((0, 0), im, fill="white")
+
 def make_voltage_im():
     global voltage_lipo, voltage_nimh
     received = [voltage_lipo , voltage_nimh]  # Adjust length as needed
