@@ -15,7 +15,7 @@ bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
-from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, PWM_DIR, PWM_PROP, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
+from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
 from Driver import Driver
 from Lidar import Lidar
 from Camera import Camera
@@ -26,11 +26,6 @@ class Car:
         """Initialize the car's components."""
         self.vitesse_milimetres_s = 0  # Speed in millimeters per second
         self.angle_degre = 0  # Steering angle in degrees
-
-        def _initialize_speed_limits():
-            """Set the car's speed limits."""
-            self.vitesse_max_m_s_hard = 6000  # Maximum hardware speed
-            self.vitesse_max_m_s_soft = MAX_SOFT_SPEED  # Maximum software speed
 
         def _initialize_ai():
             """Initialize the AI session."""
@@ -73,8 +68,6 @@ class Car:
                 log.error(f"Error initializing ToF: {e}")
                 raise
         
-        # Initialize speed limits
-        _initialize_speed_limits()
 
         # Initialize AI session
         _initialize_ai()
@@ -108,6 +101,8 @@ class Car:
         self.vitesse_milimetres_s = 0
         self.angle_degre = 0
         write_vitesse_direction(self.vitesse_milimetres_s, self.angle_degre) #stop the car
+        log.info("Arrêt du moteur")
+        self.lidar.stop()
         
 
     def has_Crashed(self):

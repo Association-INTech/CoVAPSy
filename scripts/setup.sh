@@ -25,7 +25,3 @@ uv sync
 # Add the cron job to run the script at reboot
 (crontab -l 2>/dev/null; echo "@reboot /home/intech/CoVAPSy/scripts/startup.sh") | crontab -
 
-=======
-
-
->>>>>>> origin/oled_annimation:Utils/setup.sh
