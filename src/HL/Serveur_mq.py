@@ -3,7 +3,7 @@ context = zmq.Context()
 
 import time
 import threading
-import smbus
+import smbus #type: ignore
 import logging as log
 import struct
 import os, signal

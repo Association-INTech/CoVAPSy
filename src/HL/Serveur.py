@@ -1,6 +1,6 @@
 import time
 import sys
-# from systemd.journal import JournalHandler #il y a des soucis dessus pour linstant
+# from systemd.journal import JournalHandler #il y a des soucis dessus pour l'instant
 import zerorpc
 import struct
 import logging as log
