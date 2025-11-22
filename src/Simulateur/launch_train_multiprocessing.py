@@ -36,9 +36,10 @@ class WebotsSimulationGymEnvironment(gym.Env):
     supervisor: the supervisor of the simulation
     """
 
-    def __init__(self, simulation_rank: int):
+    def __init__(self, simulation_rank: int, vehicle_rank: int):
         super().__init__()
         self.simulation_rank = simulation_rank
+        self.vehicle_rank = vehicle_rank
 
         # this is only true if lidar_horizontal_resolution = camera_horizontal_resolution
         box_min = np.zeros([2, context_size, lidar_horizontal_resolution], dtype=np.float32)
@@ -50,21 +51,21 @@ class WebotsSimulationGymEnvironment(gym.Env):
         if not os.path.exists("/tmp/autotech"):
             os.mkdir("/tmp/autotech")
 
-        log(f"SERVER{simulation_rank} : {simulation_rank=}")
+        log(f"SERVER{simulation_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}")
 
-        os.mkfifo(f"/tmp/autotech/{simulation_rank}toserver.pipe")
-        os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}.pipe")
+        os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe")
+        os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe")
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
         os.system(f"""
             webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % n_map}.wbt --mode=fast --minimize --no-rendering --batch --stdout &
-            echo $! {simulation_rank} >>/tmp/autotech/simulationranks
+            echo $! {simulation_rank}_{vehicle_rank} >>/tmp/autotech/simulationranks
         """)
-        log(f"SERVER{simulation_rank} : {simulation_rank}toserver.pipe")
-        self.fifo_r = open(f"/tmp/autotech/{simulation_rank}toserver.pipe", "rb")
-        log(f"SERVER{simulation_rank} : serverto{simulation_rank}.pipe")
-        self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}.pipe", "wb")
-        log(f"SERVER{simulation_rank} : fifo opened :D and init done")
+        log(f"SERVER{simulation_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}toserver.pipe")
+        self.fifo_r = open(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb")
+        log(f"SERVER{simulation_rank}_{vehicle_rank} : serverto{simulation_rank}_{vehicle_rank}.pipe")
+        self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe", "wb")
+        log(f"SERVER{simulation_rank}_{vehicle_rank} : fifo opened :D and init done")
         log("-------------------------------------------------------------------")
 
     def reset(self, seed=0):
@@ -77,19 +78,19 @@ class WebotsSimulationGymEnvironment(gym.Env):
         return obs, info
 
     def step(self, action):
-        log(f"SERVER{self.simulation_rank} : sending {action=}")
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : sending {action=}")
         self.fifo_w.write(action.tobytes())
         self.fifo_w.flush()
 
         # communication with the supervisor
         cur_state   = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize * (n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution)), dtype=np.float32)
-        log(f"SERVER{self.simulation_rank} : received {cur_state=}")
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {cur_state=}")
         reward      = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32)[0] # scalar
-        log(f"SERVER{self.simulation_rank} : received {reward=}")
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {reward=}")
         done        = np.frombuffer(self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool)[0] # scalar
-        log(f"SERVER{self.simulation_rank} : received {done=}")
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {done=}")
         truncated   = np.frombuffer(self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool)[0] # scalar
-        log(f"SERVER{self.simulation_rank} : received {truncated=}")
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {truncated=}")
         info        = {}
 
         cur_state = np.nan_to_num(cur_state[n_sensors:], nan=0., posinf=30.)
@@ -119,11 +120,11 @@ if __name__ == "__main__":
     if B_DEBUG:
         print("Webots started", file=open("/tmp/autotech/logs", "w"))
 
-    def make_env(rank: int):
+    def make_env(rank: int, rank_v: int):
         log(f"CAREFUL !!! created an SERVER env with {rank=}")
-        return WebotsSimulationGymEnvironment(rank)
+        return WebotsSimulationGymEnvironment(rank, rank_v)
 
-    envs = SubprocVecEnv([lambda rank=rank : make_env(rank) for rank in range(n_simulations)])
+    envs = SubprocVecEnv([lambda rank=rank, rank_v =rank_v : make_env(rank, rank_v) for rank_v in range(n_vehicles) for rank in range(n_simulations)])
 
     ExtractorClass = TemporalResNetExtractor
 

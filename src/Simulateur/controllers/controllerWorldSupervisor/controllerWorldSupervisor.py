@@ -112,11 +112,11 @@ class WebotsVehicleGymEnvironment(gym.Env):
         self.receiver.setChannel(2 * self.vehicle_rank + 1)
 
 
-        log(f"CLIENT{simulation_rank}/{vehicle_rank} : begins init")
-        log(f"CLIENT{simulation_rank}/{vehicle_rank} : {simulation_rank}toserver.pipe")
-        self.fifo_w = open(f"/tmp/autotech/{simulation_rank}toserver.pipe", "wb")
-        log(f"CLIENT{simulation_rank}/{vehicle_rank} : serverto{simulation_rank}.pipe")
-        self.fifo_r = open(f"/tmp/autotech/serverto{simulation_rank}.pipe", "rb")
+        log(f"CLIENT{simulation_rank}/{vehicle_rank}_{vehicle_rank} : begins init")
+        log(f"CLIENT{simulation_rank}/{vehicle_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}toserver.pipe")
+        self.fifo_w = open(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "wb")
+        log(f"CLIENT{simulation_rank}/{vehicle_rank} : serverto{simulation_rank}_{vehicle_rank}.pipe")
+        self.fifo_r = open(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe", "rb")
 
         # Last data received from the car
         self.last_data = np.zeros(n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution, dtype=np.float32)
