@@ -1,6 +1,7 @@
 import zmq
 context = zmq.Context()
-
+import numpy as np
+import cv2
 import time
 import threading
 import smbus
@@ -33,17 +34,20 @@ bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 # I2C address of the slave
 SLAVE_ADDRESS = 0x08
 
-length_i2c_received = 3 #le nombre de donnée récupéré par l'i2c
+ #le nombre de donnée récupéré par l'i2c
 
-bp_next = Button("GPIO5", bounce_time=0.1)
-bp_entre = Button("GPIO6", bounce_time=0.1)
-led1 = LED("GPIO17")
-led2 = LED("GPIO27")
-buzzer = Buzzer("GPIO26")
+
 TEXT_HEIGHT = 11
 TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 
+#sudo apt install libcap-dev
+#sudo apt install python3-libcamera
+
 #sudo apt-get install libcap-dev pour lancer picamera2
+#rm -rf .venv
+#uv venv --system-site-packages
+#source .venv/bin/activate
+#uv pip uninstall numpy
 
 # on recoit les inoformations
 """
@@ -64,12 +68,18 @@ private.bind(("127.0.0.1", 5555))
 
 # on utilise tcp pour les infos des différents informations
 telemetry = context.socket(zmq.REP)
-telemetry.bind("tcp://127.0.0.1:5557")
+telemetry.bind("tcp://0.0.0.0:5557")
 
 
 class Serveur():
 
     def __init__(self):
+        self.bp_next = Button("GPIO5", bounce_time=0.1)
+        self.bp_entre = Button("GPIO6", bounce_time=0.1)
+        self.length_i2c_received = 3
+        self.led1 = LED("GPIO17")
+        self.led2 = LED("GPIO27")
+        self.buzzer = Buzzer("GPIO26")
         self.remote_control = False # on initialise le remote control à False
 
         self.vitesse_d = 0
@@ -78,6 +88,7 @@ class Serveur():
 
         self.voltage_lipo = 0
         self.voltage_nimh = 0
+        self.camera_reverse = True
 
         self.initial_time = time.time()
         self.last_cmd_time = time.time()
@@ -90,7 +101,7 @@ class Serveur():
         self.process = None
         self.programme = {
             0: {
-                "name" : "Ssh to :\n" + ip,
+                "name" : "Ssh to :\n" + self.ip,
                 "type" : "",
                 "path" : "",
                 "info" : "no"
@@ -145,14 +156,14 @@ class Serveur():
         draw = ImageDraw.Draw(im)
         font = ImageFont.load_default()
 
-        for num, i in enumerate(range(max(selected - self.scroll_offset, 0), min(len(programme), selected + self.scroll_offset))):
+        for num, i in enumerate(range(max(selected - self.scroll_offset, 0), min(len(self.programme), selected + self.scroll_offset))):
             y = num * TEXT_HEIGHT
 
             if i == selected:
                 draw.rectangle((0, y, 127, y + TEXT_HEIGHT), fill="white")
-                draw.text((3, y), programme[i]["name"], fill="black", font=font)
+                draw.text((3, y), self.programme[i]["name"], fill="black", font=font)
             else:
-                draw.text((3, y), programme[i]["name"], fill="white", font=font)
+                draw.text((3, y), self.programme[i]["name"], fill="white", font=font)
 
         with canvas(device) as display:
             display.bitmap((0, 0), im, fill="white")
@@ -186,22 +197,22 @@ class Serveur():
 
     def Idle(self): #Enable chossing between states            
         if self.Screen==0 and check_ssh_connections():
-            led1.on()
+            self.led1.on()
             self.Screen=1
         if not check_ssh_connections():
-            led1.off()
+            self.led1.off()
         
-        if (self.Screen <= len(programme)):
-            if programme[self.Screen]["info"] != "no" : 
-                text = programme[self.Screen]["name"] + "\n" + programme[self.Screen]["info"] + "\n" + process_output
+        if (self.Screen < len(self.programme)):
+            if self.programme[self.Screen]["info"] != "no" : 
+                text = self.programme[self.Screen]["name"] + "\n" + self.programme[self.Screen]["info"] + "\n" + self.process_output
             else : 
-                text = programme[self.Screen]["name"] + "\n" + process_output
+                text = self.programme[self.Screen]["name"] + "\n" + self.process_output
 
         self.display_combined_im(text)
 
     def bouton_next(self):
         self.Screen+=1
-        if self.Screen>=len(programme):
+        if self.Screen>=len(self.programme):
             self.Screen=0
 
     def bouton_entre(self,num=None):
@@ -226,28 +237,26 @@ class Serveur():
 
     def _initialize_camera(self):
         """Initialize the camera."""
-        try:
-            reverse_count = 0
-            self.camera = Camera()
-            self.camera.start()
-            time.sleep(0.2)  # Allow time for the camera to start
-            log.info("Camera initialized successfully")
-        except Exception as e:
-            log.error(f"Error initializing Camera: {e}")
-            raise
+        for i in range(10):
+            try:
+                self.camera = Camera()
+                print("Camera OK")
+                return
+            except Exception as e:
+                print("Camera retry", i, e)
+                time.sleep(0.5)
+        raise RuntimeError("Camera KO après 10 essais")
 
     #---------------------------------------------------------------------------------------------------
     # fonction pour la communication
     #---------------------------------------------------------------------------------------------------
     def i2c_loop(self):
         """Envoie vitesse/direction régulièrement au microcontroleur."""
-        global vitesse_d, direction, last_cmd_time
-
         while True:
             try :
                 
-                if (self.time.time()- self.last_cmd_time < 0.5):
-                    data = struct.pack('<ff', float(round(vitesse_d)), float(round(direction)))
+                if (time.time()- self.last_cmd_time < 0.5):
+                    data = struct.pack('<ff', float(round(self.vitesse_d)), float(round(self.direction)))
                     bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                     #time.sleep(0.00005)
                 else: # on renvoie zero si il on a pas recue de message depuis moins de 200 milisecondes
@@ -290,7 +299,8 @@ class Serveur():
     def envoie_donnee(self, socket):
         """ on regarde si il s'agit de lappelle pour le control interne 
         (is_private) ou si on veux prendre le controle depuis le pc."""
-        
+        import base64
+        from io import BytesIO
         while True:
             info = socket.recv_json()
             if info["cmd"] == "info":
@@ -301,6 +311,21 @@ class Serveur():
                 "direction" : self.direction,
                 "timestamp": time.time() - self.initial_time
             })
+            elif info["cmd"] == "cam":
+                if self.camera_image is None:
+                    socket.send_json({"cam": None})
+                    continue
+
+                buffer = BytesIO()
+                self.camera_image.save(buffer, format="JPEG")
+                jpg_bytes = buffer.getvalue()
+                jpg_b64 = base64.b64encode(jpg_bytes).decode()
+
+                socket.send_json({
+                    "cam": jpg_b64
+                })
+                continue
+
             else :
                 socket.send_json({"Error" : "not understand"})
 
@@ -314,6 +339,37 @@ class Serveur():
             except :
                 print("pas lidar")
                 time.sleep(1)
+
+    def camera_update_data(self):
+        self._initialize_camera()
+        while True:
+            try :
+                self.camera_reverse = self.camera.is_running_in_reversed()
+                time.sleep(0.5)
+            except :
+                self._initialize_camera()
+                time.sleep(5)
+
+    def _start_video_stream(self):
+        """Start continuous JPEG compressed video streaming via ZMQ."""
+        context = zmq.Context()
+        socket = context.socket(zmq.PUSH)
+        socket.bind("tcp://0.0.0.0:6001")  # port dédié au flux vidéo
+
+        from io import BytesIO
+
+        while True:
+            try:
+                frame = self.camera.capture_image()  # PIL image
+                buffer = BytesIO()
+                frame.save(buffer, format="JPEG", quality=70)
+                jpg_bytes = buffer.getvalue()
+                socket.send(jpg_bytes)   # direct bytes (pas de JSON)
+                time.sleep(0.03)  # ~30 fps max, selon Pi
+            except Exception as e:
+                log.error(f"Video stream error: {e}")
+                time.sleep(1)
+
     #---------------------------------------------------------------------------------------------------
     # Processus
     #---------------------------------------------------------------------------------------------------
@@ -327,14 +383,13 @@ class Serveur():
         print(chunks)"""
         
     def start_process(self,num_programme):
-        global process, programme, process_output, last_programme
 
         if self.programme[self.last_programme]["info"] != "no":
             self.programme[self.last_programme]["info"] = ""
         
         if self.process is not None:
             try:
-                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
             except Exception as e:
                 print(e)
 
@@ -348,7 +403,7 @@ class Serveur():
         self.last_programme = num_programme
         self.programme_actuel = self.programme[num_programme]
         if self.programme_actuel["type"] == "bash":
-            process = subprocess.Popen(
+            self.process = subprocess.Popen(
                 self.programme_actuel["path"],
                 shell=True,
                 stdout=subprocess.PIPE,
@@ -356,15 +411,15 @@ class Serveur():
                 preexec_fn=os.setsid
             )
 
-            threading.Thread(target=self.stream_process_output, args=(process,), daemon=True).start()
+            threading.Thread(target=self.stream_process_output, args=(self.process,), daemon=True).start()
         elif self.programme_actuel["type"] == "python":
-            process = subprocess.Popen(["uv","run",self.programme_actuel["path"]],
+            self.process = subprocess.Popen(["uv","run",self.programme_actuel["path"]],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid
             )
 
-            threading.Thread(target=self.stream_process_output, args=(process,), daemon=True).start()
+            threading.Thread(target=self.stream_process_output, args=(self.process,), daemon=True).start()
         elif self.programme_actuel["type"] == "function":
             self.programme_actuel["path"]()
 
@@ -379,21 +434,24 @@ class Serveur():
     def switch_remote_control(self):
         if self.remote_control:
             self.remote_control = False
-            programme[self.last_programme]["info"] = ""
+            self.programme[self.last_programme]["info"] = ""
         else:
             self.remote_control = True
         threading.Thread(target=self.car_controle, args=(public,False,), daemon=True).start()
 
     def main(self):
-        self.bp_next.when_pressed = bouton_next
-        self.bp_entre.when_pressed = bouton_entre
+        self.bp_next.when_pressed = self.bouton_next
+        self.bp_entre.when_pressed = self.bouton_entre
 
         threading.Thread(target=self.i2c_loop, daemon=True).start()
         threading.Thread(target=self.i2c_received, daemon=True).start()
         threading.Thread(target=self.car_controle, args=(private,True,), daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
-        
+        self._initialize_camera()
+        threading.Thread(target=self.camera_update_data, daemon=True).start()
+        threading.Thread(target=self._start_video_stream, daemon=True).start()
+
         while True:
             self.Idle()
 

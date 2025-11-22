@@ -1,6 +1,28 @@
 import zmq
+import base64
+from io import BytesIO
+from PIL import Image
 import time
+import numpy as np
 # on envoie les données au serveur
+PI_IP = "192.168.1.10"   # mets la bonne IP
+
+context = zmq.Context()
+socket = context.socket(zmq.PULL)
+socket.connect(f"tcp://{PI_IP}:6001")
+def get_camera_frame():
+    socket.send_json({"cmd": "cam"})
+    reply = socket.recv_json()
+
+    if reply["cam"] is None:
+        print("Image not ready")
+        return None
+
+    jpg_bytes = base64.b64decode(reply["cam"])   # <-- aligné ici
+    img = Image.open(BytesIO(jpg_bytes))
+    return img
+
+"""
 context = zmq.Context()
 socket = context.socket(zmq.REQ)
 socket.connect("tcp://127.0.0.1:5557")
@@ -49,10 +71,16 @@ def startPlotter(self, autorange=False):
             if plt.waitforbuttonpress(timeout=0.02):
                 os._exit(0)
 
-
+"""
+import cv2
 if __name__ == "__main__":
     while(True):
-        recoit_donnee()
-        time.sleep(0.1)  # Wait for the slave to process the data+ù
+        jpg = socket.recv()
+        img_np = np.frombuffer(jpg, dtype=np.uint8)
+        frame = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
+
+        cv2.imshow("Pi Camera Stream", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
 
         # Request data from the slave
