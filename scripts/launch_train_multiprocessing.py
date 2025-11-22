@@ -9,7 +9,6 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
 simu_path = __file__.rsplit('/', 2)[0] + '/src/Simulateur'
-print(f"{simu_path = }")
 if simu_path not in sys.path:
     sys.path.insert(0, simu_path)
 
@@ -68,8 +67,8 @@ if __name__ == "__main__":
 
 
     save_path = __file__.rsplit("/", 1)[0] + "/checkpoints/" + ExtractorClass.__name__ + "/"
-    if not os.path.exists(save_path):
-        os.mkdir(save_path)
+    os.makedirs(save_path, exist_ok=True)
+
 
     print(save_path)
     print(os.listdir(save_path))
