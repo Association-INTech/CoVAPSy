@@ -8,12 +8,14 @@ import torch.nn as nn
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
-simu_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../src/Simulateur'))
+simu_path = __file__.rsplit('/', 2)[0] + '/src/Simulateur'
+print(f"{simu_path = }")
 if simu_path not in sys.path:
     sys.path.insert(0, simu_path)
 
 from config import *
 from TemporalResNetExtractor import TemporalResNetExtractor
+from onnx_utils import *
 
 from WebotsSimulationGymEnvironment import WebotsSimulationGymEnvironment
 if B_DEBUG: from DynamicActionPlotCallback import DynamicActionPlotDistributionCallback
