@@ -116,7 +116,7 @@ class Serveur():
             4: {
                 "name" : "Remote control",
                 "type" : "function",
-                "path" : lambda: switch_remote_control(),
+                "path" : lambda: self.switch_remote_control(),
                 "info" : ""
             },
             5: {
@@ -145,7 +145,7 @@ class Serveur():
         draw = ImageDraw.Draw(im)
         font = ImageFont.load_default()
 
-        for num, i in enumerate(range(max(selected - self.scroll_offset, 0), min(len(programme), selected + scroll_offset))):
+        for num, i in enumerate(range(max(selected - self.scroll_offset, 0), min(len(programme), selected + self.scroll_offset))):
             y = num * TEXT_HEIGHT
 
             if i == selected:
@@ -168,7 +168,7 @@ class Serveur():
         draw.text((3, 0), text, fill="white", font=font)
         return im
 
-    def display_combined_im(text):
+    def display_combined_im(self,text):
         im = Image.new("1", (128, 64), "black")
         draw = ImageDraw.Draw(im)
         font = ImageFont.load_default()
@@ -177,7 +177,7 @@ class Serveur():
         wrapped_text = textwrap.fill(text, width=20)  # Adjust width as needed
         draw.text((3, 0), wrapped_text, fill="white", font=font)
         
-        voltage_im = make_voltage_im()
+        voltage_im = self.make_voltage_im()
         im.paste(voltage_im, (0, 64 - TEXT_HEIGHT))
         
         with canvas(device) as draw:
@@ -197,7 +197,7 @@ class Serveur():
             else : 
                 text = programme[self.Screen]["name"] + "\n" + process_output
 
-        display_combined_im(text)
+        self.display_combined_im(text)
 
     def bouton_next(self):
         self.Screen+=1
@@ -208,7 +208,7 @@ class Serveur():
         if num!=None:
             self.Screen = num
         self.State=self.Screen
-        start_process(self.Screen)
+        self.start_process(self.Screen)
 
     #---------------------------------------------------------------------------------------------------
     # initialisation
@@ -305,7 +305,7 @@ class Serveur():
                 socket.send_json({"Error" : "not understand"})
 
     def lidar_update_data(self):
-        _initialize_lidar()
+        self._initialize_lidar()
         while True:
             try :
                 self.rDistance = self.lidar.rDistance
@@ -356,15 +356,15 @@ class Serveur():
                 preexec_fn=os.setsid
             )
 
-            threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
+            threading.Thread(target=self.stream_process_output, args=(process,), daemon=True).start()
         elif self.programme_actuel["type"] == "python":
-            process = subprocess.Popen(["uv","run",programme_actuel["path"]],
+            process = subprocess.Popen(["uv","run",self.programme_actuel["path"]],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid
             )
 
-            threading.Thread(target=stream_process_output, args=(process,), daemon=True).start()
+            threading.Thread(target=self.stream_process_output, args=(process,), daemon=True).start()
         elif self.programme_actuel["type"] == "function":
             self.programme_actuel["path"]()
 
@@ -382,7 +382,7 @@ class Serveur():
             programme[self.last_programme]["info"] = ""
         else:
             self.remote_control = True
-        threading.Thread(target=car_controle, args=(public,False,), daemon=True).start()
+        threading.Thread(target=self.car_controle, args=(public,False,), daemon=True).start()
 
     def main(self):
         self.bp_next.when_pressed = bouton_next
@@ -395,7 +395,7 @@ class Serveur():
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
         
         while True:
-            Idle()
+            self.Idle()
 
 #---------------------------------------------------------------------------------------------------
 # main
