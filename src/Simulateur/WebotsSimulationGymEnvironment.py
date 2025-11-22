@@ -9,7 +9,6 @@ from config import *
 def log(s: str):
     if B_DEBUG:
         print(s, file=open("/tmp/autotech/logs", "a"))
-
 class WebotsSimulationGymEnvironment(gym.Env):
     """
     One environment for each vehicle
@@ -92,3 +91,5 @@ class WebotsSimulationGymEnvironment(gym.Env):
         # if self.simulation_rank == 0:
         #     print(f"{(obs[0] == 0).mean():.3f} {(obs[1] == 0).mean():.3f}")
         return obs, reward, done, truncated, info
+
+

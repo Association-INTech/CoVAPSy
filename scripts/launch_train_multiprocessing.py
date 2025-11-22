@@ -33,11 +33,11 @@ if __name__ == "__main__":
     if B_DEBUG:
         print("Webots started", file=open("/tmp/autotech/logs", "w"))
 
-    def make_env(rank: int):
-        log(f"CAREFUL !!! created an SERVER env with {rank=}")
-        return WebotsSimulationGymEnvironment(rank)
+    def make_env(simulation_rank: int, vehicle_rank: int):
+        log(f"CAREFUL !!! created an SERVER env with {simulation_rank}_{vehicle_rank}")
+        return WebotsSimulationGymEnvironment(simulation_rank, vehicle_rank)
 
-    envs = SubprocVecEnv([lambda rank=rank : make_env(rank) for rank in range(n_simulations)])
+    envs = SubprocVecEnv([lambda simulation_rank=simulation_rank, vehicle_rank=vehicle_rank : make_env(simulation_rank, vehicle_rank) for vehicle_rank in range(n_vehicles) for simulation_rank in range(n_simulations)])
 
     ExtractorClass = TemporalResNetExtractor
 
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         test_onnx(model)
 
         if B_DEBUG:
-            model.learn(total_timesteps=500_000, callback=DynamicActionPlotDistributionCallback())
+           model.learn(total_timesteps=500_000, callback=DynamicActionPlotDistributionCallback())
         else:
             model.learn(total_timesteps=500_000)
 
