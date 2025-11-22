@@ -10,3 +10,4 @@ Debug_Wayfinding
 .venv
 *.onnx
 checkpoints
+*.wbproj
