@@ -43,6 +43,8 @@ buzzer = Buzzer("GPIO26")
 TEXT_HEIGHT = 11
 TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 
+#sudo apt-get install libcap-dev pour lancer picamera2
+
 # on recoit les inoformations
 """
 private = context.socket(zmq.SUB)
@@ -155,7 +157,7 @@ class Serveur():
         with canvas(device) as display:
             display.bitmap((0, 0), im, fill="white")
 
-    def make_voltage_im(slef):
+    def make_voltage_im(self):
         received = [self.voltage_lipo , self.voltage_nimh]  # Adjust length as needed
         # filter out values below 6V and round to 2 decimal places
         received = [round(elem, 2) if elem > 6 else 0.0 for elem in received]
@@ -185,7 +187,7 @@ class Serveur():
     def Idle(self): #Enable chossing between states            
         if self.Screen==0 and check_ssh_connections():
             led1.on()
-            slef.Screen=1
+            self.Screen=1
         if not check_ssh_connections():
             led1.off()
         

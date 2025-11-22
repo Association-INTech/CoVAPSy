@@ -156,6 +156,8 @@ rpi = [
     { name = "gpiozero" },
     { name = "luma-core" },
     { name = "luma-oled" },
+    { name = "matplotlib" },
+    { name = "netifaces" },
     { name = "onnxruntime" },
     { name = "pyps4controller" },
     { name = "rpi-gpio" },
@@ -182,11 +184,13 @@ requires-dist = [
     { name = "gpiozero", marker = "extra == 'rpi'", specifier = ">=1.6.0" },
     { name = "luma-core", marker = "extra == 'rpi'", specifier = ">=2.3.0" },
     { name = "luma-oled", marker = "extra == 'rpi'", specifier = ">=3.8.0" },
+    { name = "matplotlib", marker = "extra == 'rpi'", specifier = ">=3.10.5" },
     { name = "matplotlib", marker = "extra == 'simu'", specifier = ">=3.4.0" },
     { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.4.0" },
     { name = "mkdocs-git-authors-plugin", marker = "extra == 'docs'", specifier = ">=0.6.0" },
     { name = "mkdocs-git-revision-date-localized-plugin", marker = "extra == 'docs'", specifier = ">=1.1.0" },
     { name = "mkdocs-mermaid2-plugin", marker = "extra == 'docs'", specifier = ">=0.6.0" },
+    { name = "netifaces", marker = "extra == 'rpi'", specifier = ">=0.11.0" },
     { name = "numpy", marker = "extra == 'simu'", specifier = ">=1.21.0" },
     { name = "onnx", marker = "extra == 'simu'", specifier = ">=1.8.0" },
     { name = "onnxruntime", marker = "extra == 'rpi'", specifier = ">=1.8.0" },
@@ -1297,6 +1301,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/e0/47/dd32fa426cc721143
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/e3/7d92a15f894aa0c9c4b49b8ee9ac9850d6e63b03c9c32c0367a13ae62209/mpmath-1.3.0-py3-none-any.whl", hash = "sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c", size = 536198, upload-time = "2023-03-07T16:47:09.197Z" },
 ]
+
+[[package]]
+name = "netifaces"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/91/86a6eac449ddfae239e93ffc1918cf33fd9bab35c04d1e963b311e347a73/netifaces-0.11.0.tar.gz", hash = "sha256:043a79146eb2907edf439899f262b3dfe41717d34124298ed281139a8b93ca32", size = 30106, upload-time = "2021-05-31T08:33:02.506Z" }
 
 [[package]]
 name = "networkx"

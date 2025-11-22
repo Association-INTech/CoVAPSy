@@ -57,4 +57,6 @@ rpi = [
     # PS4 controller support
     "pyPS4Controller>=1.2.0",
     "zmq>=0.0.0",
+    "netifaces>=0.11.0",
+    "matplotlib>=3.10.5",
 ]
