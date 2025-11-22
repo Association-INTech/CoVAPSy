@@ -14,6 +14,7 @@ if simu_path not in sys.path:
 
 from config import *
 from TemporalResNetExtractor import TemporalResNetExtractor
+from CNN1DResNetExtractor import CNN1DResNetExtractor
 from onnx_utils import *
 
 from WebotsSimulationGymEnvironment import WebotsSimulationGymEnvironment
@@ -39,7 +40,7 @@ if __name__ == "__main__":
 
     envs = SubprocVecEnv([lambda simulation_rank=simulation_rank, vehicle_rank=vehicle_rank : make_env(simulation_rank, vehicle_rank) for vehicle_rank in range(n_vehicles) for simulation_rank in range(n_simulations)])
 
-    ExtractorClass = TemporalResNetExtractor
+    ExtractorClass = CNN1DResNetExtractor
 
     policy_kwargs = dict(
         features_extractor_class=ExtractorClass,
@@ -127,6 +128,8 @@ if __name__ == "__main__":
            model.learn(total_timesteps=500_000, callback=DynamicActionPlotDistributionCallback())
         else:
             model.learn(total_timesteps=500_000)
+
+        print("iteration over")
 
         model.save(save_path + str(i))
 

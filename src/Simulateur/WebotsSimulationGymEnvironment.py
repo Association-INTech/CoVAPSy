@@ -36,17 +36,18 @@ class WebotsSimulationGymEnvironment(gym.Env):
 
         os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe")
         os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe")
+        os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}tosupervisor.pipe")
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
         os.system(f"""
             webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % n_map}.wbt --mode=fast --minimize --no-rendering --batch --stdout &
             echo $! {simulation_rank}_{vehicle_rank} >>/tmp/autotech/simulationranks
         """)
-        log(f"SERVER{simulation_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}toserver.pipe")
-        self.fifo_r = open(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb")
         log(f"SERVER{simulation_rank}_{vehicle_rank} : serverto{simulation_rank}_{vehicle_rank}.pipe")
         self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe", "wb")
-        log(f"SERVER{simulation_rank}_{vehicle_rank} : fifo opened :D and init done")
+        log(f"SERVER{simulation_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}toserver.pipe")
+        self.fifo_r = open(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb")
+        
         log("-------------------------------------------------------------------")
 
     def reset(self, seed=0):
@@ -56,6 +57,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
         # this is true for lidar_horizontal_resolution = camera_horizontal_resolution
         self.context = obs = np.zeros([2, context_size, lidar_horizontal_resolution], dtype=np.float32)
         info = {}
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : finished reset")
         return obs, info
 
     def step(self, action):
@@ -64,6 +66,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
         self.fifo_w.flush()
 
         # communication with the supervisor
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : trying to read the fifo_r")
         cur_state   = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize * (n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution)), dtype=np.float32)
         log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {cur_state=}")
         reward      = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32)[0] # scalar
@@ -79,17 +82,13 @@ class WebotsSimulationGymEnvironment(gym.Env):
         lidar_obs = cur_state[:lidar_horizontal_resolution]
         camera_obs = cur_state[lidar_horizontal_resolution:]
 
-        # apply dropout to the camera
-        # p = 0.5
-        # camera_obs *= np.random.binomial(1, 1-p, camera_obs.shape) # random values in {0, 1}
-
         self.context = obs = np.concatenate([
             self.context[:, 1:],
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
-        # check if the context is correct
-        # if self.simulation_rank == 0:
-        #     print(f"{(obs[0] == 0).mean():.3f} {(obs[1] == 0).mean():.3f}")
+
+        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : step over")
+
         return obs, reward, done, truncated, info
 
 

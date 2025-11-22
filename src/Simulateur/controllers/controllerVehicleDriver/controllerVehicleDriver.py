@@ -1,8 +1,22 @@
 import numpy as np
+import psutil
 import time
+import os
+import re 
+import sys
 
+# add src/Simulateur to sys.path
+path = __file__.rsplit('/', 3)[0]
+sys.path.insert(0, path)
+
+from config import *
 from vehicle import Driver
 
+
+
+def log(s: str):
+    if True:
+        print(s, file=open("/tmp/autotech/logs", "a"))
 
 class VehicleDriver(Driver):
     """
@@ -16,8 +30,10 @@ class VehicleDriver(Driver):
         basicTimeStep = int(self.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
 
-        self.i = int(self.getName().split("_")[-1])
+        self.v_min = 1 
+        self.v_max = 9 
 
+        self.i = int(self.getName().split("_")[-1])
         # Lidar
         self.lidar = self.getDevice("Hokuyo")
         self.lidar.enable(self.sensorTime)
@@ -32,14 +48,28 @@ class VehicleDriver(Driver):
         self.touch_sensor.enable(self.sensorTime)
 
         # Communication
-        self.receiver = self.getDevice("TT02_receiver")
-        self.receiver.enable(self.sensorTime)
-        self.receiver.setChannel(2 * self.i) # corwe ponds the the supervisor's emitter channel
-        self.emitter = self.getDevice("TT02_emitter")
-        self.emitter.setChannel(2 * self.i + 1) # corresponds the the supervisor's receiver channel
 
-        # Last data received from the supervisor (steering angle)
-        self.last_data = np.zeros(2, dtype=np.float32)
+        proc = psutil.Process(os.getpid()) #current
+        parent = proc.parent() #parent
+        grandparent = parent.parent() if parent else None #grandparent
+        pppid = str(grandparent.pid)
+
+
+        self.simulation_rank = int(
+            re.search(
+                pppid + r" (\d+)",
+                open("/tmp/autotech/simulationranks", "r").read(),
+                re.MULTILINE
+            ).group(1)
+        )
+
+        log(f"CLIENT{self.simulation_rank}/{self.i} : serverto{self.simulation_rank}_{self.i}.pipe")
+        self.fifo_r = open(f"/tmp/autotech/serverto{self.simulation_rank}_{self.i}.pipe", "rb")
+        log(f"CLIENT{self.simulation_rank}/{self.i} : {self.simulation_rank}_{self.i}tosupervisor.pipe")
+        self.fifo_w = open(f"/tmp/autotech/{self.simulation_rank}_{self.i}tosupervisor.pipe", "wb")
+
+
+
 
     #Vérification de l"état de la voiture
     def observe(self):
@@ -78,14 +108,17 @@ class VehicleDriver(Driver):
     def step(self):
         # sends observation to the supervisor
 
-        self.emitter.send(self.observe().tobytes())
+        # First to be executed
+        self.fifo_w.write(self.observe().tobytes())
+        
+        log(f"CLIENT{self.simulation_rank}/{self.i} : trying to read from fifo")    
+        action = np.frombuffer(self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64)
+        log(f"CLIENT{self.simulation_rank}/{self.i} : received {action=}")
 
-        if self.receiver.getQueueLength() > 0:
-            while self.receiver.getQueueLength() > 1:
-                self.receiver.nextPacket()
-            self.last_data = np.frombuffer(self.receiver.getBytes(), dtype=np.float32)
+        # Simulation step
 
-        action_steering, action_speed = self.last_data
+        action_steering = np.linspace(-.4, .4, n_actions_steering, dtype=np.float32)[action[0], None]
+        action_speed = np.linspace(self.v_min, self.v_max, n_actions_speed, dtype=np.float32)[action[1], None]
 
         cur_angle = self.getSteeringAngle()
         dt = self.getBasicTimeStep()
