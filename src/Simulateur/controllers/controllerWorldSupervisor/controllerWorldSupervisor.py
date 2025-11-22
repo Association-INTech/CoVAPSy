@@ -2,7 +2,6 @@ import re
 from typing import *
 import numpy as np
 import gymnasium as gym
-import time 
 
 from checkpointmanager import CheckpointManager, checkpoints
 
@@ -220,17 +219,7 @@ def main():
         #Prédiction pour séléctionner une action à partir de l"observation
         for e in envs:
             log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : trying to read from fifo")
-
-            timeout = 10  # seconds
-            start_time = time.time()
-
-            while time.time() - start_time < timeout:
-                raw = e.fifo_r.read(np.dtype(np.int64).itemsize * 2)
-                if len(raw) == np.dtype(np.int64).itemsize * 2:
-                    # We got the full action data
-                    action = np.frombuffer(raw, dtype=np.int64)
-                    break
-                
+            action = np.frombuffer(e.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64)
             log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : received {action=}")
 
             obs, reward, done, truncated, info = e.step(action)
