@@ -2,172 +2,169 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Pi Complet</title>
+    <title>Contrôle Robot Pi</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f0f2f5; }
-        h1, h2 { color: #333; border-bottom: 2px solid #ccc; padding-bottom: 5px; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #1a1a1a; color: white; }
 
-        /* Conteneur principal pour organiser en colonnes */
-        .container {
-            display: flex;
-            flex-wrap: wrap; /* Permet de passer à la ligne sur petits écrans */
-            gap: 20px;
-        }
+        .container { display: flex; gap: 20px; flex-wrap: wrap; }
+        .col-main { flex: 2; min-width: 600px; }
+        .col-side { flex: 1; min-width: 300px; }
 
-        /* Colonne de gauche (Vidéo) */
-        .video-col {
-            flex: 2; /* Prend 2/3 de la largeur */
-            min-width: 640px;
-        }
-
-        /* Colonne de droite (Données) */
-        .data-col {
-            flex: 1; /* Prend 1/3 de la largeur */
-            min-width: 300px;
-        }
-
-        /* Styles pour les boîtes de données */
-        .data-box {
-            background-color: #ffffff;
+        /* Boites */
+        .box {
+            background-color: #2d2d2d;
             padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 10px;
             margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .data-box h2 {
-            margin-top: 0;
-        }
-        .data-box div {
-            font-size: 20px;
-            margin-bottom: 12px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .data-box div strong {
-            font-size: 22px;
-            color: #0056b3;
-        }
+        h2 { border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0; color: #00d2ff; }
 
-        /* Style pour la vidéo */
-        #video-stream {
-            display: block;
-            width: 100%; /* S'adapte à la largeur de sa colonne */
-            height: auto;
-            border-radius: 8px;
-            background-color: #000;
-        }
+        /* Vidéo */
+        img#video-stream { width: 100%; border-radius: 5px; background: #000; }
 
-        #status { font-size: 14px; color: grey; margin-top: 10px; }
+        /* Boutons de contrôle */
+        .control-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        button {
+            padding: 15px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #444;
+            color: white;
+            transition: background 0.3s;
+        }
+        button:hover { background-color: #666; }
+        button.active { background-color: #00d2ff; color: #000; font-weight: bold; }
+        button.stop { background-color: #ff4444; grid-column: span 2; }
+
+        /* Données */
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; }
+        .val { font-weight: bold; color: #00ff88; }
+
+        /* Lidar Simple Visualisation */
+        #lidar-canvas { width: 100%; height: 200px; background: #000; border-radius: 5px; }
     </style>
 </head>
 <body>
 
-<h1>Dashboard Raspberry Pi</h1>
+    <h1>Pilotage Robot Raspberry Pi</h1>
 
-<div class="container">
+    <div class="container">
+        <div class="col-main">
+            <div class="box">
+                <h2>Flux Caméra</h2>
+                <img id="video-stream" src="/video_feed" alt="Flux Vidéo non disponible">
+            </div>
 
-    <div class="video-col">
-        <div class="data-box">
-            <h2>Flux en direct</h2>
-            <img id="video-stream"
-                 src="http://[VOTRE_IP_RASPBERRY_PI]:5000/video_feed"
-                 alt="Flux vidéo du Raspberry Pi">
+            <div class="box">
+                <h2>Scanner Lidar</h2>
+                <canvas id="lidar-canvas" width="600" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="col-side">
+
+            <div class="box">
+                <h2>Programmes</h2>
+                <div class="control-grid">
+                    <button onclick="envoie_num(1)">Auto Driving</button>
+                    <button onclick="envoie_num(2)">PS4 Controller</button>
+                    <button onclick="envoie_num(3)">Connect BT</button>
+                    <button onclick="envoie_num(4)">Remote Control</button>
+                    <button onclick="envoie_num(0)" class="stop">STOP / Idle</button>
+                </div>
+                <p style="text-align:center; margin-top:10px;">Actif : <span id="prog-actif" style="color:#00d2ff">--</span></p>
+            </div>
+
+            <div class="box">
+                <h2>Télémétrie</h2>
+                <div class="data-row">LiPo : <span id="val-lipo" class="val">--</span> V</div>
+                <div class="data-row">NiMH : <span id="val-nimh" class="val">--</span> V</div>
+                <div class="data-row">Vitesse : <span id="val-speed" class="val">--</span></div>
+            </div>
+
+            <div id="status" style="color: gray; font-size: 12px;">Connexion...</div>
         </div>
     </div>
-
-    <div class="data-col">
-
-        <div class="data-box">
-            <h2>Analyse Caméra</h2>
-            <div>Total Vert : <strong id="cam-green">--</strong></div>
-            <div>Total Rouge : <strong id="cam-red">--</strong></div>
-            <div>Somme Matrice : <strong id="cam-sum">--</strong></div>
-        </div>
-
-        <div class="data-box">
-            <h2>Données Arduino (I2C)</h2>
-            <div>Capteur A0 : <strong id="arduino-a0">--</strong></div>
-            <div>Compteur : <strong id="arduino-count">--</strong></div>
-        </div>
-
-        <div id="status">En attente de données...</div>
-    </div>
-
-</div>
 
 <script>
-    // ###############################################################
-    // ##  IMPORTANT : REMPLACEZ PAR L'ADRESSE IP DE VOTRE PI       ##
-    // ###############################################################
-    const RASPBERRY_PI_IP = "192.168.1.10";
-    // ###############################################################
+    // Pas besoin de mettre l'IP en dur si on sert le fichier depuis Flask (chemin relatif)
+    // Si vous ouvrez le fichier HTML en local (file://), remettez http://IP_DU_PI:5000
+    const API_BASE = "";
 
-    // --- SECTION SCRIPT (MISE À JOUR) ---
-
-    const apiUrl = `http://${RASPBERRY_PI_IP}:5000/data`;
-
-    // Sélection des éléments d'analyse caméra
-    const camGreenEl = document.getElementById('cam-green');
-    const camRedEl = document.getElementById('cam-red');
-    const camSumEl = document.getElementById('cam-sum');
-
-    // Sélection des nouveaux éléments Arduino
-    const arduinoA0El = document.getElementById('arduino-a0');
-    const arduinoCountEl = document.getElementById('arduino-count');
-
-    const statusElement = document.getElementById('status');
-    const videoElement = document.getElementById('video-stream');
-
-    // Configure la source vidéo (une seule fois)
-    videoElement.src = `http://${RASPBERRY_PI_IP}:5000/video_feed`;
-
-    async function fetchData() {
-        statusElement.textContent = "Mise à jour...";
+    // --- Fonction demandée pour changer de programme ---
+    async function envoie_num(num) {
         try {
-            const response = await fetch(apiUrl);
-            if (!response.ok) {
-                throw new Error(`Erreur HTTP: ${response.status}`);
-            }
+            const response = await fetch(`${API_BASE}/set_program/${num}`, { method: 'POST' });
+            const result = await response.json();
+            console.log("Changement programme:", result);
 
-            // Récupère l'objet JSON complet
-            const data = await response.json();
-
-            // --- Mise à jour des données Caméra ---
-            if (data.camera && !data.camera.error) {
-                camGreenEl.textContent = data.camera.total_green;
-                camRedEl.textContent = data.camera.total_red;
-                camSumEl.textContent = data.camera.matrix_sum;
-            } else {
-                camGreenEl.textContent = "Erreur";
-                camRedEl.textContent = "Erreur";
-                camSumEl.textContent = "Erreur";
-            }
-
-            // --- Mise à jour des données Arduino ---
-            if (data.arduino && data.arduino.capteur_A0 !== null) {
-                arduinoA0El.textContent = data.arduino.capteur_A0;
-                arduinoCountEl.textContent = data.arduino.compteur;
-            } else {
-                // Gère le cas où l'I2C échoue (retourne null)
-                arduinoA0El.textContent = "Erreur I2C";
-                arduinoCountEl.textContent = "Erreur I2C";
-            }
-
-            statusElement.textContent = `Dernière mise à jour : ${new Date().toLocaleTimeString()}`;
-
+            // Mise à jour visuelle rapide (sera confirmée par le fetchData)
+            document.getElementById('status').textContent = `Commande programme ${num} envoyée...`;
         } catch (error) {
-            console.error("Impossible de récupérer les données:", error);
-            statusElement.textContent = `Erreur de connexion au Pi (${error.message})`;
+            console.error("Erreur commande:", error);
+            alert("Impossible de changer le programme");
         }
     }
 
-    // Appelle la fonction une première fois au chargement
-    fetchData();
+    // --- Récupération des données ---
+    async function fetchData() {
+        try {
+            const response = await fetch(`${API_BASE}/data`);
+            if (!response.ok) throw new Error("Erreur réseau");
 
-    // Met à jour les données toutes les 5 secondes (5000 ms)
-    // (Vous pouvez réduire à 2000ms si vous voulez plus de réactivité)
-    setInterval(fetchData, 5000);
+            const data = await response.json();
+
+            // Mise à jour Texte
+            document.getElementById('val-lipo').textContent = data.batterie.lipo.toFixed(2);
+            document.getElementById('val-nimh').textContent = data.batterie.nimh.toFixed(2);
+            document.getElementById('val-speed').textContent = data.robot.vitesse.toFixed(2);
+            document.getElementById('prog-actif').textContent = data.robot.programme;
+            document.getElementById('status').textContent = "Connecté - " + new Date().toLocaleTimeString();
+
+            // Mise à jour Canvas Lidar (Visualisation simple des distances)
+            if (data.robot.lidar) {
+                drawLidar(data.robot.lidar);
+            }
+
+        } catch (error) {
+            console.error(error);
+            document.getElementById('status').textContent = "Déconnecté";
+        }
+    }
+
+    // --- Dessin simple du Lidar ---
+    function drawLidar(distances) {
+        const canvas = document.getElementById('lidar-canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Effacer
+        ctx.fillStyle = 'black';
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeStyle = '#00ff00';
+        ctx.beginPath();
+
+        // On trace une ligne représentant les distances
+        const step = width / distances.length;
+
+        distances.forEach((dist, i) => {
+            // Normalisation simple (0-2000mm vers 0-height)
+            let h = (dist / 2000) * height;
+            if (h > height) h = height;
+
+            ctx.moveTo(i * step, height);
+            ctx.lineTo(i * step, height - h);
+        });
+        ctx.stroke();
+    }
+
+    // Boucle de mise à jour (toutes les 500ms)
+    setInterval(fetchData, 500);
+    fetchData();
 
 </script>
 </body>
