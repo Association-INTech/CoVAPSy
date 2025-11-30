@@ -1,3 +1,4 @@
+import cv2
 from picamera2 import Picamera2 # type: ignore
 from PIL import Image
 import numpy as np
@@ -6,6 +7,7 @@ import logging as log
 import threading
 import shutil
 import scipy as sp
+import time
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
@@ -20,41 +22,55 @@ COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
 
 class Camera:
-    def __init__(self):
+    def __init__(self, url="tcp://192.168.1.10:6002"):
         os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
         self.debug_counter = 0  # Counter for debug images
         self.image_no = 0
         self.image_path = None
-        self.picam2 = Picamera2()
-        config = self.picam2.create_preview_configuration(main={"size": (1920, 1080)})
-        self.picam2.configure(config)
-        self.picam2.start()
+
+        self.url = url.replace("tcp://", "")
+        self.url = f"tcp://{self.url}"
+        self.cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
+
+        if not self.cap.isOpened():
+            raise RuntimeError(f"Impossible d'ouvrir le flux vidéo : {self.url}")
+
+        self.last_frame = None
         self.flag_stop = False
         self.thread = None  # Stocke le thread pour contrôle ultérieur
-        picamera2_logger = log.getLogger("picamera2")
-        picamera2_logger.setLevel(log.INFO)
+        camlogger = log.getLogger("picamera2")
+        camlogger.setLevel(log.INFO)
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
         os.makedirs(DEBUG_DIR, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
         os.makedirs(DEBUG_DIR_wayfinding, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
     def capture_image(self):
-        
+        ok, frame = self.cap.read()
+
+        if not ok:
+            time.sleep(0.01)
+            return self.last_frame   # fallback si frame ratée
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        self.last_frame = frame
+
+        # compatibilité avec ton ancien système
         self.image_path = os.path.join(SAVE_DIR, f"frame_{self.image_no:02d}.jpg")
-        frame = self.picam2.capture_array()
-        image = Image.fromarray(frame).convert("RGB")
-        image.save(self.image_path)
+        Image.fromarray(frame).save(self.image_path)
+
         self.image_no += 1
-        return image
+        if self.image_no >= N_IMAGES:
+            self.image_no = 0
+
+        return Image.fromarray(frame)
     
     def capture_images_continus(self):
-        while True:
+        while not self.flag_stop:
             for i in range(N_IMAGES):
                 self.capture_image()
                 if self.flag_stop:
                     break
-            if self.flag_stop:
-                break
             self.image_no = 0
 
     def start(self):
@@ -69,8 +85,8 @@ class Camera:
         self.flag_stop = True
         if self.thread is not None:
             self.thread.join()  # Attendre la fin du thread avant de continuer
-        self.picam2.stop()
-        self.picam2.close()
+        if self.cap:
+            self.cap.release()
         shutil.rmtree(SAVE_DIR)  # Supprime le répertoire des images capturées
         
     def get_last_image(self):

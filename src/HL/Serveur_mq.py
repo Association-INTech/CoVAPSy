@@ -23,6 +23,7 @@ import subprocess
 from Lidar import Lidar
 from Camera import Camera
 from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
+from camera_server import start_camera_stream, get_current_frame
 
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)
@@ -147,6 +148,7 @@ class Serveur():
         self.Screen = 0
         self.State = 0
         self.scroll_offset = 3
+        #self.camera = Camera()
 
         #-----------------------------------------------------------------------------------------------------
         # affichage de l'écrans
@@ -340,32 +342,47 @@ class Serveur():
                 print("pas lidar")
                 time.sleep(1)
 
-    def camera_update_data(self):
-        self._initialize_camera()
-        while True:
-            try :
-                self.camera_reverse = self.camera.is_running_in_reversed()
-                time.sleep(0.5)
-            except :
-                self._initialize_camera()
-                time.sleep(5)
 
     def _start_video_stream(self):
         """Start continuous JPEG compressed video streaming via ZMQ."""
-        context = zmq.Context()
-        socket = context.socket(zmq.PUSH)
-        socket.bind("tcp://0.0.0.0:6001")  # port dédié au flux vidéo
+        # context = zmq.Context()
+        # socket = context.socket(zmq.PUSH)
+        # socket.bind("tcp://0.0.0.0:6001")  # port dédié au flux vidéo
 
         from io import BytesIO
-
+        cmd = [
+            "rpicam-vid",
+            "-t", "0",
+            "--width", "640",
+            "--height", "480",
+            "--framerate", "30",
+            "--codec", "h264",
+            "--inline",
+            "--libav-format", "mpegts",
+            "-o", "tcp://0.0.0.0:6002?listen"
+        ]
+        cam = None
         while True:
             try:
-                frame = self.camera.capture_image()  # PIL image
-                buffer = BytesIO()
-                frame.save(buffer, format="JPEG", quality=70)
-                jpg_bytes = buffer.getvalue()
-                socket.send(jpg_bytes)   # direct bytes (pas de JSON)
-                time.sleep(0.03)  # ~30 fps max, selon Pi
+                if cam is None or cam.poll() is not None:
+                    print("[Video] Starting rpicam-vid service...")
+                    cam = subprocess.Popen(
+                        cmd,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT,
+                        preexec_fn=os.setsid
+                    )
+
+                # log output
+                for line in cam.stdout:
+                    print("[rpicam-vid]", line.decode().strip())
+                time.sleep(1)
+                # frame = self.camera.capture_image()  # PIL image
+                # buffer = BytesIO()
+                # frame.save(buffer, format="JPEG", quality=70)
+                # jpg_bytes = buffer.getvalue()
+                # socket.send(jpg_bytes)   # direct bytes (pas de JSON)
+                # time.sleep(0.03)  # ~30 fps max, selon Pi
             except Exception as e:
                 log.error(f"Video stream error: {e}")
                 time.sleep(1)
@@ -448,10 +465,7 @@ class Serveur():
         threading.Thread(target=self.car_controle, args=(private,True,), daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
-        self._initialize_camera()
-        threading.Thread(target=self.camera_update_data, daemon=True).start()
-        threading.Thread(target=self._start_video_stream, daemon=True).start()
-
+        start_camera_stream(port=8000)
         while True:
             self.Idle()
 

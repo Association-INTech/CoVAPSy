@@ -73,14 +73,19 @@ def startPlotter(self, autorange=False):
 
 """
 import cv2
+
+cap = cv2.VideoCapture("tcp://192.168.1.10:6002")
+
+
 if __name__ == "__main__":
     while(True):
-        jpg = socket.recv()
-        img_np = np.frombuffer(jpg, dtype=np.uint8)
-        frame = cv2.imdecode(img_np, cv2.IMREAD_COLOR)
+        ret, frame = cap.read()
+        if not ret:
+            print("No frame…")
+            continue
 
-        cv2.imshow("Pi Camera Stream", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        cv2.imshow("RPI H264 60fps", frame)
+        if cv2.waitKey(1) == 27:
             break
 
         # Request data from the slave
