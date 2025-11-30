@@ -21,9 +21,9 @@ import socket
 from get_ip import get_ip, check_ssh_connections
 import subprocess
 from Lidar import Lidar
-from Camera import Camera
+from Camera import Camera, start_camera_stream
 from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
-from camera_server import start_camera_stream, get_current_frame
+
 
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)
@@ -148,7 +148,7 @@ class Serveur():
         self.Screen = 0
         self.State = 0
         self.scroll_offset = 3
-        #self.camera = Camera()
+        self.camera = Camera()
 
         #-----------------------------------------------------------------------------------------------------
         # affichage de l'écrans
@@ -429,7 +429,7 @@ class Serveur():
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
         threading.Thread(target=self._start_video_stream, daemon=True).start()
-        
+
         while True:
             self.Idle()
 

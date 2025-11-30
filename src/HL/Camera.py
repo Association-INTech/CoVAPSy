@@ -8,7 +8,7 @@ import threading
 import shutil
 import scipy as sp
 import time
-
+from camera_server import get_current_frame, start_camera_stream
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
 DEBUG_DIR = "Debug"  # Directory for debug images
@@ -22,36 +22,36 @@ COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
 
 class Camera:
-    def __init__(self, url="tcp://192.168.1.10:6002"):
+    def __init__(self):
         os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
         self.debug_counter = 0  # Counter for debug images
         self.image_no = 0
         self.image_path = None
 
-        self.url = url.replace("tcp://", "")
-        self.url = f"tcp://{self.url}"
-        self.cap = cv2.VideoCapture(self.url, cv2.CAP_FFMPEG)
-
-        if not self.cap.isOpened():
-            raise RuntimeError(f"Impossible d'ouvrir le flux vidéo : {self.url}")
-
         self.last_frame = None
         self.flag_stop = False
         self.thread = None  # Stocke le thread pour contrôle ultérieur
+        
         camlogger = log.getLogger("picamera2")
         camlogger.setLevel(log.INFO)
+
         os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
         os.makedirs(DEBUG_DIR, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
         os.makedirs(DEBUG_DIR_wayfinding, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
+        
         self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
         
     def capture_image(self):
-        ok, frame = self.cap.read()
+        jpeg = get_current_frame()
 
-        if not ok:
+        if jpeg is None:
             time.sleep(0.01)
-            return self.last_frame   # fallback si frame ratée
-
+            return self.last_frame
+        
+        np_frame = cv2.imdecode(np.frombuffer(jpeg, dtype=np.uint8), cv2.IMREAD_COLOR)
+        if np_frame is None:
+            return self.last_frame
+        
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.last_frame = frame
 
@@ -90,11 +90,10 @@ class Camera:
         shutil.rmtree(SAVE_DIR)  # Supprime le répertoire des images capturées
         
     def get_last_image(self):
-        last_image_no= self.image_no - 1 if self.image_no > 0 else 99 # 
-        image_path = os.path.join(SAVE_DIR, f"frame_{last_image_no:02d}.jpg")
-        image= Image.open(image_path).convert("RGB")
-        image_np = np.array(image)
-        return image_np
+        last_no = self.image_no - 1 if self.image_no > 0 else 99
+        path = os.path.join(SAVE_DIR, f"frame_{last_no:02d}.jpg")
+        image = Image.open(path).convert("RGB")
+        return np.array(image)
     
     def camera_matrix(self, vector_size=128, image=None):
         """
@@ -226,6 +225,7 @@ class Camera:
 
 if __name__ == "__main__":
     log.basicConfig(level=log.DEBUG)
+    start_camera_stream()
     image_path = "src\HL\wrong_direction33.jpg"  # Replace with your image path
     camera = Camera()
     camera.start()
