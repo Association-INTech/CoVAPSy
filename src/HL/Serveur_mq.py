@@ -345,48 +345,11 @@ class Serveur():
 
     def _start_video_stream(self):
         """Start continuous JPEG compressed video streaming via ZMQ."""
-        # context = zmq.Context()
-        # socket = context.socket(zmq.PUSH)
-        # socket.bind("tcp://0.0.0.0:6001")  # port dédié au flux vidéo
-
-        from io import BytesIO
-        cmd = [
-            "rpicam-vid",
-            "-t", "0",
-            "--width", "640",
-            "--height", "480",
-            "--framerate", "30",
-            "--codec", "h264",
-            "--inline",
-            "--libav-format", "mpegts",
-            "-o", "tcp://0.0.0.0:6002?listen"
-        ]
-        cam = None
-        while True:
-            try:
-                if cam is None or cam.poll() is not None:
-                    print("[Video] Starting rpicam-vid service...")
-                    cam = subprocess.Popen(
-                        cmd,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT,
-                        preexec_fn=os.setsid
-                    )
-
-                # log output
-                for line in cam.stdout:
-                    print("[rpicam-vid]", line.decode().strip())
-                time.sleep(1)
-                # frame = self.camera.capture_image()  # PIL image
-                # buffer = BytesIO()
-                # frame.save(buffer, format="JPEG", quality=70)
-                # jpg_bytes = buffer.getvalue()
-                # socket.send(jpg_bytes)   # direct bytes (pas de JSON)
-                # time.sleep(0.03)  # ~30 fps max, selon Pi
-            except Exception as e:
-                log.error(f"Video stream error: {e}")
-                time.sleep(1)
-
+        try:
+            start_camera_stream(port=8000)
+        except:
+            print("Camera Down...")
+    
     #---------------------------------------------------------------------------------------------------
     # Processus
     #---------------------------------------------------------------------------------------------------
@@ -465,7 +428,8 @@ class Serveur():
         threading.Thread(target=self.car_controle, args=(private,True,), daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
-        start_camera_stream(port=8000)
+        threading.Thread(target=self._start_video_stream, daemon=True).start()
+        
         while True:
             self.Idle()
 

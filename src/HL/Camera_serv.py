@@ -77,26 +77,21 @@ class StreamServer(socketserver.ThreadingMixIn, server.HTTPServer):
 # Thread principal de capture + serveur HTTP
 # -------------------------------------------------------------------
 def start_camera_stream(port=8000, size=(640, 480)):
-    def run():
-        picam2 = Picamera2()
-        picam2.configure(picam2.create_video_configuration(
-            main={"size": size}
-        ))
+    picam2 = Picamera2()
+    picam2.configure(picam2.create_video_configuration(
+        main={"size": size}
+    ))
 
-        output = StreamOutput()
-        picam2.start_recording(JpegEncoder(), FileOutput(output))
+    output = StreamOutput()
+    picam2.start_recording(JpegEncoder(), FileOutput(output))
 
-        httpd = StreamServer(("", port), StreamHandler)
-        print(f"[INFO] Serveur MJPEG en ligne sur http://<IP>:{port}/stream.mjpg")
+    httpd = StreamServer(("", port), StreamHandler)
+    print(f"[INFO] Serveur MJPEG en ligne sur http://<IP>:{port}/stream.mjpg")
 
-        try:
-            httpd.serve_forever()
-        finally:
-            picam2.stop_recording()
-
-    t = threading.Thread(target=run, daemon=True)
-    t.start()
-    return t
+    try:
+        httpd.serve_forever()
+    finally:
+        picam2.stop_recording()
 
 
 # -------------------------------------------------------------------
