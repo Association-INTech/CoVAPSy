@@ -254,6 +254,7 @@ class Serveur():
     #---------------------------------------------------------------------------------------------------
     def i2c_loop(self):
         """Envoie vitesse/direction régulièrement au microcontroleur."""
+        print("lancement de l'i2c")
         while True:
             try :
                 
@@ -296,7 +297,6 @@ class Serveur():
             data, ip = socket.recvfrom(1024)
             self.vitesse_d, self.direction = struct.unpack("ff", data)
             self.last_cmd_time = time.time()
-            print(ip)
 
     def envoie_donnee(self, socket):
         """ on regarde si il s'agit de lappelle pour le control interne 

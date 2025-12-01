@@ -16,6 +16,5 @@ cd /home/intech/CoVAPSy
 # Pull the latest changes from the repository
 git pull 
 
-uv sync
 uv sync --extra rpi
 uv run /home/intech/CoVAPSy/src/HL/Serveur_mq.py
