@@ -60,4 +60,5 @@ rpi = [
     "netifaces>=0.11.0",
     "matplotlib>=3.10.5",
     "opencv-python>=4.12.0.88",
+    "scipy>=1.15.3",
 ]
