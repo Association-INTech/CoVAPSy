@@ -318,7 +318,7 @@ class Serveur():
             })
             elif info["cmd"] == "menu":
                 if info["menu"] in self.programme.key:
-                    start_process(self,info["menu"])
+                    start_process(self,info["menu"]) #lancement du menu reçue
                     socket.send_json({"status":"ok"})
             elif info["get"] == "menu":
                 socket.send_json(self.programme)
