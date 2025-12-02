@@ -307,14 +307,21 @@ class Serveur():
         from io import BytesIO
         while True:
             info = socket.recv_json()
-            if info["cmd"] == "info":
+            if info["get"] == "info":
                 socket.send_json({
                 "voltage_lipo": self.voltage_lipo,
                 "voltage_nimh": self.voltage_nimh,
                 "vitesse_reelle": self.vitesse_r,
+                "vitesse_demande": self.vitesse_d,
                 "direction" : self.direction,
                 "timestamp": time.time() - self.initial_time
             })
+            elif info["cmd"] == "menu":
+                if info["menu"] in self.programme.key:
+                    start_process(self,info["menu"])
+                    socket.send_json({"status":"ok"})
+            elif info["get"] == "menu":
+                socket.send_json(self.programme)
             else :
                 socket.send_json({"Error" : "not understand"})
 
@@ -410,7 +417,6 @@ class Serveur():
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
         
         while True:
-            print("THREAD COUNT:", len(threading.enumerate()))
             self.Idle()
 
 #---------------------------------------------------------------------------------------------------
