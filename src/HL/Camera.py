@@ -42,7 +42,7 @@ from Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
 
 
 class Camera:
-    def __init__(self, size=(640,480), port=8000):
+    def __init__(self, size=(1280, 720), port=8000):
         self.size = size
         self.port = port
 
@@ -63,16 +63,19 @@ class Camera:
     # Capture locale (sans MJPEG server)
     # ----------------------------------------------------------
     def _start_local_capture(self):
-        """Démarre la capture interne (sans streaming MJPEG)."""
         self.picam2 = Picamera2()
-        self.picam2.configure(self.picam2.create_video_configuration(
-            main={"size": self.size}
-        ))
+        config = self.picam2.create_video_configuration(
+            main={"size": (1280, 720)},     # plus large, moins zoomé
+            controls={"FrameRate": 30}       # FPS stable
+        )
 
+        self.picam2.configure(config)
         self.output = StreamOutput()
-        self.picam2.start_recording(JpegEncoder(), FileOutput(self.output))
 
-        # Thread pour mettre à jour last_frame
+        # Qualité JPEG custom
+        self.picam2.start_recording(JpegEncoder(q=10), FileOutput(self.output))
+
+        # thread lecture last_frame
         self.capture_thread = threading.Thread(
             target=self._update_last_frame_loop,
             daemon=True
