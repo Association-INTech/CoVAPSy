@@ -327,7 +327,6 @@ class Serveur():
         """Start continuous JPEG compressed video streaming via ZMQ."""
         try:
             self.camera.toggle_stream()
-            print("camera streaming lancé")
         except:
             print("Camera Down...")
     
@@ -355,6 +354,8 @@ class Serveur():
                 print(e)
 
         if (num_programme == self.last_programme):
+            if self.programme_actuel["type"] == "function": # les fonction on besoin d'êter rappelé pour pouvoir les arreter
+                self.programme_actuel["path"]()
             self.last_programme = 0 # pour pouvoir lancer le programme en rapuyant sur le bouton
             return # si on est sur le même programme on kill et c'est tout
         
@@ -398,7 +399,7 @@ class Serveur():
             self.programme[self.last_programme]["info"] = ""
         else:
             self.remote_control = True
-        threading.Thread(target=self.car_controle, args=(public,False,), daemon=True).start()
+            threading.Thread(target=self.car_controle, args=(public,False,), daemon=True).start()
 
     def main(self):
         self.bp_next.when_pressed = self.bouton_next
