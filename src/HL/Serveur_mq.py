@@ -100,6 +100,7 @@ class Serveur():
         self.process_output = ""
         self.last_programme = 0
         self.process = None
+        self.temp = None
         self.programme = {
             0: {
                 "name" : "Ssh to :\n" + self.ip,
@@ -284,14 +285,20 @@ class Serveur():
 
 
 
-    def car_controle(self,socket, is_private):
+    def car_controle(self,sock, is_private):
         """ on regarde si il s'agit de lappelle pour le control interne 
         (is_private) ou si on veux prendre le controle depuis le pc."""
+        sock.settimeout(0.1)
 
         while is_private or self.remote_control:
-            data, ip = socket.recvfrom(1024)
-            self.vitesse_d, self.direction = struct.unpack("ff", data)
-            self.last_cmd_time = time.time()
+            try:
+                data, ip = sock.recvfrom(1024)
+                self.vitesse_d, self.direction = struct.unpack("ff", data)
+                self.last_cmd_time = time.time()
+            except socket.timeout:
+                continue
+
+            
 
     def envoie_donnee(self, socket):
         """ on regarde si il s'agit de lappelle pour le control interne 
