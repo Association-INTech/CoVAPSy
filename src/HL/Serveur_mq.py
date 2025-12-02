@@ -340,14 +340,7 @@ class Serveur():
     #---------------------------------------------------------------------------------------------------
     # Processus
     #---------------------------------------------------------------------------------------------------
-    def stream_process_output(self, proc):
-        for line in proc.stdout:
-            self.process_output = line.decode().strip()
-        """
-        lines = proc.stdout.split("\n")
-        size = 3
-        chunks = [l[i * size : (i+1) * size] for l in lines for i in range(len(l) // size + 1)]
-        print(chunks)"""
+
         
     def start_process(self,num_programme):
 
@@ -356,7 +349,7 @@ class Serveur():
         
         if self.process is not None:
             try:
-                os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
+                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
             except Exception as e:
                 print(e)
 
@@ -380,15 +373,13 @@ class Serveur():
                 preexec_fn=os.setsid
             )
 
-            threading.Thread(target=self.stream_process_output, args=(self.process,), daemon=True).start()
+            
         elif self.programme_actuel["type"] == "python":
             self.process = subprocess.Popen(["uv","run",self.programme_actuel["path"]],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 preexec_fn=os.setsid
             )
-
-            threading.Thread(target=self.stream_process_output, args=(self.process,), daemon=True).start()
         elif self.programme_actuel["type"] == "function":
             self.programme_actuel["path"]()
 
@@ -419,6 +410,7 @@ class Serveur():
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
         
         while True:
+            print("THREAD COUNT:", len(threading.enumerate()))
             self.Idle()
 
 #---------------------------------------------------------------------------------------------------
