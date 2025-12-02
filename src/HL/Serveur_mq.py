@@ -21,7 +21,7 @@ import socket
 from get_ip import get_ip, check_ssh_connections
 import subprocess
 from Lidar import Lidar
-from Camera import Camera, start_camera_stream
+from Camera import Camera
 from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
 
 
@@ -132,6 +132,12 @@ class Serveur():
                 "info" : ""
             },
             5: {
+                "name" : "Streaming Video",
+                "type" : "function",
+                "path" : lambda: self.toggle_video_stream(),
+                "info" : ""
+            },
+            6: {
                 "name" : "poweroff",
                 "type" : "bash",
                 "path" : "sudo poweroff",
@@ -237,17 +243,6 @@ class Serveur():
         except Exception as e:
             print(f"Error initializing Lidar: {e}")
 
-    def _initialize_camera(self):
-        """Initialize the camera."""
-        for i in range(10):
-            try:
-                self.camera = Camera()
-                print("Camera OK")
-                return
-            except Exception as e:
-                print("Camera retry", i, e)
-                time.sleep(0.5)
-        raise RuntimeError("Camera KO après 10 essais")
 
     #---------------------------------------------------------------------------------------------------
     # fonction pour la communication
@@ -313,21 +308,6 @@ class Serveur():
                 "direction" : self.direction,
                 "timestamp": time.time() - self.initial_time
             })
-            elif info["cmd"] == "cam":
-                if self.camera_image is None:
-                    socket.send_json({"cam": None})
-                    continue
-
-                buffer = BytesIO()
-                self.camera_image.save(buffer, format="JPEG")
-                jpg_bytes = buffer.getvalue()
-                jpg_b64 = base64.b64encode(jpg_bytes).decode()
-
-                socket.send_json({
-                    "cam": jpg_b64
-                })
-                continue
-
             else :
                 socket.send_json({"Error" : "not understand"})
 
@@ -343,10 +323,11 @@ class Serveur():
                 time.sleep(1)
 
 
-    def _start_video_stream(self):
+    def toggle_video_stream(self):
         """Start continuous JPEG compressed video streaming via ZMQ."""
         try:
-            start_camera_stream(port=8000)
+            self.camera.toggle_stream()
+            print("camera streaming lancé")
         except:
             print("Camera Down...")
     
@@ -428,8 +409,7 @@ class Serveur():
         threading.Thread(target=self.car_controle, args=(private,True,), daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
-        threading.Thread(target=self._start_video_stream, daemon=True).start()
-
+        
         while True:
             self.Idle()
 
