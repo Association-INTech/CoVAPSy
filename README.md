@@ -33,12 +33,12 @@ uv sync --extra rpi
 
 Navigate to the simulator directory.
 ```bash
-cd src/simulateur
+cd src/Simulateur
 ```
 
 Run the multi-process training script.
 ```bash
-uv run launch_multiprocess_training.py
+uv run launch_train_multiprocessing.py
 ```
 This will launch the Webots instances and begin the SB3 PPO training loop. All the checkpoints will be in the `checkpoints` directory. At every checkpoint, a compiled ONNX model will be stored as `model.onnx`.
 
@@ -50,9 +50,9 @@ To change the parameters of the simulation, just modify the `config.py` file.
 
 # Wiki (Documentation)
 
-For detailed information on architecture, hardware specifics and technical choices, please refer to the [INTech wiki](wiki.intech-robotics.fr).
+For detailed information on architecture, hardware specifics and technical choices, please refer to the [INTech wiki](https://wiki.intech-robotics.fr).
 
-(Note: The Wiki is private and reserved to INTech members)
+(Note: The Wiki is currently private and reserved to INTech members)
 
 # License
 

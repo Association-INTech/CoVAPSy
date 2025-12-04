@@ -33,7 +33,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -41,7 +41,7 @@ Group {
       name "virage_rouge"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -60,7 +60,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -68,7 +68,7 @@ Group {
       name "virage_vert"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -186,7 +186,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -194,7 +194,7 @@ Group {
       name "virage_vert(10)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -251,7 +251,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -259,7 +259,7 @@ Group {
       name "virage_vert(6)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -278,7 +278,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -286,7 +286,7 @@ Group {
       name "virage_vert(11)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -324,7 +324,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -332,7 +332,7 @@ Group {
       name "virage_vert(7)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -351,7 +351,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -359,7 +359,7 @@ Group {
       name "virage_vert(38)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -378,7 +378,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -386,7 +386,7 @@ Group {
       name "virage_vert(25)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -405,7 +405,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -413,7 +413,7 @@ Group {
       name "virage_vert(34)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -432,7 +432,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -440,7 +440,7 @@ Group {
       name "virage_vert(3)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -459,7 +459,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -467,7 +467,7 @@ Group {
       name "virage_vert(13)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -486,7 +486,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -494,7 +494,7 @@ Group {
       name "virage_vert(16)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -513,7 +513,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -521,7 +521,7 @@ Group {
       name "virage_vert(32)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -540,7 +540,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -548,7 +548,7 @@ Group {
       name "virage_vert(22)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -567,7 +567,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -575,7 +575,7 @@ Group {
       name "virage_vert(31)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -594,7 +594,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -602,7 +602,7 @@ Group {
       name "virage_vert(8)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -621,7 +621,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -629,7 +629,7 @@ Group {
       name "virage_vert(23)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -648,7 +648,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -656,7 +656,7 @@ Group {
       name "virage_vert(30)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -675,7 +675,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -683,7 +683,7 @@ Group {
       name "virage_vert(39)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -702,7 +702,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -710,7 +710,7 @@ Group {
       name "virage_vert(9)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -729,7 +729,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -737,7 +737,7 @@ Group {
       name "virage_vert(24)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -756,7 +756,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -764,7 +764,7 @@ Group {
       name "virage_vert(33)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -783,7 +783,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -791,7 +791,7 @@ Group {
       name "virage_vert(21)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -810,7 +810,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -818,7 +818,7 @@ Group {
       name "virage_vert(37)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -837,7 +837,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -845,7 +845,7 @@ Group {
       name "virage_vert(27)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -864,7 +864,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -872,7 +872,7 @@ Group {
       name "virage_vert(28)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -891,7 +891,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -899,7 +899,7 @@ Group {
       name "virage_vert(58)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -918,7 +918,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -926,7 +926,7 @@ Group {
       name "virage_vert(19)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -945,7 +945,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -953,7 +953,7 @@ Group {
       name "virage_vert(5)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -972,7 +972,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -980,7 +980,7 @@ Group {
       name "virage_vert(17)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -999,7 +999,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1007,7 +1007,7 @@ Group {
       name "virage_vert(29)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -1026,7 +1026,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1034,7 +1034,7 @@ Group {
       name "virage_vert(2)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -1053,7 +1053,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1061,7 +1061,7 @@ Group {
       name "virage_vert(35)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -1080,7 +1080,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1088,7 +1088,7 @@ Group {
       name "virage_vert(1)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -1107,7 +1107,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1115,7 +1115,7 @@ Group {
       name "virage_vert(20)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -1134,7 +1134,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1142,7 +1142,7 @@ Group {
       name "virage_vert(4)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -1161,7 +1161,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1169,7 +1169,7 @@ Group {
       name "virage_vert(18)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
@@ -1188,7 +1188,7 @@ Group {
           }
           geometry Mesh {
             url [
-              "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+              "ImageToStl.com_virage.obj"
             ]
           }
         }
@@ -1196,7 +1196,7 @@ Group {
       name "virage_vert(36)"
       boundingObject Mesh {
         url [
-          "https://raw.githubusercontent.com/ajuton-ens/CourseVoituresAutonomesSaclay/main/Simulateur/SimulateurWebotsENS2022/ImageToStl.com_virage.obj"
+          "ImageToStl.com_virage.obj"
         ]
       }
     }
