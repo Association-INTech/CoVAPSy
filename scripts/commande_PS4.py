@@ -52,7 +52,7 @@ class PS4ControllerProgram(Program):
 
     def start(self):
         self.running = True
-        self.stop = False
+        self.controller.stop = False
         self.thread = Thread(
             target=self.controller.listen, kwargs=dict(timeout=60),
             daemon=True
@@ -60,7 +60,7 @@ class PS4ControllerProgram(Program):
         self.thread.start()
 
     def kill(self):
-        self.stop = True
+        self.controller.stop = True
         self.running = False
 
     @property
@@ -74,7 +74,7 @@ class PS4ControllerProgram(Program):
 class MyController(Controller):
 
     def __init__(self, **kwargs):
-        super().__init__(self, **kwargs)
+        super().__init__(**kwargs)
         self.vitesse_mms = 0 # vitesse initiale en métre par milliseconde
         self.direction = 0 # angle initiale des roues en degrés
         self.filtered = 0

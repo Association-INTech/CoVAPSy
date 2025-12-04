@@ -1,6 +1,7 @@
 from programme import Program
 import struct
 import socket
+import threading
 
 class RemoteControl(Program):
     def __init__(self):
@@ -30,7 +31,7 @@ class RemoteControl(Program):
 
     def start(self):
         self.running = True
-        threading.Thread(target=self.car_controle, args=(public,), daemon=True).start()
+        threading.Thread(target=self.car_controle, args=(self.public,), daemon=True).start()
     
     def kill(self):
         self.running = False

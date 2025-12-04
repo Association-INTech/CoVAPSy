@@ -8,19 +8,19 @@ class Program:
     running:bool
     vitesse_d:Optional[float]
     direction:Optional[float]
-    
+
     def __init__(self):
         self.logger = logging.getLogger()
         self.logger.setLevel(LOGGING_LEVEL)
 
-    def kill():
+    def kill(self):
         pass
 
-    def start():
+    def start(self):
         pass
 
-    def display():
-        if (running):
+    def display(self):
+        if (self.running):
             return self.name + "\n" + "(running)"
         else:
             return self.name + "\n"

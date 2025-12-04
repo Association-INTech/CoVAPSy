@@ -103,7 +103,7 @@ class Serveur():
 
         #donnée des process
         self.process_output = ""
-        self.last_programme = 0
+        self.last_programme_control = 0
         self.process = None
         self.temp = None
         # self.programme = {
@@ -155,13 +155,8 @@ class Serveur():
         # }
 
         self.camera = Camera()
-        self.program = [SshProgramme(), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
+        self.programme = [SshProgramme(), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
 
-
-
-
-        #initialisation de commande
-        self.commande_PS4 = initialize_commande_PS4()
 
         #donnée du lidar
         self.lidar = None
@@ -221,9 +216,9 @@ class Serveur():
 
 
     def Idle(self): #Enable chossing between states            
-        if self.Screen==0 and check_ssh_connections():
+        if check_ssh_connections():
             self.led1.on()
-            self.Screen=1
+
         if not check_ssh_connections():
             self.led1.off()
         
@@ -265,19 +260,10 @@ class Serveur():
         print("lancement de l'i2c")
         while True:
             try :
-                
-                if (time.time()- self.last_cmd_time < 0.5):
-                    data = struct.pack('<ff', float(round(self.vitesse_d)), float(round(self.direction)))
-                    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-                    #time.sleep(0.00005)
-                else: # on renvoie zero si il on a pas recue de message depuis moins de 200 milisecondes
-                    self.vitesse_d = 0
-                    self.direction = 0
-                    data = struct.pack('<ff', float(self.vitesse_d), float(self.direction))
-                    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-                    time.sleep(0.01)
-            except :
-                print("i2c mort")
+                data = struct.pack('<ff', float(round(self.programme[self.last_programme_control].vitesse_d)), float(round(self.programme[self.last_programme_control].direction)))
+                bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+            except Exception as e:
+                print("i2c mort" + str(e))
                 time.sleep(1)
 
     def i2c_received(self):
@@ -364,6 +350,8 @@ class Serveur():
     def start_process(self,num_programme):
         if self.programme[num_programme].running:
             self.programme[num_programme].kill()
+            if self.programme[num_programme].controls_car:
+                self.last_programme_control = 0
             
         elif self.programme[num_programme].controls_car:
             self.programme[self.last_programme_control].kill()
