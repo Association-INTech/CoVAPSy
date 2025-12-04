@@ -57,16 +57,6 @@ TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 #uv pip uninstall numpy
 
 # on recoit les inoformations
-"""
-private = context.socket(zmq.SUB)
-private.bind("tcp://127.0.0.1:5555")
-private.setsockopt_string(zmq.SUBSCRIBE, "")
-
-public = context.socket(zmq.SUB)
-public.bind("tcp://0.0.0.0:5556")
-public.setsockopt_string(zmq.SUBSCRIBE, "")
-"""
-# on envoie en udp les commandes de la ps4
 
 
 private = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -106,53 +96,6 @@ class Serveur():
         self.last_programme_control = 0
         self.process = None
         self.temp = None
-        # self.programme = {
-        #     0: {
-        #         "name" : "Ssh to :\n" + self.ip,
-        #         "type" : "",
-        #         "path" : "",
-        #         "info" : "no"
-        #     },
-        #     1: {
-        #         "name" : "Auto Driving",
-        #         "type" : "python",
-        #         "path" : "",
-        #         "info" : "",
-        #         "controll_car" : "yes"
-        #     },
-        #     2: {
-        #         "name" : "PS4 Controller",
-        #         "type" : "function",
-        #         "path" : lambda: toggle_commande_PS4(self.commande_PS4),
-        #         "info" : "",
-        #         "controll_car" : "yes"
-        #     },
-        #     3: {
-        #         "name" : "Connect Controller",
-        #         "type" : "bash",
-        #         "path" : "./scripts/bluetooth_auto/bluethootconnect.sh",
-        #         "info" : "no"
-        #     },
-        #     4: {
-        #         "name" : "Remote control",
-        #         "type" : "function",
-        #         "path" : lambda: self.switch_remote_control(),
-        #         "info" : "",
-        #         "controll_car" : "yes"
-        #     },
-        #     5: {
-        #         "name" : "Streaming Video",
-        #         "type" : "function",
-        #         "path" : lambda: self.toggle_video_stream(),
-        #         "info" : ""
-        #     },
-        #     6: {
-        #         "name" : "poweroff",
-        #         "type" : "bash",
-        #         "path" : "sudo poweroff",
-        #         "info" : ""
-        #     }
-        # }
 
         self.camera = Camera()
         self.programme = [SshProgramme(), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
@@ -171,7 +114,7 @@ class Serveur():
         #-----------------------------------------------------------------------------------------------------
         # affichage de l'écrans
         #-----------------------------------------------------------------------------------------------------
-    def affichage_oled(self,selected): #test
+    def affichage_oled(self,selected): #test non utilisé
         im = Image.new("1", (128, 64), "black")
         draw = ImageDraw.Draw(im)
         font = ImageFont.load_default()
@@ -334,13 +277,6 @@ class Serveur():
                 print("pas lidar")
                 time.sleep(1)
 
-
-    def toggle_video_stream(self):
-        """Start continuous JPEG compressed video streaming via ZMQ."""
-        try:
-            self.camera.toggle_stream()
-        except:
-            print("Camera Down...")
     
     #---------------------------------------------------------------------------------------------------
     # Processus
