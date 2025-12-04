@@ -24,6 +24,12 @@ from Lidar import Lidar
 from Camera import Camera
 from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
 
+#différent programme
+from scripts.commande_PS4 import PS4ControllerProgram
+from SshProgramme import SshProgramme
+from RemoteControl import RemoteControl
+from Poweroff import Poweroff
+from Camera import ProgramStreamCamera
 
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)
@@ -61,8 +67,7 @@ public.bind("tcp://0.0.0.0:5556")
 public.setsockopt_string(zmq.SUBSCRIBE, "")
 """
 # on envoie en udp les commandes de la ps4
-public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-public.bind(("0.0.0.0", 5556))
+
 
 private = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 private.bind(("127.0.0.1", 5555))
@@ -101,50 +106,62 @@ class Serveur():
         self.last_programme = 0
         self.process = None
         self.temp = None
-        self.programme = {
-            0: {
-                "name" : "Ssh to :\n" + self.ip,
-                "type" : "",
-                "path" : "",
-                "info" : "no"
-            },
-            1: {
-                "name" : "Auto Driving",
-                "type" : "python",
-                "path" : "",
-                "info" : ""
-            },
-            2: {
-                "name" : "PS4 Controller",
-                "type" : "python",
-                "path" : "./scripts/commande_PS4.py",
-                "info" : ""
-            },
-            3: {
-                "name" : "Connect Controller",
-                "type" : "bash",
-                "path" : "./scripts/bluetooth_auto/bluethootconnect.sh",
-                "info" : "no"
-            },
-            4: {
-                "name" : "Remote control",
-                "type" : "function",
-                "path" : lambda: self.switch_remote_control(),
-                "info" : ""
-            },
-            5: {
-                "name" : "Streaming Video",
-                "type" : "function",
-                "path" : lambda: self.toggle_video_stream(),
-                "info" : ""
-            },
-            6: {
-                "name" : "poweroff",
-                "type" : "bash",
-                "path" : "sudo poweroff",
-                "info" : ""
-            }
-        }
+        # self.programme = {
+        #     0: {
+        #         "name" : "Ssh to :\n" + self.ip,
+        #         "type" : "",
+        #         "path" : "",
+        #         "info" : "no"
+        #     },
+        #     1: {
+        #         "name" : "Auto Driving",
+        #         "type" : "python",
+        #         "path" : "",
+        #         "info" : "",
+        #         "controll_car" : "yes"
+        #     },
+        #     2: {
+        #         "name" : "PS4 Controller",
+        #         "type" : "function",
+        #         "path" : lambda: toggle_commande_PS4(self.commande_PS4),
+        #         "info" : "",
+        #         "controll_car" : "yes"
+        #     },
+        #     3: {
+        #         "name" : "Connect Controller",
+        #         "type" : "bash",
+        #         "path" : "./scripts/bluetooth_auto/bluethootconnect.sh",
+        #         "info" : "no"
+        #     },
+        #     4: {
+        #         "name" : "Remote control",
+        #         "type" : "function",
+        #         "path" : lambda: self.switch_remote_control(),
+        #         "info" : "",
+        #         "controll_car" : "yes"
+        #     },
+        #     5: {
+        #         "name" : "Streaming Video",
+        #         "type" : "function",
+        #         "path" : lambda: self.toggle_video_stream(),
+        #         "info" : ""
+        #     },
+        #     6: {
+        #         "name" : "poweroff",
+        #         "type" : "bash",
+        #         "path" : "sudo poweroff",
+        #         "info" : ""
+        #     }
+        # }
+
+        self.camera = Camera()
+        self.program = [SshProgramme(), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
+
+
+
+
+        #initialisation de commande
+        self.commande_PS4 = initialize_commande_PS4()
 
         #donnée du lidar
         self.lidar = None
@@ -155,7 +172,6 @@ class Serveur():
         self.Screen = 0
         self.State = 0
         self.scroll_offset = 3
-        self.camera = Camera()
 
         #-----------------------------------------------------------------------------------------------------
         # affichage de l'écrans
@@ -212,11 +228,7 @@ class Serveur():
             self.led1.off()
         
         if (self.Screen < len(self.programme)):
-            if self.programme[self.Screen]["info"] != "no" : 
-                text = self.programme[self.Screen]["name"] + "\n" + self.programme[self.Screen]["info"] + "\n" + self.process_output
-            else : 
-                text = self.programme[self.Screen]["name"] + "\n" + self.process_output
-
+            text = self.programme[self.Screen].display()
         self.display_combined_im(text)
 
     def bouton_next(self):
@@ -350,45 +362,17 @@ class Serveur():
 
         
     def start_process(self,num_programme):
-
-        if self.programme[self.last_programme]["info"] != "no":
-            self.programme[self.last_programme]["info"] = ""
-        
-        if self.process is not None:
-            try:
-                os.killpg(os.getpgid(self.process.pid), signal.SIGKILL)
-            except Exception as e:
-                print(e)
-
-        if (num_programme == self.last_programme):
-            if self.programme_actuel["type"] == "function": # les fonction on besoin d'êter rappelé pour pouvoir les arreter
-                self.programme_actuel["path"]()
-            self.last_programme = 0 # pour pouvoir lancer le programme en rapuyant sur le bouton
-            return # si on est sur le même programme on kill et c'est tout
-        
-        if self.programme[num_programme]["info"] != "no":
-            self.programme[num_programme]["info"] = "(running)"
-        self.process_output = ""
-        self.last_programme = num_programme
-        self.programme_actuel = self.programme[num_programme]
-        if self.programme_actuel["type"] == "bash":
-            self.process = subprocess.Popen(
-                self.programme_actuel["path"],
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                preexec_fn=os.setsid
-            )
-
+        if self.programme[num_programme].running:
+            self.programme[num_programme].kill()
             
-        elif self.programme_actuel["type"] == "python":
-            self.process = subprocess.Popen(["uv","run",self.programme_actuel["path"]],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                preexec_fn=os.setsid
-            )
-        elif self.programme_actuel["type"] == "function":
-            self.programme_actuel["path"]()
+        elif self.programme[num_programme].controls_car:
+            self.programme[self.last_programme_control].kill()
+            self.programme[num_programme].start()
+            self.last_programme_control = num_programme
+        
+        else:
+            self.programme[num_programme].start()
+            
 
         
         
@@ -398,13 +382,7 @@ class Serveur():
     # car function 
     #---------------------------------------------------------------------------------------------------
 
-    def switch_remote_control(self):
-        if self.remote_control:
-            self.remote_control = False
-            self.programme[self.last_programme]["info"] = ""
-        else:
-            self.remote_control = True
-            threading.Thread(target=self.car_controle, args=(public,False,), daemon=True).start()
+
 
     def main(self):
         self.bp_next.when_pressed = self.bouton_next

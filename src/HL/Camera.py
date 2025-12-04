@@ -39,6 +39,24 @@ class JpegCallback(Output):
 
 
 from Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
+from programme import Program
+
+class ProgramStreamCamera(Program):
+    def __init__(self,camera):
+        self.name = "Streaming Video"
+        self.camera = camera
+        self.running = False
+        self.controls_car = False
+    
+    def start(self):
+        self.running = True
+        self.camera.start_stream()
+    
+    def kill(self):
+        self.running = False
+        self.camera.stop_stream()
+
+
 
 
 class Camera:

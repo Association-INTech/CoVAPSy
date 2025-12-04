@@ -25,3 +25,6 @@ SPEED_LOOKUP = np.linspace(MIN_SOFT_SPEED, MAX_SOFT_SPEED, 16)
 Temperature = 0.7 # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
 # the higher the temperature the more unprobalbe actions become probable, the lower the temperature the more probable actions become probable.
 # In our case Higher temperature means less agressive driving and lower temperature means more aggressive driving.
+
+import logging
+LOGGING_LEVEL = logging.DEBUG # can be either NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
