@@ -2,6 +2,7 @@ from programme import Program
 import struct
 import socket
 import threading
+import time
 
 class RemoteControl(Program):
     def __init__(self):
