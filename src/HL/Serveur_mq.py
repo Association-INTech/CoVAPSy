@@ -47,17 +47,6 @@ SLAVE_ADDRESS = 0x08
 TEXT_HEIGHT = 11
 TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 
-#sudo apt install libcap-dev
-#sudo apt install python3-libcamera
-
-#sudo apt-get install libcap-dev pour lancer picamera2
-#rm -rf .venv
-#uv venv --system-site-packages
-#source .venv/bin/activate
-#uv pip uninstall numpy
-
-# on recoit les inoformations
-
 
 private = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 private.bind(("127.0.0.1", 5555))
@@ -70,26 +59,33 @@ telemetry.bind("tcp://0.0.0.0:5557")
 class Serveur():
 
     def __init__(self):
+        #initialisation des différents module qui tourne tout le temps
+        self.camera = Camera()
+
         self.bp_next = Button("GPIO5", bounce_time=0.1)
         self.bp_entre = Button("GPIO6", bounce_time=0.1)
-        self.length_i2c_received = 3
+
         self.led1 = LED("GPIO17")
         self.led2 = LED("GPIO27")
         self.buzzer = Buzzer("GPIO26")
         self.remote_control = False # on initialise le remote control à False
 
-        self.vitesse_d = 0
-        self.vitesse_r = 0
-        self.direction = 0
+        self.length_i2c_received = 3 #nombre de donnée à récupéré de l'arduino (voltage lipo, voltage nimh)
+        
+        # initialisation des donnnée de la voiture
+        self.vitesse_d = 0 #vitesse demandé par le programme
+        self.direction = 0 #direction des roue 
 
+        #initialisation des variable reçue de l'arduino pour débugage
         self.voltage_lipo = 0
         self.voltage_nimh = 0
+        self.vitesse_r = 0 #vitesse réel de la voiture
+
         self.camera_reverse = True
 
+        # initialisation des commande de temps
         self.initial_time = time.time()
         self.last_cmd_time = time.time()
-
-        self.ip = get_ip()
 
         #donnée des process
         self.process_output = ""
@@ -97,7 +93,6 @@ class Serveur():
         self.process = None
         self.temp = None
 
-        self.camera = Camera()
         self.programme = [SshProgramme(), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
 
 
@@ -111,9 +106,9 @@ class Serveur():
         self.State = 0
         self.scroll_offset = 3
 
-        #-----------------------------------------------------------------------------------------------------
-        # affichage de l'écrans
-        #-----------------------------------------------------------------------------------------------------
+    #-----------------------------------------------------------------------------------------------------
+    # affichage de l'écrans
+    #-----------------------------------------------------------------------------------------------------
     def affichage_oled(self,selected): #test non utilisé
         im = Image.new("1", (128, 64), "black")
         draw = ImageDraw.Draw(im)
@@ -132,7 +127,9 @@ class Serveur():
             display.bitmap((0, 0), im, fill="white")
 
     def make_voltage_im(self):
-        received = [self.voltage_lipo , self.voltage_nimh]  # Adjust length as needed
+        """crée l'image de la derniére ligne qui affiche le voltage des deux batterie de la pi en temps réel"""
+        
+        received = [self.voltage_lipo , self.voltage_nimh]
         # filter out values below 6V and round to 2 decimal places
         received = [round(elem, 2) if elem > 6 else 0.0 for elem in received]
         text = f"LiP:{received[0]:.2f}V|NiH:{received[1]:.2f}V"
@@ -143,6 +140,7 @@ class Serveur():
         return im
 
     def display_combined_im(self,text):
+        """ fonction qui écris sur l'écran le texte qu'on lui fourni (et remet par dessus toujours le voltage des batteries)"""
         im = Image.new("1", (128, 64), "black")
         draw = ImageDraw.Draw(im)
         font = ImageFont.load_default()
@@ -158,7 +156,11 @@ class Serveur():
             draw.bitmap((0, 0), im, fill="white")
 
 
-    def Idle(self): #Enable chossing between states            
+    def Idle(self):
+        """
+        gére l'affichage de l'écrans en fonction des fonction en cour ou choisie.
+        le changement d'écran est géré par les fonction des boutons juste en dessous
+        """           
         if check_ssh_connections():
             self.led1.on()
 
@@ -170,11 +172,13 @@ class Serveur():
         self.display_combined_im(text)
 
     def bouton_next(self):
+        """ passe à l'écrans suivant (juste visuelle)"""
         self.Screen+=1
         if self.Screen>=len(self.programme):
             self.Screen=0
 
     def bouton_entre(self,num=None):
+        """séléctionne le programme afficher à l'acrans et le lance"""
         if num!=None:
             self.Screen = num
         self.State=self.Screen
@@ -199,7 +203,7 @@ class Serveur():
     # fonction pour la communication
     #---------------------------------------------------------------------------------------------------
     def i2c_loop(self):
-        """Envoie vitesse/direction régulièrement au microcontroleur."""
+        """Envoie vitesse/direction régulièrement au microcontroleur. (toute les frames actuellement)"""
         print("lancement de l'i2c")
         while True:
             try :
@@ -210,6 +214,7 @@ class Serveur():
                 time.sleep(1)
 
     def i2c_received(self):
+        """récupére les informations de l'arduino"""
         length = self.length_i2c_received * 4 
         while True:
             data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
@@ -223,23 +228,6 @@ class Serveur():
                 self.voltage_nimh = list_valeur[1]
                 self.vitesse_r = list_valeur[2]
             time.sleep(0.1)
-
-
-
-    def car_controle(self,sock, is_private):
-        """ on regarde si il s'agit de lappelle pour le control interne 
-        (is_private) ou si on veux prendre le controle depuis le pc."""
-        sock.settimeout(0.1)
-
-        while is_private or self.remote_control:
-            try:
-                data, ip = sock.recvfrom(1024)
-                self.vitesse_d, self.direction = struct.unpack("ff", data)
-                self.last_cmd_time = time.time()
-            except socket.timeout:
-                continue
-
-            
 
     def envoie_donnee(self, socket):
         """ on regarde si il s'agit de lappelle pour le control interne 
@@ -267,6 +255,7 @@ class Serveur():
                 socket.send_json({"Error" : "not understand"})
 
     def lidar_update_data(self):
+        """donnée du lidar"""
         self._initialize_lidar()
         while True:
             try :
@@ -284,6 +273,9 @@ class Serveur():
 
         
     def start_process(self,num_programme):
+        """lance le porgramme référencé avec son numéro:
+        si il sagit d'un programme qui controle la voiture il kill lancient programme qui controlé,
+        sinon le programme est lancé ou tué celon si il était déjà lancé ou tué avant"""
         if self.programme[num_programme].running:
             self.programme[num_programme].kill()
             if self.programme[num_programme].controls_car:
@@ -314,7 +306,6 @@ class Serveur():
 
         threading.Thread(target=self.i2c_loop, daemon=True).start()
         threading.Thread(target=self.i2c_received, daemon=True).start()
-        threading.Thread(target=self.car_controle, args=(private,True,), daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
         threading.Thread(target=self.lidar_update_data, daemon=True).start()
         

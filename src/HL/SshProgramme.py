@@ -11,7 +11,9 @@ class SshProgramme(Program):
         self.direction = 0
     
     def display(self):
+        text = self.name
         if check_ssh_connections():
-            return self.name + "\n connecté"
-        else:
-            return self.name
+            text+= "\n connecté"
+        if self.running:
+            text+= "\n Voiture en stand by"
+        return text
