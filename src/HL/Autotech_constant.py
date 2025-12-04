@@ -1,9 +1,9 @@
 import os
 import numpy as np
 
-MAX_SOFT_SPEED = 6000 # en milimetre par secondes
-MIN_SOFT_SPEED = -4000
-MAX_ANGLE = 30
+MAX_SOFT_SPEED = 6 # en metre par secondes
+MIN_SOFT_SPEED = -4
+MAX_ANGLE = 18
 CRASH_DIST = 110
 REAR_BACKUP_DIST = 100  #mm Distance at which the car will NOT reverse due to the obstacle behind it
 LIDAR_DATA_AMPLITUDE = 1
@@ -13,7 +13,7 @@ LIDAR_DATA_OFFSET = 0.5
 script_dir = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(script_dir, "model_CNN1D.onnx")  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
 
-
+SLAVE_ADDRESS = 0x08
 SOCKET_ADRESS = {
     "IP": '192.168.0.10',
     "PORT": 10940

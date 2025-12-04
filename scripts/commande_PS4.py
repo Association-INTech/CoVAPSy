@@ -2,8 +2,8 @@ from pyPS4Controller.controller import Controller
 import time
 import os
 from threading import Thread
-from src.HL.Autotech_constant import SOCKET_ADRESS
 from programme import Program
+from src.HL.Autotech_constant import MAX_ANGLE
 ###################################################
 #Intialisation du protocole zmq
 ##################################################
@@ -12,8 +12,9 @@ def envoie_donnee(Voiture): #si utilisation de la voiture directement
     print("lancement de l'i2c")
     import smbus
     import struct
+    from src.HL.Autotech_constant import SLAVE_ADDRESS
+
     bus = smbus.SMBus(1)
-    SLAVE_ADDRESS = 0x08
     while True:
             try :
                 data = struct.pack('<ff', float(round(Voiture.vitesse_mms)), float(round(Voiture.direction)))
@@ -27,8 +28,6 @@ def envoie_donnee(Voiture): #si utilisation de la voiture directement
 #paramètres de la fonction vitesse_m_s, à étalonner
 vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
 vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
-
-angle_degre_max = +18 #vers la gauche
 
 MAX_LEFT = -32767 + 3000   # deadzone 3000
 
@@ -85,9 +84,9 @@ class MyController(Controller):
 
         # Deadzone
         if value < MAX_LEFT:
-            target = -angle_degre_max
+            target = -MAX_ANGLE
         else:
-            target = map_range(value, -32767, 0, -angle_degre_max, 0)
+            target = map_range(value, -32767, 0, -MAX_ANGLE, 0)
 
         # Low-pass filtering
         self.filtered = self.filtered * (1 - self.alpha) + target * self.alpha
@@ -118,11 +117,11 @@ class MyController(Controller):
 
     def on_L3_right(self,value):
         # print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
-        dir = map_range(value, 0, 32767, 0, angle_degre_max)
+        dir = map_range(value, 0, 32767, 0, MAX_ANGLE)
         self.direction = dir
 
     def on_L3_left(self,value):
-        #print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
+        #print("x_r :", value, "degré : ",map_range(value,-32767, 0, -MAX_ANGLE, 0 ))
         dir = self.stable_direction(value)
         self.direction = dir
 

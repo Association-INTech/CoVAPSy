@@ -2,6 +2,7 @@ from Autotech_constant import LOGGING_LEVEL
 import logging
 from typing import Optional
 
+""" classe type pour tout les programme """
 class Program:
     name:str
     controls_car:bool

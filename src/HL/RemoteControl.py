@@ -5,6 +5,7 @@ import threading
 import time
 
 class RemoteControl(Program):
+    """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp"""
     def __init__(self):
         super().__init__()
         self.name = "Remote Control"
@@ -26,7 +27,6 @@ class RemoteControl(Program):
             try:
                 data, ip = sock.recvfrom(1024)
                 self.vitesse_d, self.direction = struct.unpack("ff", data)
-                self.last_cmd_time = time.time()
             except socket.timeout:
                 continue
 
@@ -35,4 +35,5 @@ class RemoteControl(Program):
         threading.Thread(target=self.car_controle, args=(self.public,), daemon=True).start()
     
     def kill(self):
+        """fait sortir le thread de sa boucle"""
         self.running = False

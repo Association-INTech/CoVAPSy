@@ -22,7 +22,7 @@ from get_ip import get_ip, check_ssh_connections
 import subprocess
 from Lidar import Lidar
 from Camera import Camera
-from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
+from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET, SLAVE_ADDRESS
 
 #différent programme
 from scripts.commande_PS4 import PS4ControllerProgram
@@ -37,9 +37,6 @@ device = ssd1306(serial)
 log.basicConfig(level=log.INFO)
 
 bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
-
-# I2C address of the slave
-SLAVE_ADDRESS = 0x08
 
  #le nombre de donnée récupéré par l'i2c
 
