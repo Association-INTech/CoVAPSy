@@ -8,11 +8,7 @@ import logging as log
 import smbus # type: ignore #ignore the module could not be resolved error because it is a linux only module
 import struct
 from masterI2C import write_vitesse_direction
-
-SLAVE_ADDRESS = 0x08
-# Create an SMBus instance
-bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
-
+from threading import Thread
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
@@ -22,10 +18,12 @@ from Camera import Camera
 from ToF import ToF
 
 class Car:
-    def __init__(self, driver):
+    def __init__(self, driver, camera, lidar):
         """Initialize the car's components."""
-        self.vitesse_milimetres_s = 0  # Speed in millimeters per second
-        self.angle_degre = 0  # Steering angle in degrees
+        self.vitesse_d = 0  # Speed in millimeters per second
+        self.direction_d = 0  # Steering angle in degrees
+        self.camera = camera
+        self.lidar = lidar
 
         def _initialize_ai():
             """Initialize the AI session."""
@@ -73,9 +71,9 @@ class Car:
         _initialize_ai()
 
         # Initialize Lidar
-        _initialize_lidar()
+        #_initialize_lidar()
 
-        _initialize_camera()
+        #_initialize_camera()
         
         _initialize_tof()
         
@@ -85,22 +83,11 @@ class Car:
 
         log.info("Car initialization complete")
 
-    def set_vitesse_m_s(self, vitesse_m_s):
-        """Set the car's speed in meters per second."""
-        self.vitesse_milimetres_s = int(vitesse_m_s * 1000)  # Convert to millimeters per second
-        write_vitesse_direction(self.vitesse_milimetres_s,self.angle_degre) #take the vitesse in milimeters per second
 
-
-    def set_direction_degre(self, n_angle_degre):
-        """Set the car's steering angle in degrees."""
-        self.angle_degre = n_angle_degre
-        write_vitesse_direction(self.vitesse_milimetres_s, self.angle_degre) #take the angle in degrees
-        
-    
     def stop(self):
-        self.vitesse_milimetres_s = 0
-        self.angle_degre = 0
-        write_vitesse_direction(self.vitesse_milimetres_s, self.angle_degre) #stop the car
+        self.vitesse_d = 0
+        self.direction_d = 0
+        write_vitesse_direction(self.vitesse_d, self.direction_d) #stop the car
         log.info("Arrêt du moteur")
         self.lidar.stop()
         
@@ -113,7 +100,7 @@ class Car:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             while self.tof.get_distance() < REAR_BACKUP_DIST:
                 log.info(f"Obstacle arriere détecté {self.tof.get_distance()}")
-                self.set_vitesse_m_s(0)
+                self.vitesse_d = 0
                 time.sleep(0.1)
             return True
         return False
@@ -122,9 +109,9 @@ class Car:
         """Turn the car around."""
         log.info("Turning around")
         
-        self.set_vitesse_m_s(0)
-        self.set_direction_degre(MAX_ANGLE)
-        self.set_vitesse_m_s(-2) #blocing call
+        self.vitesse_d = 0
+        self.direction_d = MAX_ANGLE
+        self.vitesse_d = -2 #blocing call
         time.sleep(1.8) # Wait for the car to turn around
         if self.camera.is_running_in_reversed():
             self.turn_around()
@@ -138,10 +125,9 @@ class Car:
         lidar_data_ai= (lidar_data-0.5)*(
             LIDAR_DATA_OFFSET + LIDAR_DATA_AMPLITUDE * np.exp(-1/2*((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
         ) #convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
-        angle, vitesse = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
+        self.direction_d, self.vitesse_d = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
         log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
-        self.set_direction_degre(angle)
-        self.set_vitesse_m_s(vitesse)
+
         if self.camera.is_running_in_reversed():
             self.reverse_count += 1
         else:
@@ -166,9 +152,38 @@ class Car:
             if color == 1:
                 log.info("Obstacle vert détecté")
             angle= -color*MAX_ANGLE
-            self.set_vitesse_m_s(-2)
-            self.set_direction_degre(angle)
+            self.vitesse_d = -2
+            self.direction_d = angle
 
+
+
+
+class Ai_Programme():
+    def __init__(self, Camera, Lidar):
+        self.ia_voiture = Driver(128,128)
+        self.GR86 = Car(self.ia_voiture, Camera, Lidar)
+        self.running = False
+
+    @property
+    def vitesse_d(self):
+        return self.GR86.vitesse_d
+    
+    @property
+    def direction_d(self):
+        return self.GR86.direction_d
+
+    def run(self):
+        while self.running:
+            self.GR86.main()
+    
+    def start(self):
+        self.running = True
+        Thread(
+            target=self.run, daemon=True
+        ).start()
+    
+    def stop(self):
+        self.running = False
 
 
 if __name__ == '__main__':
@@ -180,7 +195,9 @@ if __name__ == '__main__':
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver(128, 128)
-        GR86 = Car(Schumacher)
+        GR86 = Car(Schumacher,None,None)
+        GR86._initialize_camera()
+        GR86._initialize_lidar()
         log.info("Initialisation terminée")
         if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
             log.info("Depart")
