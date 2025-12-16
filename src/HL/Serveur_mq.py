@@ -30,6 +30,7 @@ from SshProgramme import SshProgramme
 from RemoteControl import RemoteControl
 from Poweroff import Poweroff
 from Camera import ProgramStreamCamera
+from module_initialisation import Initialisation
 
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)
@@ -90,13 +91,22 @@ class Serveur():
         self.process = None
         self.temp = None
 
-        self.programme = [SshProgramme(), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
+        self.initialisation_module = Initialisation(Camera,lidar,tof)
 
+        
+        @property
+        def camera(self):
+            return self.initialisation_module.camera
 
-        #donnée du lidar
-        self.lidar = None
-        self.rDistance = []
-        self.xTheta = 0
+        @property
+        def lidar(self):
+            return self.initialisation_module.lidar
+        
+        @property
+        def tof():
+            return self.initialisation_module.tof
+
+        self.programme = [SshProgramme(), self.initialisation_module, PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
 
         # donnée de l'écran
         self.Screen = 0
