@@ -1,4 +1,5 @@
 import subprocess
+import os
 from programme import Program
 
 class Poweroff(Program):
