@@ -1,7 +1,8 @@
 
 from programme import Program
-
-
+import threading
+from Autotech_constant import SOCKET_ADRESS
+import logging as log
 class Initialisation(Program):
     def __init__(self, camera, lidar, tof):
         self.name = "Initialisation:"
@@ -24,14 +25,21 @@ class Initialisation(Program):
         except Exception as e:
             self.camera_init = 2
             self.error += str(e)
+            print("-------------------------------------------")
+            print(self.error)
     
     def init_lidar(self,lidar):
         try:
-            self.lidar = lidar()
+            self.lidar = lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
+            self.lidar.stop()
+            self.lidar.startContinuous(0, 1080)
+            log.info("Lidar initialized successfully")
             self.lidar_init = 1
         except Exception as e:
             self.lidar_init = 2
             self.error += str(e)
+            print("-------------------------------------------")
+            print(self.error)
 
     def init_tof(self,tof):
         try:
@@ -40,11 +48,13 @@ class Initialisation(Program):
         except Exception as e:
             self.tof_init = 2
             self.error += str(e)
+            print("-------------------------------------------")
+            print(self.error)
 
     def display(self):
         text = self.name
         
-        text+= "camera: "
+        text+= "\ncamera: "
         if self.camera_init == 0:
             text += "(en cour)"
         elif self.camera_init == 1:

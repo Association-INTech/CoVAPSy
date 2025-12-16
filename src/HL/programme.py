@@ -8,7 +8,7 @@ class Program:
     controls_car:bool
     running:bool
     vitesse_d:Optional[float]
-    direction:Optional[float]
+    direction_d:Optional[float]
 
     def __init__(self):
         self.logger = logging.getLogger()

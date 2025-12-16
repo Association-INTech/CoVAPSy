@@ -22,7 +22,8 @@ from get_ip import get_ip, check_ssh_connections
 import subprocess
 from Lidar import Lidar
 from Camera import Camera
-from Autotech_constant import SOCKET_ADRESS, LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET, SLAVE_ADDRESS
+from ToF import ToF
+from Autotech_constant import SOCKET_ADRESS, SLAVE_ADDRESS
 
 #différent programme
 from scripts.commande_PS4 import PS4ControllerProgram
@@ -31,6 +32,7 @@ from RemoteControl import RemoteControl
 from Poweroff import Poweroff
 from Camera import ProgramStreamCamera
 from module_initialisation import Initialisation
+from Car import Ai_Programme
 
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)
@@ -58,7 +60,6 @@ class Serveur():
 
     def __init__(self):
         #initialisation des différents module qui tourne tout le temps
-        self.camera = Camera()
 
         self.bp_next = Button("GPIO5", bounce_time=0.1)
         self.bp_entre = Button("GPIO6", bounce_time=0.1)
@@ -91,28 +92,29 @@ class Serveur():
         self.process = None
         self.temp = None
 
-        self.initialisation_module = Initialisation(Camera,lidar,tof)
-
+        self.initialisation_module = Initialisation(Camera,Lidar,ToF)
         
-        @property
-        def camera(self):
-            return self.initialisation_module.camera
-
-        @property
-        def lidar(self):
-            return self.initialisation_module.lidar
         
-        @property
-        def tof():
-            return self.initialisation_module.tof
 
-        self.programme = [SshProgramme(), self.initialisation_module, PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self.camera), Poweroff()]
+        self.programme = [SshProgramme(), self.initialisation_module, Ai_Programme(self), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self), Poweroff()]
 
         # donnée de l'écran
         self.Screen = 0
         self.State = 0
         self.scroll_offset = 3
 
+
+    @property
+    def camera(self):
+        return self.initialisation_module.camera
+
+    @property
+    def lidar(self):
+        return self.initialisation_module.lidar
+    
+    @property
+    def tof(self):
+        return self.initialisation_module.tof
     #-----------------------------------------------------------------------------------------------------
     # affichage de l'écrans
     #-----------------------------------------------------------------------------------------------------
@@ -191,19 +193,6 @@ class Serveur():
         self.State=self.Screen
         self.start_process(self.Screen)
 
-    #---------------------------------------------------------------------------------------------------
-    # initialisation
-    #---------------------------------------------------------------------------------------------------
-
-    def _initialize_lidar(self):
-        """Initialize the Lidar sensor."""
-        try:
-            self.lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
-            self.lidar.stop()
-            self.lidar.startContinuous(0, 1080)
-            print("Lidar initialized successfully")
-        except Exception as e:
-            print(f"Error initializing Lidar: {e}")
 
 
     #---------------------------------------------------------------------------------------------------
@@ -214,7 +203,7 @@ class Serveur():
         print("lancement de l'i2c")
         while True:
             try :
-                data = struct.pack('<ff', float(round(self.programme[self.last_programme_control].vitesse_d)), float(round(self.programme[self.last_programme_control].direction)))
+                data = struct.pack('<ff', float(round(self.programme[self.last_programme_control].vitesse_d)), float(round(self.programme[self.last_programme_control].direction_d)))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
             except Exception as e:
                 print("i2c mort" + str(e))
@@ -261,17 +250,7 @@ class Serveur():
             else :
                 socket.send_json({"Error" : "not understand"})
 
-    def lidar_update_data(self):
-        """donnée du lidar"""
-        self._initialize_lidar()
-        while True:
-            try :
-                self.rDistance = self.lidar.rDistance
-                self.xTheta = self.lidar.xTheta
-                time.sleep(0.1)
-            except :
-                print("pas lidar")
-                time.sleep(1)
+
 
     
     #---------------------------------------------------------------------------------------------------
@@ -314,7 +293,6 @@ class Serveur():
         threading.Thread(target=self.i2c_loop, daemon=True).start()
         threading.Thread(target=self.i2c_received, daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
-        threading.Thread(target=self.lidar_update_data, daemon=True).start()
         
         while True:
             self.Idle()

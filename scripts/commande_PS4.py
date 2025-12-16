@@ -17,7 +17,7 @@ def envoie_donnee(Voiture): #si utilisation de la voiture directement
     bus = smbus.SMBus(1)
     while True:
             try :
-                data = struct.pack('<ff', float(round(Voiture.vitesse_mms)), float(round(Voiture.direction)))
+                data = struct.pack('<ff', float(round(Voiture.vitesse_mms)), float(round(Voiture.direction_d)))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 #time.sleep(0.00005)
             except Exception as e:
@@ -67,15 +67,15 @@ class PS4ControllerProgram(Program):
         return self.controller.vitesse_mms
     
     @property
-    def direction(self):
-        return self.controller.direction
+    def direction_d(self):
+        return self.controller.direction_d
 
 class MyController(Controller):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.vitesse_mms = 0 # vitesse initiale en métre par milliseconde
-        self.direction = 0 # angle initiale des roues en degrés
+        self.direction_d = 0 # angle initiale des roues en degrés
         self.filtered = 0
         self.alpha = 0.3
         self.running = 0
@@ -118,12 +118,12 @@ class MyController(Controller):
     def on_L3_right(self,value):
         # print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
         dir = map_range(value, 0, 32767, 0, MAX_ANGLE)
-        self.direction = dir
+        self.direction_d = dir
 
     def on_L3_left(self,value):
         #print("x_r :", value, "degré : ",map_range(value,-32767, 0, -MAX_ANGLE, 0 ))
         dir = self.stable_direction(value)
-        self.direction = dir
+        self.direction_d = dir
 
 
     def on_L2_press(self, value):

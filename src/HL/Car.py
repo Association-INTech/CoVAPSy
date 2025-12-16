@@ -7,8 +7,8 @@ from gpiozero import LED, Button
 import logging as log
 import smbus # type: ignore #ignore the module could not be resolved error because it is a linux only module
 import struct
-from masterI2C import write_vitesse_direction
 from threading import Thread
+from programme import Program
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
@@ -18,13 +18,12 @@ from Camera import Camera
 from ToF import ToF
 
 class Car:
-    def __init__(self, driver, camera, lidar):
+    def __init__(self,driving_strategy, serveur):
         """Initialize the car's components."""
         self.vitesse_d = 0  # Speed in millimeters per second
         self.direction_d = 0  # Steering angle in degrees
-        self.camera = camera
-        self.lidar = lidar
-
+        self.serveur = serveur
+        self.reverse_count = 0
         def _initialize_ai():
             """Initialize the AI session."""
             try:
@@ -33,63 +32,30 @@ class Car:
             except Exception as e:
                 log.error(f"Error initializing AI session: {e}")
                 raise
-
-        def _initialize_lidar():
-            """Initialize the Lidar sensor."""
-            try:
-                self.lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
-                self.lidar.stop()
-                self.lidar.startContinuous(0, 1080)
-                log.info("Lidar initialized successfully")
-            except Exception as e:
-                log.error(f"Error initializing Lidar: {e}")
-                raise
-
-        def _initialize_camera():
-            """Initialize the camera."""
-            try:
-                self.reverse_count = 0
-                self.camera = Camera()
-                self.camera.start()
-                time.sleep(0.2)  # Allow time for the camera to start
-                log.info("Camera initialized successfully")
-            except Exception as e:
-                log.error(f"Error initializing Camera: {e}")
-                raise
-            
-        def _initialize_tof():
-            """Initialize the ToF sensor."""
-            try:
-                self.tof = ToF()
-                log.info("ToF initialized successfully")
-            except Exception as e:
-                log.error(f"Error initializing ToF: {e}")
-                raise
-        
-
         # Initialize AI session
         _initialize_ai()
-
-        # Initialize Lidar
-        #_initialize_lidar()
-
-        #_initialize_camera()
-        
-        _initialize_tof()
         
         self.driving = driving_strategy
-        
-        
 
         log.info("Car initialization complete")
+    # accès dynamique aux capteurs
+    @property
+    def camera(self):
+        return self.serveur.camera
+
+    @property
+    def lidar(self):
+        return self.serveur.lidar
+
+    @property
+    def tof(self):
+        return self.serveur.tof
 
 
     def stop(self):
         self.vitesse_d = 0
         self.direction_d = 0
-        write_vitesse_direction(self.vitesse_d, self.direction_d) #stop the car
         log.info("Arrêt du moteur")
-        self.lidar.stop()
         
 
     def has_Crashed(self):
@@ -120,7 +86,10 @@ class Car:
 
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
-        
+        if self.camera is None or self.lidar is None or self.tof is None:
+            log.debug("Capteurs pas encore prêts")
+            print("Capteurs pas encore prêts")
+            return
         lidar_data = (self.lidar.rDistance[:1080]/1000)
         lidar_data_ai= (lidar_data-0.5)*(
             LIDAR_DATA_OFFSET + LIDAR_DATA_AMPLITUDE * np.exp(-1/2*((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
@@ -158,32 +127,62 @@ class Car:
 
 
 
-class Ai_Programme():
-    def __init__(self, Camera, Lidar):
-        self.ia_voiture = Driver(128,128)
-        self.GR86 = Car(self.ia_voiture, Camera, Lidar)
+class Ai_Programme(Program):
+    def __init__(self, serveur):
+        super().__init__()
+        self.name = "IA autonome"
+        
+        self.serveur = serveur
+        self.driver = None
+        self.GR86 = None
         self.running = False
+        self.controls_car = True
 
     @property
     def vitesse_d(self):
+        if self.GR86 == None:
+            return 0
         return self.GR86.vitesse_d
     
     @property
     def direction_d(self):
+        if self.GR86 == None:
+            return 0
         return self.GR86.direction_d
 
     def run(self):
         while self.running:
-            self.GR86.main()
+            try:
+                self.GR86.main()
+            except Exception as e:
+                log.error(f"Erreur IA: {e}")
+                self.running = False
     
     def start(self):
+        if self.running:
+            return
+
+        if self.serveur.camera is None or self.serveur.lidar is None or self.serveur.tof is None:
+            print("Capteurs non initialisés")
+            return
+
+        try:
+            self.driver = Driver(128, 128)
+            self.driver.load_model()
+            self.GR86 = Car(self.driver, self.serveur)
+        except Exception as e:
+            log.error(f"Impossible de démarrer l'IA: {e}")
+            self.driver = None
+            self.GR86 = None
+            return
+
         self.running = True
-        Thread(
-            target=self.run, daemon=True
-        ).start()
+        Thread(target=self.run, daemon=True).start()
+
     
     def stop(self):
         self.running = False
+        self.GR86.stop()
 
 
 if __name__ == '__main__':

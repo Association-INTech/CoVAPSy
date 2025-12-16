@@ -14,8 +14,9 @@ class Driver:
     def __init__(self, context_size=0, horizontal_size=0):
         self.context_size = context_size
         self.horizontal_size = horizontal_size
-        self.ai_session = ort.InferenceSession(MODEL_PATH)
-        self.context = np.zeros([2, context_size, horizontal_size], dtype=np.float32)
+        self._loaded = False
+        self.ai_session = None
+        self.context = None
 
         if log.getLogger().isEnabledFor(log.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
@@ -47,6 +48,15 @@ class Driver:
             )
             self.ax[3].set_title('Camera Image')
 
+    def load_model(self):
+        if self._loaded:
+            return
+        log.info("Chargement du modèle IA...")
+        self.ai_session = ort.InferenceSession(MODEL_PATH)
+        self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32 )
+        self._loaded = True
+        log.info("Modèle IA chargé")    
+
     def reset(self):
         self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32)
 
@@ -60,6 +70,8 @@ class Driver:
         return self.farthest_distants(lidar_data)
 
     def ai_update_lidar_camera(self, lidar_data, camera_data):
+        if not self._loaded:
+            raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
         log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
 
         lidar_data = sp.ndimage.zoom(
@@ -115,6 +127,8 @@ class Driver:
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data):
+        if not self._loaded:
+            raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
         lidar_data = np.array(lidar_data, dtype=np.float32) * 1.6
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
         vect = self.ai_session.run(None, {'input': lidar_data[None]})[0][0]

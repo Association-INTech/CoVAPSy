@@ -42,13 +42,24 @@ from Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
 from programme import Program
 
 class ProgramStreamCamera(Program):
-    def __init__(self,camera):
+    def __init__(self,serveur):
+        super().__init__()
         self.name = "Streaming Video"
-        self.camera = camera
+        self.serveur = serveur
         self.running = False
         self.controls_car = False
     
+    @property
+    def camera(self):
+        # accès dynamique
+        return self.serveur.camera
+
+    
     def start(self):
+        cam = self.camera
+        if cam is None:
+            print("Camera not initialized yet")
+            return
         self.running = True
         self.camera.start_stream()
     

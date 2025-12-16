@@ -12,7 +12,7 @@ class RemoteControl(Program):
         self.controls_car = True
         self.running = False
         self.vitesse_d = 0
-        self.direction = 0
+        self.direction_d = 0
     
         #initialisation
         self.public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
