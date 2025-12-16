@@ -26,7 +26,7 @@ class RemoteControl(Program):
         while self.running:
             try:
                 data, ip = sock.recvfrom(1024)
-                self.vitesse_d, self.direction = struct.unpack("ff", data)
+                self.vitesse_d, self.direction_d = struct.unpack("ff", data)
             except socket.timeout:
                 continue
 

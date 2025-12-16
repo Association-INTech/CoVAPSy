@@ -9,7 +9,7 @@ class SshProgramme(Program):
         self.controls_car = True
 
         self.vitesse_d = 0
-        self.direction = 0
+        self.direction_d = 0
     
 
     def start(self):
