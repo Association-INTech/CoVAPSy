@@ -9,10 +9,10 @@ class Poweroff(Program):
         self.controls_car = False
         self.running = False
 
-    def kill():
+    def kill(self):
         pass
 
-    def start():
+    def start(self):
         subprocess.Popen(
                 "sudo poweroff",
                 shell=True,
