@@ -54,27 +54,27 @@ class Initialisation(Program):
     def display(self):
         text = self.name
         
-        text+= "\ncamera: "
+        text+= "\n camera: "
         if self.camera_init == 0:
             text += "(en cour)"
         elif self.camera_init == 1:
-            text += "près."
+            text += "ready."
         elif self.camera_init == 2:
             text += "error"
 
-        text+= "\nlidar: "
+        text+= "\n lidar: "
         if self.lidar_init == 0:
             text += "(en cour)"
         elif self.lidar_init == 1:
-            text += "près."
+            text += "ready."
         elif self.lidar_init == 2:
             text += "error"
 
-        text+= "\ntof:"
+        text+= "\n tof:"
         if self.tof_init == 0:
             text += "(en cour)"
         elif self.tof_init == 1:
-            text += "près."
+            text += "ready."
         elif self.tof_init == 2:
             text += "error"
         
