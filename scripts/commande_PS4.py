@@ -2,7 +2,7 @@ from pyPS4Controller.controller import Controller
 import time
 import os
 from threading import Thread
-from programme import Program
+from src.HL.programme.programme import Program
 from src.HL.Autotech_constant import MAX_ANGLE
 ###################################################
 #Intialisation du protocole zmq

@@ -7,7 +7,7 @@ import logging as log
 import smbus # type: ignore #ignore the module could not be resolved error because it is a linux only module
 import struct
 from threading import Thread
-from programme import Program
+from src.HL.programme.programme import Program
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from ..Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET

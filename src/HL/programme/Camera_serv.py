@@ -6,7 +6,7 @@ import socketserver
 from threading import Condition
 streaming_enabled = True
 
-from Camera_serv import streaming_enabled
+from src.HL.programme.Camera_serv import streaming_enabled
 
 class FrameBuffer:
     def __init__(self):

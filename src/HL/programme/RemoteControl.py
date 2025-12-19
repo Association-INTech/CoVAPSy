@@ -1,4 +1,4 @@
-from programme import Program
+from src.HL.programme.programme import Program
 import struct
 import socket
 import threading
