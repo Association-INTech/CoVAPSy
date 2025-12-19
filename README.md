@@ -54,6 +54,11 @@ For detailed information on architecture, hardware specifics and technical choic
 
 (Note: The Wiki is currently private and reserved to INTech members)
 
+
+# some dependencies needed 
+libcap-dev
+python3-libcamera
+
 # License
 
 This project is distributed under the MIT License. See the Licence file for details.
