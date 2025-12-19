@@ -1,67 +1,58 @@
-from flask import Flask, jsonify, Response
+from flask import Flask, jsonify, Response, render_template
 from flask_cors import CORS
-import time
-import logging as log
-import numpy as np
-import smbus as smbus  #type: ignore #ignore the module could not be resolved error because it is a linux only module
-from Camera import Camera
-import zerorpc
-import struct
+from programme import Program
 
 # --------------------------------------------
+class Backend(Program):
+    """ ce programme permet de controler le site via le site web"""
 
-# Initialise l'application Flask
-app = Flask(__name__)
-CORS(app)
+    def __init__(self,server):
+        super().__init__()
+        self.name = "Backend"
+        self.controls_car = False
+        self.server = server
+        self.running = False
+        self.app = Flask(__name__, template_folder="/site_controle")                                                     # Cherche les html dans le dossier site controle
+        CORS(self.app)
 
-IP_DU_RASPBERRY_PI = "192.168.1.25"
+        self.app.add_url_rule('/', view_func=self.index)                                                            # equivalent à @self.app.route dans nos fonction
+        self.app.add_url_rule('/data', view_func=self.get_data)
+        self.app.add_url_rule('/video_feed', view_func=self.get_video)
+        self.app.add_url_rule('/set_program/<int:prog_id>', view_func=self.set_program, methods=['POST'])
 
-c = zerorpc.Client()
-c.connect(f"tcp://{IP_DU_RASPBERRY_PI}:4242")
-# ---------------------------
-# Creer une instance SMBus
-bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
+    def start(self):
+        self.running = True
+        self.app.run(host='0.0.0.0', port=5000) # lance le serveur
 
-# I2C address of the slave
-SLAVE_ADDRESS = 0x08
+    def kill(self):
+        self.running = False
 
+    def index(self):
+        return render_template('controle.html')
 
-# Définit la "route" principale de l'API
-@app.route('/data')
-def get_data():
-    """
-    Cette route exécute votre analyse d'image
-    et renvoie les résultats.
-    """
-    vitesse_reelle = c.read_data(3)[2]
-    donnees = {'vitesse_reelles':vitesse_reelle}
-    try:
-        matrix = c.cam.camera_matrix()
+    def get_data(self):
+        """ Demande les infos à Serveur """
+        data = self.server.i2c_received()
 
-        # Renvoyer des données utiles au format JSON
-        if matrix is not None:
-            data = {
-                'matrix_sum': int(np.sum(matrix)),
-                'matrix_mean': float(np.mean(matrix)),
-                'total_red': int(np.count_nonzero(matrix == -1)),
-                'total_green': int(np.count_nonzero(matrix == 1)),
+        formatted_data = {
+            "batterie": {
+                "lipo": data.get("voltage_lipo", 0),
+                "nimh": data.get("voltage_nimh", 0)
+            },
+            "robot": {
+                "vitesse": data.get("vitesse_reelle", 0),
+                "programme": data.get("programme_actuel", "Inconnu"),     # Cyril si tu peux envoyer le programme actuel dans le serv ça m'arrangerrai
+                "lidar": self.server.lidar()             #je suis pas sur de ça
             }
-        else:
-            data = {'error': 'Matrix could not be calculated'}
+        }
+        return jsonify(formatted_data)
 
-        return jsonify(data|donnees)
-    except Exception as e:
-        log.error(f"Erreur dans /data: {e}")
-        return jsonify({'error': str(e)}), 500
+    def set_program(self,prog_id):
+       self.server.start_process(prog_id)
+       return jsonify({"status": "ok", "program_id": prog_id})
 
+    def get_video(self):
+        self.server.camera()         # pas sur non plus                                                                                    #
+        return Response(self.server.camera(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
-@app.route('/video_feed')
-def video_feed():
-    """La route qui sert le flux vidéo."""
-    return Response(c.gen_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
-
-
-# Point d'entrée pour démarrer le serveur
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+#-------------------------------------------

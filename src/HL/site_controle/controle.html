@@ -5,7 +5,6 @@
     <title>Contrôle Robot Pi</title>
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #1a1a1a; color: white; }
-
         .container { display: flex; gap: 20px; flex-wrap: wrap; }
         .col-main { flex: 2; min-width: 600px; }
         .col-side { flex: 1; min-width: 300px; }
@@ -21,7 +20,7 @@
         h2 { border-bottom: 1px solid #444; padding-bottom: 10px; margin-top: 0; color: #00d2ff; }
 
         /* Vidéo */
-        img#video-stream { width: 100%; border-radius: 5px; background: #000; }
+        img#video-stream { width: 100%; border-radius: 5px; background: #000; min-height: 300px; }
 
         /* Boutons de contrôle */
         .control-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -36,14 +35,14 @@
             transition: background 0.3s;
         }
         button:hover { background-color: #666; }
-        button.active { background-color: #00d2ff; color: #000; font-weight: bold; }
+        button:active { transform: scale(0.98); }
         button.stop { background-color: #ff4444; grid-column: span 2; }
 
         /* Données */
         .data-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 18px; }
         .val { font-weight: bold; color: #00ff88; }
 
-        /* Lidar Simple Visualisation */
+        /* Lidar */
         #lidar-canvas { width: 100%; height: 200px; background: #000; border-radius: 5px; }
     </style>
 </head>
@@ -55,7 +54,7 @@
         <div class="col-main">
             <div class="box">
                 <h2>Flux Caméra</h2>
-                <img id="video-stream" src="/video_feed" alt="Flux Vidéo non disponible">
+                <img id="video-stream" src="/video_feed" alt="En attente du flux vidéo...">
             </div>
 
             <div class="box">
@@ -75,7 +74,7 @@
                     <button onclick="envoie_num(4)">Remote Control</button>
                     <button onclick="envoie_num(0)" class="stop">STOP / Idle</button>
                 </div>
-                <p style="text-align:center; margin-top:10px;">Actif : <span id="prog-actif" style="color:#00d2ff">--</span></p>
+                <p style="text-align:center; margin-top:10px;">Programme Actuel : <span id="prog-actif" style="color:#00d2ff; font-weight:bold;">--</span></p>
             </div>
 
             <div class="box">
@@ -85,85 +84,112 @@
                 <div class="data-row">Vitesse : <span id="val-speed" class="val">--</span></div>
             </div>
 
-            <div id="status" style="color: gray; font-size: 12px;">Connexion...</div>
+            <div id="status" style="color: gray; font-size: 12px; text-align: right;">Connexion...</div>
         </div>
     </div>
 
 <script>
-    // Pas besoin de mettre l'IP en dur si on sert le fichier depuis Flask (chemin relatif)
-    // Si vous ouvrez le fichier HTML en local (file://), remettez http://IP_DU_PI:5000
-    const API_BASE = "";
-
-    // --- Fonction demandée pour changer de programme ---
+    // --- 1. Changement de Programme ---
     async function envoie_num(num) {
-        try {
-            const response = await fetch(`${API_BASE}/set_program/${num}`, { method: 'POST' });
-            const result = await response.json();
-            console.log("Changement programme:", result);
+        const statusElem = document.getElementById('status');
+        statusElem.textContent = `Envoi commande ${num}...`;
 
-            // Mise à jour visuelle rapide (sera confirmée par le fetchData)
-            document.getElementById('status').textContent = `Commande programme ${num} envoyée...`;
+        try {
+            // Appel à la route définie : /set_program/<int:prog_id>
+            const response = await fetch(`/set_program/${num}`, { method: 'POST' });
+
+            if (response.ok) {
+                // On essaie de lire le JSON seulement si le serveur en renvoie un
+                try {
+                    const result = await response.json();
+                    console.log("Retour serveur:", result);
+                } catch(e) {
+                    console.log("Commande envoyée (pas de JSON reçu)");
+                }
+                statusElem.textContent = "Commande reçue !";
+            } else {
+                statusElem.textContent = "Erreur serveur : " + response.status;
+            }
         } catch (error) {
             console.error("Erreur commande:", error);
-            alert("Impossible de changer le programme");
+            statusElem.textContent = "Erreur de connexion";
         }
     }
 
-    // --- Récupération des données ---
+    // --- 2. Récupération des Données (Télémétrie) ---
     async function fetchData() {
         try {
-            const response = await fetch(`${API_BASE}/data`);
+            const response = await fetch('/data');
             if (!response.ok) throw new Error("Erreur réseau");
 
             const data = await response.json();
 
-            // Mise à jour Texte
-            document.getElementById('val-lipo').textContent = data.batterie.lipo.toFixed(2);
-            document.getElementById('val-nimh').textContent = data.batterie.nimh.toFixed(2);
-            document.getElementById('val-speed').textContent = data.robot.vitesse.toFixed(2);
-            document.getElementById('prog-actif').textContent = data.robot.programme;
-            document.getElementById('status').textContent = "Connecté - " + new Date().toLocaleTimeString();
+            // --- Adaptation aux clés du dictionnaire Python ---
+            // Python structure:
+            // { "batterie": {"lipo": X, "nimh": Y}, "robot": {"vitesse": Z, "programme": P, "lidar": L} }
 
-            // Mise à jour Canvas Lidar (Visualisation simple des distances)
-            if (data.robot.lidar) {
-                drawLidar(data.robot.lidar);
+            if (data.batterie) {
+                document.getElementById('val-lipo').textContent = (data.batterie.lipo || 0).toFixed(2);
+                document.getElementById('val-nimh').textContent = (data.batterie.nimh || 0).toFixed(2);
             }
 
+            if (data.robot) {
+                document.getElementById('val-speed').textContent = (data.robot.vitesse || 0).toFixed(2);
+                document.getElementById('prog-actif').textContent = data.robot.programme || "Inconnu";
+
+                // Dessin du Lidar si les données existent
+                if (Array.isArray(data.robot.lidar)) {
+                    drawLidar(data.robot.lidar);
+                }
+            }
+
+            document.getElementById('status').textContent = "Connecté - " + new Date().toLocaleTimeString();
+
         } catch (error) {
-            console.error(error);
-            document.getElementById('status').textContent = "Déconnecté";
+            console.error("Erreur fetch:", error);
+            document.getElementById('status').textContent = "Déconnecté"; // Indicateur visuel important
         }
     }
 
-    // --- Dessin simple du Lidar ---
+    // --- 3. Visualisation Lidar (Simple) ---
     function drawLidar(distances) {
         const canvas = document.getElementById('lidar-canvas');
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const width = canvas.width;
         const height = canvas.height;
 
-        // Effacer
+        // Reset fond noir
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, width, height);
+
+        if (distances.length === 0) return;
+
         ctx.strokeStyle = '#00ff00';
+        ctx.lineWidth = 2;
         ctx.beginPath();
 
-        // On trace une ligne représentant les distances
         const step = width / distances.length;
 
         distances.forEach((dist, i) => {
-            // Normalisation simple (0-2000mm vers 0-height)
-            let h = (dist / 2000) * height;
-            if (h > height) h = height;
+            // Echelle : supposons que 2000mm = haut du canvas
+            let barHeight = (dist / 2000) * height;
+            if (barHeight > height) barHeight = height;
 
-            ctx.moveTo(i * step, height);
-            ctx.lineTo(i * step, height - h);
+            // On dessine "l'espace vide" ou l'obstacle
+            // Ici on dessine une ligne au sol qui monte selon la distance
+            const x = i * step;
+            const y = height - barHeight;
+
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
         });
         ctx.stroke();
     }
 
-    // Boucle de mise à jour (toutes les 500ms)
+    // Rafraichissement toutes les 500ms
     setInterval(fetchData, 500);
+    // Premier appel immédiat
     fetchData();
 
 </script>
