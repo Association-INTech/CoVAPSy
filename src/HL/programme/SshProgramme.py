@@ -1,6 +1,6 @@
 from src.HL.programme.programme import Program
 from src.HL.programme.scripts.get_ip import get_ip, check_ssh_connections
-import logging as log
+import logging
 class SshProgramme(Program):
     """montre le menu ssh de la voiture et si séléctionner comme programme force la vitesse et la direction à 0"""
     def __init__(self):

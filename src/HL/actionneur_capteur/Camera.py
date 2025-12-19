@@ -8,6 +8,7 @@ import threading
 import shutil
 import scipy as sp
 import time
+import logging
 
 from picamera2 import Picamera2
 from picamera2.encoders import JpegEncoder

@@ -3,6 +3,7 @@ import struct
 import socket
 import threading
 import time
+import logging 
 
 class RemoteControl(Program):
     """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp"""

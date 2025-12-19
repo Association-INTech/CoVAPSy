@@ -103,7 +103,7 @@ class Serveur():
         
 
         self.programme = [SshProgramme(), self.initialisation_module, Ai_Programme(self), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self), Poweroff()]
-        self.log.debug("Programmes chargés: %s", [p.name for p in self.programme])
+        self.log.debug("Programmes chargés: %s", [type(p).__name__ for p in self.programme])
 
         # donnée de l'écran
         self.Screen = 0
