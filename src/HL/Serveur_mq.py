@@ -18,7 +18,7 @@ from gpiozero import LED, Button, Buzzer
 import textwrap
 import socket
 
-from src.HL.programme.get_ip import check_ssh_connections
+from src.HL.programme.scripts.get_ip import check_ssh_connections
 import subprocess
 from src.HL.actionneur_capteur.Lidar import Lidar
 from src.HL.actionneur_capteur.Camera import Camera
