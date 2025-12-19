@@ -1,5 +1,4 @@
 import time
-from rpi_hardware_pwm import HardwarePWM
 import onnxruntime as ort
 from scipy.special import softmax
 import numpy as np
@@ -11,11 +10,9 @@ from threading import Thread
 from programme import Program
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
-from Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
+from ..Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
 from Driver import Driver
-from Lidar import Lidar
-from Camera import Camera
-from ToF import ToF
+
 
 class Car:
     def __init__(self,driving_strategy, serveur):

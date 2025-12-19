@@ -38,8 +38,8 @@ class JpegCallback(Output):
 
 
 
-from Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
-from programme import Program
+from ..programme.Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
+from ..programme.programme import Program
 
 class ProgramStreamCamera(Program):
     def __init__(self,serveur):

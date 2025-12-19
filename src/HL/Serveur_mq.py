@@ -18,21 +18,21 @@ from gpiozero import LED, Button, Buzzer
 import textwrap
 import socket
 
-from get_ip import get_ip, check_ssh_connections
+from src.HL.programme.get_ip import check_ssh_connections
 import subprocess
-from Lidar import Lidar
-from Camera import Camera
-from ToF import ToF
+from src.HL.actionneur_capteur.Lidar import Lidar
+from src.HL.actionneur_capteur.Camera import Camera
+from src.HL.actionneur_capteur.ToF import ToF
 from Autotech_constant import SOCKET_ADRESS, SLAVE_ADDRESS
 
 #différent programme
 from scripts.commande_PS4 import PS4ControllerProgram
-from SshProgramme import SshProgramme
-from RemoteControl import RemoteControl
-from Poweroff import Poweroff
-from Camera import ProgramStreamCamera
-from module_initialisation import Initialisation
-from Car import Ai_Programme
+from src.HL.programme.SshProgramme import SshProgramme
+from src.HL.programme.RemoteControl import RemoteControl
+from src.HL.programme.Poweroff import Poweroff
+from src.HL.actionneur_capteur.Camera import ProgramStreamCamera
+from src.HL.programme.module_initialisation import Initialisation
+from src.HL.programme.Car import Ai_Programme
 
 serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial)

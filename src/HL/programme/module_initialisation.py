@@ -1,7 +1,7 @@
 
 from programme import Program
 import threading
-from Autotech_constant import SOCKET_ADRESS
+from ..Autotech_constant import SOCKET_ADRESS
 import logging as log
 class Initialisation(Program):
     def __init__(self, camera, lidar, tof):
