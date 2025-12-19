@@ -4,14 +4,13 @@ from typing import Optional
 
 """ classe type pour tout les programme """
 class Program:
-    name:str
-    controls_car:bool
+    controls_car:bool 
     running:bool
-    vitesse_d:Optional[float]
+    vitesse_d:Optional[float] # change me to target speed
     direction_d:Optional[float]
 
     def __init__(self):
-        self.logger = logging.getLogger()
+        self.logger = logging.getLogger(__name__)
         self.logger.setLevel(LOGGING_LEVEL)
 
     def kill(self):
@@ -21,8 +20,9 @@ class Program:
         pass
 
     def display(self):
+        name = self.__class__.__name__
         if (self.running):
-            return self.name + "\n" + "(running)"
+            return f"{name} \n (running)"
         else:
-            return self.name + "\n"
+            return name
     

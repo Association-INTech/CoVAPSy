@@ -8,6 +8,7 @@ class RemoteControl(Program):
     """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp"""
     def __init__(self):
         super().__init__()
+        self.log = logging.getLogger(__name__)
         self.name = "Remote Control"
         self.controls_car = True
         self.running = False
@@ -17,6 +18,8 @@ class RemoteControl(Program):
         #initialisation
         self.public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.public.bind(("0.0.0.0", 5556))
+
+        self.log.info("Initialisation de Remote control fini")
 
     def car_controle(self,sock):
         """ on regarde si il s'agit de lappelle pour le control interne 

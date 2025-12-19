@@ -2,10 +2,11 @@
 from src.HL.programme.programme import Program
 import threading
 from ..Autotech_constant import SOCKET_ADRESS
-import logging as log
+import logging
 class Initialisation(Program):
     def __init__(self, camera, lidar, tof):
         super().__init__()
+        self.log = logging.getLogger(__name__)
         self.name = "Initialisation:"
         self.camera = None
         self.lidar = None
@@ -23,37 +24,33 @@ class Initialisation(Program):
         try:
             self.camera = camera()
             self.camera_init = 1
+            self.log.info("Camera initialized successfully")
         except Exception as e:
             self.camera_init = 2
-            self.error += str(e)
-            print("-------------------------------------------")
-            print(self.error)
+            self.log.error("Camera init error : " + str(e))
     
     def init_lidar(self,lidar):
         try:
             self.lidar = lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
             self.lidar.stop()
             self.lidar.startContinuous(0, 1080)
-            log.info("Lidar initialized successfully")
+            self.log.info("Lidar initialized successfully")
             self.lidar_init = 1
         except Exception as e:
             self.lidar_init = 2
-            self.error += str(e)
-            print("-------------------------------------------")
-            print(self.error)
+            self.log.error("Lidar init error : " + str(e))
 
     def init_tof(self,tof):
         try:
             self.tof = tof()
             self.tof_init = 1
+            self.log.info("Camera initialized successfully")
         except Exception as e:
             self.tof_init = 2
-            self.error += str(e)
-            print("-------------------------------------------")
-            print(self.error)
+            self.log.error("Tof init error : " + str(e))
 
     def display(self):
-        text = self.name
+        text = "Initialisation:"
         
         text+= "\n camera: "
         if self.camera_init == 0:

@@ -4,7 +4,7 @@ import scipy as sp
 from scipy.special import softmax
 import numpy as np
 import onnxruntime as ort
-import logging as log
+import logging 
 
 from src.HL.Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Temperature
 
@@ -12,13 +12,14 @@ from src.HL.Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Tem
 
 class Driver:
     def __init__(self, context_size=0, horizontal_size=0):
+        self.log = logging.getLogger(__name__)
         self.context_size = context_size
         self.horizontal_size = horizontal_size
         self._loaded = False
         self.ai_session = None
         self.context = None
 
-        if log.getLogger().isEnabledFor(log.DEBUG):
+        if self.log.getLogger().isEnabledFor(self.log.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
             self.steering_bars = self.ax[0].bar(range(16), np.zeros(16), color='blue')
             self.steering_avg = [
@@ -51,11 +52,11 @@ class Driver:
     def load_model(self):
         if self._loaded:
             return
-        log.info("Chargement du modèle IA...")
+        self.log.info("Chargement du modèle IA...")
         self.ai_session = ort.InferenceSession(MODEL_PATH)
         self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32 )
         self._loaded = True
-        log.info("Modèle IA chargé")    
+        self.log.info("Modèle IA chargé")    
 
     def reset(self):
         self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32)
@@ -72,7 +73,7 @@ class Driver:
     def ai_update_lidar_camera(self, lidar_data, camera_data):
         if not self._loaded:
             raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
-        log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+        self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
 
         lidar_data = sp.ndimage.zoom(
             np.array(lidar_data, dtype=np.float32),
@@ -95,8 +96,8 @@ class Driver:
         vect_dir = softmax(vect_dir)  # distribution de probabilité
         vect_prop = softmax(vect_prop)
 
-        if log.getLogger().isEnabledFor(log.DEBUG):
-            log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+        if self.log.getLogger().isEnabledFor(log.DEBUG):
+            self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
             self.lidar_img.set_array(np.log(1 + self.context[0]))
             self.camera_img.set_array(self.context[1])
 

@@ -5,7 +5,7 @@ import cv2
 import time
 import threading
 import smbus
-import logging as log
+import logging
 import struct
 import os, signal
 
@@ -34,12 +34,7 @@ from src.HL.actionneur_capteur.Camera import ProgramStreamCamera
 from src.HL.programme.module_initialisation import Initialisation
 from src.HL.programme.Car import Ai_Programme
 
-serial = i2c(port=1, address=0x3C)
-device = ssd1306(serial)
-#on démarre les log
-log.basicConfig(level=log.INFO)
 
-bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
 
  #le nombre de donnée récupéré par l'i2c
 
@@ -59,15 +54,26 @@ telemetry.bind("tcp://0.0.0.0:5557")
 class Serveur():
 
     def __init__(self):
+        self.log = logging.getLogger(__name__)
         #initialisation des différents module qui tourne tout le temps
+        self.log.info("Initialisation du serveur")
 
+        
         self.bp_next = Button("GPIO5", bounce_time=0.1)
         self.bp_entre = Button("GPIO6", bounce_time=0.1)
 
         self.led1 = LED("GPIO17")
         self.led2 = LED("GPIO27")
         self.buzzer = Buzzer("GPIO26")
+        self.log.info("GPIO: boutons, LEDs, buzzer initialisés")
+
         self.remote_control = False # on initialise le remote control à False
+
+        
+        self.serial = i2c(port=1, address=0x3C)
+        self.device = ssd1306(self.serial)
+        self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
+        self.log.info("I2C: bus ouvert sur /dev/i2c-1")
 
         self.length_i2c_received = 3 #nombre de donnée à récupéré de l'arduino (voltage lipo, voltage nimh)
         
@@ -97,6 +103,7 @@ class Serveur():
         
 
         self.programme = [SshProgramme(), self.initialisation_module, Ai_Programme(self), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self), Poweroff()]
+        self.log.debug("Programmes chargés: %s", [p.name for p in self.programme])
 
         # donnée de l'écran
         self.Screen = 0
@@ -132,7 +139,7 @@ class Serveur():
             else:
                 draw.text((3, y), self.programme[i]["name"], fill="white", font=font)
 
-        with canvas(device) as display:
+        with canvas(self.device) as display:
             display.bitmap((0, 0), im, fill="white")
 
     def make_voltage_im(self):
@@ -161,7 +168,7 @@ class Serveur():
         voltage_im = self.make_voltage_im()
         im.paste(voltage_im, (0, 64 - TEXT_HEIGHT))
         
-        with canvas(device) as draw:
+        with canvas(self.device) as draw:
             draw.bitmap((0, 0), im, fill="white")
 
 
@@ -200,20 +207,21 @@ class Serveur():
     #---------------------------------------------------------------------------------------------------
     def i2c_loop(self):
         """Envoie vitesse/direction régulièrement au microcontroleur. (toute les frames actuellement)"""
-        print("lancement de l'i2c")
+        self.log.info("Thread I2C loop démarré")
         while True:
             try :
                 data = struct.pack('<ff', float(round(self.programme[self.last_programme_control].vitesse_d)), float(round(self.programme[self.last_programme_control].direction_d)))
-                bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+                self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
             except Exception as e:
-                print("i2c mort" + str(e))
+                self.log.error("Erreur I2C write: %s", e, exc_info=True)
                 time.sleep(1)
 
     def i2c_received(self):
         """récupére les informations de l'arduino"""
+        self.log.info("Thread I2C receive démarré")
         length = self.length_i2c_received * 4 
         while True:
-            data = bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
+            data = self.bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
             # Convert the byte data to a float
             if len(data) >= length:
                 float_values = struct.unpack('f' * self.length_i2c_received, bytes(data[:length]))
@@ -223,6 +231,8 @@ class Serveur():
                 self.voltage_lipo = list_valeur[0]
                 self.voltage_nimh = list_valeur[1]
                 self.vitesse_r = list_valeur[2]
+            else:
+                self.log.warning("I2C: taille inattendue (%d au lieu de %d)", len(data), length)
             time.sleep(0.1)
 
     def envoie_donnee(self, socket):
@@ -262,15 +272,33 @@ class Serveur():
         """lance le porgramme référencé avec son numéro:
         si il sagit d'un programme qui controle la voiture il kill lancient programme qui controlé,
         sinon le programme est lancé ou tué celon si il était déjà lancé ou tué avant"""
+        self.log.info("Action utilisateur: programme %d (%s)",
+            num_programme,
+            self.programme[num_programme].name)
         if self.programme[num_programme].running:
             self.programme[num_programme].kill()
             if self.programme[num_programme].controls_car:
                 self.last_programme_control = 0
+                self.log.warning(
+                "Changement de contrôle voiture: %s -> %s",
+                    type(self.programme[num_programme]).__name__,
+                    type(self.programme[self.last_programme_control]).__name__
+                )
+                
+            
+            self.log.info("Arrêt du programme %s",
+            self.programme[num_programme].name)
             
         elif self.programme[num_programme].controls_car:
             self.programme[self.last_programme_control].kill()
             self.programme[num_programme].start()
+            self.log.warning(
+                "Changement de contrôle voiture: %s -> %s",
+                    type(self.programme[self.last_programme_control]).__name__,
+                    type(self.programme[num_programme]).__name__
+                )
             self.last_programme_control = num_programme
+
         
         else:
             self.programme[num_programme].start()
@@ -293,7 +321,9 @@ class Serveur():
         threading.Thread(target=self.i2c_loop, daemon=True).start()
         threading.Thread(target=self.i2c_received, daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
-        
+
+        self.log.info("Serveur démarré, entrée dans la boucle principale")
+
         while True:
             self.Idle()
 
@@ -302,5 +332,25 @@ class Serveur():
 #---------------------------------------------------------------------------------------------------
 
 if __name__ == "__main__":
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        handlers=[
+        logging.FileHandler("/home/intech/CoVAPSy/covapsy.log"),
+        logging.StreamHandler()
+    ]
+
+    )
+    log_serveur = logging.getLogger("__main__")
+    log_serveur.setLevel(level=logging.DEBUG)
+
+    log_serveur = logging.getLogger("src.HL")
+    log_serveur.setLevel(level=logging.DEBUG)
+
+    log_lidar = logging.getLogger("src.HL.actionneur_capteur.Lidar")
+    log_lidar.setLevel(level=logging.INFO)
+
+    
     boot = Serveur()
     boot.main()

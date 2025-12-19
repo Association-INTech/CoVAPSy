@@ -5,7 +5,7 @@ class SshProgramme(Program):
     """montre le menu ssh de la voiture et si séléctionner comme programme force la vitesse et la direction à 0"""
     def __init__(self):
         super().__init__()
-        self.name = "Ssh to:" + get_ip()
+        self.ip = get_ip()
         self.running = True
         self.controls_car = True
 
@@ -20,7 +20,7 @@ class SshProgramme(Program):
         self.running = False
 
     def display(self):
-        text = self.name
+        text = "Ssh to:" + self.ip
         if check_ssh_connections():
             text+= "\n connecté"
         if self.running:

@@ -44,6 +44,7 @@ from src.HL.programme.programme import Program
 class ProgramStreamCamera(Program):
     def __init__(self,serveur):
         super().__init__()
+        self.log = logging.getLogger(__name__)
         self.name = "Streaming Video"
         self.serveur = serveur
         self.running = False
@@ -58,8 +59,9 @@ class ProgramStreamCamera(Program):
     def start(self):
         cam = self.camera
         if cam is None:
-            print("Camera not initialized yet")
+            self.log.error("Camera not initialized yet")
             return
+        
         self.running = True
         self.camera.start_stream()
     
@@ -94,7 +96,7 @@ class Camera:
     def _start_local_capture(self):
         self.picam2 = Picamera2()
         config = self.picam2.create_video_configuration(
-            main={"size": (1280, 720)},     # plus large, moins zoomé
+            main={"size": self.size},     # plus large, moins zoomé
             controls={"FrameRate": 30}       # FPS stable
         )
 

@@ -34,6 +34,9 @@ class StreamOutput(io.BufferedIOBase):
 
 
 class StreamHandler(server.BaseHTTPRequestHandler):
+    def __init__(self):
+        self.log = logging.getLogger(__name__)
+        
     def do_GET(self):
         if self.path != "/stream.mjpg":
             self.send_error(404)
@@ -63,7 +66,7 @@ class StreamHandler(server.BaseHTTPRequestHandler):
                 self.wfile.write(b"\r\n")
 
         except Exception as e:
-            logging.warning("Client disconnected: %s", e)
+            self.log.warning("Client disconnected: %s", e)
 
 
 class StreamServer(socketserver.ThreadingMixIn, server.HTTPServer):

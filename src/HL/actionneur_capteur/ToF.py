@@ -10,7 +10,7 @@ class ToF:
     """
 
     def __init__(self):
-        
+        self.log = logging.getLogger(__name__)
         i2c = busio.I2C(board.SCL, board.SDA)
         self.vl53 = VL53L0X(i2c)
         
@@ -22,6 +22,6 @@ class ToF:
             distance = self.vl53.range
             return distance
         except Exception as e:
-            logging.error(f"Error reading rear ToF sensor: {e}")
+            self.log.error(f"Error reading rear ToF sensor: {e}")
             return None
         
