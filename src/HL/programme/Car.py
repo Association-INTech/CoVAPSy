@@ -54,7 +54,7 @@ class Car:
     def stop(self):
         self.vitesse_d = 0
         self.direction_d = 0
-        log.info("Arrêt du moteur")
+        self.log.info("Arrêt du moteur")
         
 
     def has_Crashed(self):
@@ -64,7 +64,7 @@ class Car:
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             while self.tof.get_distance() < REAR_BACKUP_DIST:
-                log.info(f"Obstacle arriere détecté {self.tof.get_distance()}")
+                self.log.info(f"Obstacle arriere détecté {self.tof.get_distance()}")
                 self.vitesse_d = 0
                 time.sleep(0.1)
             return True
@@ -188,28 +188,28 @@ class Ai_Programme(Program):
 if __name__ == '__main__':
     Format= '%(asctime)s:%(name)s:%(levelname)s:%(message)s'
     if input("Appuyez sur D pour démarrer en debug ou sur n'importe quelle autre touche pour démarrer en mode normal") in ("D", "d"):
-        log.basicConfig(level=log.DEBUG, format=Format)
+        logging.basicConfig(level=logging.DEBUG, format=Format)
     else:
-        log.basicConfig(level=log.INFO, format=Format)
+        logging.basicConfig(level=logging.INFO, format=Format)
     bp2 = Button("GPIO6")
     try:
         Schumacher = Driver(128, 128)
         GR86 = Car(Schumacher,None,None)
         GR86._initialize_camera()
         GR86._initialize_lidar()
-        log.info("Initialisation terminée")
+        logging.info("Initialisation terminée")
         if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
-            log.info("Depart")
+            logging.info("Depart")
             while True:
                 GR86.main()
         else:
             raise Exception("Le programme a été arrêté par l'utilisateur")
     except KeyboardInterrupt:
         GR86.stop()
-        log.info("Le programme a été arrêté par l'utilisateur")
+        logging.info("Le programme a été arrêté par l'utilisateur")
 
     except Exception as e: # catch all exceptions to stop the car
         GR86.stop()
-        log.error("Erreur inconnue")
+        logging.error("Erreur inconnue")
         raise e # re-raise the exception to see the error message
     

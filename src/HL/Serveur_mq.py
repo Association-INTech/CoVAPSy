@@ -253,7 +253,7 @@ class Serveur():
             })
             elif info["cmd"] == "menu":
                 if info["menu"] in self.programme.key:
-                    start_process(self,info["menu"]) #lancement du menu reçue
+                    self.start_process(self,info["menu"]) #lancement du menu reçue
                     socket.send_json({"status":"ok"})
             elif info["get"] == "menu":
                 socket.send_json(self.programme)
@@ -351,6 +351,7 @@ if __name__ == "__main__":
     log_lidar = logging.getLogger("src.HL.actionneur_capteur.Lidar")
     log_lidar.setLevel(level=logging.INFO)
 
+    print([logging.getLogger(name) for name in logging.root.manager.loggerDict])
     
     boot = Serveur()
     boot.main()
