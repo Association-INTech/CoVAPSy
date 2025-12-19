@@ -11,7 +11,7 @@ from src.HL.programme.programme import Program
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from ..Autotech_constant import MAX_SOFT_SPEED, MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
-from Driver import Driver
+from src.HL.programme.scripts.Driver import Driver
 
 
 class Car:
