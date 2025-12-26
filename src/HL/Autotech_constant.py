@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-# controle de la voiture
+# Car control
 MAX_IA_SPEED = 2 # maximum speed for ia
 MIN_IA_SPEED = -2 # minimum speed for ia
 MAX_CONTROL_SPEED = 2 # maximum speed for controling devices
@@ -16,15 +16,16 @@ I2C_SLEEP_ERROR_LOOP = 1 # In seconds its the time bettween two try of i2C if an
 SLAVE_ADDRESS = 0x08 # Adresse of the arduino i2c port
 
 #Remote control
-PORT_REMOTE_CONTROL = 5556
+PORT_REMOTE_CONTROL = 5556 # Port to send data for remote control on <IP>:PORT_REMOTE_CONTROL
 
 #Camera
-PORT_STREAMING_CAMERA = 8000
+PORT_STREAMING_CAMERA = 8000 # adresse where to see the stream of the camera if activate is <IP>:PORT_STREAMIN_CAMERA/STREAM_PATH.jpeg
+STREAM_PATH = "stream"
 SIZE_CAMERA_X = 1280
 SIZE_CAMERA_Y = 720
-FRAME_RATE = 30
-CAMERA_QUALITY = 10 # the more the better but slow the speed of the stream
-STREAM_PATH = "stream"
+FRAME_RATE = 30 # frame rate of the camera
+CAMERA_QUALITY = 10 # the more the better but slow the speed of the stream (10 its passable)
+
 
 #Car
 CRASH_DIST = 110
