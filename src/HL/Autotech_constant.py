@@ -14,7 +14,8 @@ I2C_NUMBER_DATA_RECEIVED = 3 # the number of info data sent by the arduino
 I2C_SLEEP_RECEIVED = 0.1 # the time between two demand of info data to the arduino
 I2C_SLEEP_ERROR_LOOP = 1 # In seconds its the time bettween two try of i2C if an error occurd
 
-
+#Remote control
+PORT_REMOTE_CONTROL = 5556
 
 CRASH_DIST = 110
 REAR_BACKUP_DIST = 100  #mm Distance at which the car will NOT reverse due to the obstacle behind it

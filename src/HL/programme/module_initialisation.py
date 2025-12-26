@@ -7,7 +7,6 @@ class Initialisation(Program):
     def __init__(self, camera, lidar, tof):
         super().__init__()
         self.log = logging.getLogger(__name__)
-        self.name = "Initialisation:"
         self.camera = None
         self.lidar = None
         self.tof = None
@@ -50,9 +49,8 @@ class Initialisation(Program):
             self.log.error("Tof init error : " + str(e))
 
     def display(self):
-        text = "Initialisation:"
-        
-        text+= "\n camera: "
+
+        text = "\n camera: "
         if self.camera_init == 0:
             text += "(en cour)"
         elif self.camera_init == 1:

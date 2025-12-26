@@ -1,7 +1,7 @@
 import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 import time
 import struct
-
+from Autotech_constant import I2C_SLEEP_RECEIVED, I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_ERROR_LOOP
 # I2C address of the slave
 SLAVE_ADDRESS = 0x08
 
@@ -10,10 +10,8 @@ class I2c_arduino:
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
         self.vitesse_r = 0
-        self.length_i2c_received = 3
         self.send_running = True
         self.receive_running = True
-        self.time_between_received = 0.1
         
         #voltage des lipos
         self.voltage_lipo = 0
@@ -36,17 +34,17 @@ class I2c_arduino:
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
             except Exception as e:
                 self.log.error("Erreur I2C write: %s", e, exc_info=True)
-                time.sleep(1)
+                time.sleep(I2C_SLEEP_ERROR_LOOP)
 
     def start_received(self):
         """récupére les informations de l'arduino"""
         self.log.info("Thread I2C receive démarré")
-        length = self.length_i2c_received * 4 
+        length = I2C_NUMBER_DATA_RECEIVED * 4 
         while self.receive_running:
             data = self.bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
             # Convert the byte data to a float
             if len(data) >= length:
-                float_values = struct.unpack('f' * self.length_i2c_received, bytes(data[:length]))
+                float_values = struct.unpack('f' * I2C_NUMBER_DATA_RECEIVED, bytes(data[:length]))
                 list_valeur = list(float_values)
 
                 # on enregistre les valeur
@@ -55,4 +53,4 @@ class I2c_arduino:
                 self.vitesse_r = list_valeur[2]
             else:
                 self.log.warning("I2C: taille inattendue (%d au lieu de %d)", len(data), length)
-            time.sleep(self.time_between_received)
+            time.sleep(I2C_SLEEP_RECEIVED)

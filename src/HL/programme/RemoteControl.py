@@ -4,7 +4,7 @@ import socket
 import threading
 import time
 import logging 
-
+from src.HL.Autotech_constant import PORT_REMOTE_CONTROL
 class RemoteControl(Program):
     """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp"""
     def __init__(self):
@@ -18,13 +18,12 @@ class RemoteControl(Program):
     
         #initialisation
         self.public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.public.bind(("0.0.0.0", 5556))
+        self.public.bind(("0.0.0.0", PORT_REMOTE_CONTROL))
 
         self.log.info("Initialisation de Remote control fini")
 
     def car_controle(self,sock):
-        """ on regarde si il s'agit de lappelle pour le control interne 
-        (is_private) ou si on veux prendre le controle depuis le pc."""
+        """lance le controle depuis le pc."""
         sock.settimeout(0.1)
 
         while self.running:
