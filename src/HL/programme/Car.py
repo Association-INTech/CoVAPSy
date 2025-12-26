@@ -184,8 +184,8 @@ class Ai_Programme(Program):
         self.running = False
         self.GR86.stop()
 
-
-if __name__ == '__main__':
+"""
+if __name__ == '__main__': # non fonctionnelle
     Format= '%(asctime)s:%(name)s:%(levelname)s:%(message)s'
     if input("Appuyez sur D pour démarrer en debug ou sur n'importe quelle autre touche pour démarrer en mode normal") in ("D", "d"):
         logging.basicConfig(level=logging.DEBUG, format=Format)
@@ -212,4 +212,4 @@ if __name__ == '__main__':
         GR86.stop()
         logging.error("Erreur inconnue")
         raise e # re-raise the exception to see the error message
-    
+    """
