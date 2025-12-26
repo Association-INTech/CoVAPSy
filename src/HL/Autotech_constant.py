@@ -13,12 +13,24 @@ MAX_ANGLE = 18 # angle between the two extrem position
 I2C_NUMBER_DATA_RECEIVED = 3 # the number of info data sent by the arduino
 I2C_SLEEP_RECEIVED = 0.1 # the time between two demand of info data to the arduino
 I2C_SLEEP_ERROR_LOOP = 1 # In seconds its the time bettween two try of i2C if an error occurd
+SLAVE_ADDRESS = 0x08 # Adresse of the arduino i2c port
 
 #Remote control
 PORT_REMOTE_CONTROL = 5556
 
+#Camera
+PORT_STREAMING_CAMERA = 8000
+SIZE_CAMERA_X = 1280
+SIZE_CAMERA_Y = 720
+FRAME_RATE = 30
+CAMERA_QUALITY = 10 # the more the better but slow the speed of the stream
+STREAM_PATH = "stream"
+
+#Car
 CRASH_DIST = 110
 REAR_BACKUP_DIST = 100  #mm Distance at which the car will NOT reverse due to the obstacle behind it
+
+#Lidar
 LIDAR_DATA_AMPLITUDE = 1
 LIDAR_DATA_SIGMA = 45
 LIDAR_DATA_OFFSET = 0.5
@@ -26,7 +38,7 @@ LIDAR_DATA_OFFSET = 0.5
 script_dir = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(script_dir, "model_CNN1D.onnx")  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
 
-SLAVE_ADDRESS = 0x08
+
 SOCKET_ADRESS = {
     "IP": '192.168.0.10',
     "PORT": 10940
