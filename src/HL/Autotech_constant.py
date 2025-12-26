@@ -1,9 +1,21 @@
 import os
 import numpy as np
 
-MAX_SOFT_SPEED = 6 # en metre par secondes
-MIN_SOFT_SPEED = -4
-MAX_ANGLE = 18
+# controle de la voiture
+MAX_IA_SPEED = 2 # maximum speed for ia
+MIN_IA_SPEED = -2 # minimum speed for ia
+MAX_CONTROL_SPEED = 2 # maximum speed for controling devices
+MIN_CONTROL_SPEED = -2 # minimum speed for controlig devices
+MAX_ANGLE = 18 # angle between the two extrem position
+
+
+#I2C
+I2C_NUMBER_DATA_RECEIVED = 3 # the number of info data sent by the arduino
+I2C_SLEEP_RECEIVED = 0.1 # the time between two demand of info data to the arduino
+I2C_SLEEP_ERROR_LOOP = 1 # In seconds its the time bettween two try of i2C if an error occurd
+
+
+
 CRASH_DIST = 110
 REAR_BACKUP_DIST = 100  #mm Distance at which the car will NOT reverse due to the obstacle behind it
 LIDAR_DATA_AMPLITUDE = 1

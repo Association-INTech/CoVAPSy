@@ -33,7 +33,7 @@ from src.HL.actionneur_capteur.Camera import ProgramStreamCamera
 from src.HL.programme.module_initialisation import Initialisation
 from src.HL.programme.Car import Ai_Programme
 
-
+from Autotech_constant import I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_RECEIVED, I2C_SLEEP_ERROR_LOOP
 
  #le nombre de donnée récupéré par l'i2c
 
@@ -65,16 +65,13 @@ class Serveur():
         self.led2 = LED("GPIO27")
         self.buzzer = Buzzer("GPIO26")
         self.log.info("GPIO: boutons, LEDs, buzzer initialisés")
-
-        self.remote_control = False # on initialise le remote control à False
-
         
         self.serial = i2c(port=1, address=0x3C)
         self.device = ssd1306(self.serial)
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
         self.log.info("I2C: bus ouvert sur /dev/i2c-1")
 
-        self.length_i2c_received = 3 #nombre de donnée à récupéré de l'arduino (voltage lipo, voltage nimh)
+        self.length_i2c_received = I2C_NUMBER_DATA_RECEIVED #nombre de donnée à récupéré de l'arduino (voltage lipo, voltage nimh)
         
         # initialisation des donnnée de la voiture
         self.vitesse_d = 0 #vitesse demandé par le programme
@@ -84,8 +81,6 @@ class Serveur():
         self.voltage_lipo = 0
         self.voltage_nimh = 0
         self.vitesse_r = 0 #vitesse réel de la voiture
-
-        self.camera_reverse = True
 
         # initialisation des commande de temps
         self.initial_time = time.time()
@@ -213,7 +208,7 @@ class Serveur():
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
             except Exception as e:
                 self.log.error("Erreur I2C write: %s", e, exc_info=True)
-                time.sleep(1)
+                time.sleep(I2C_SLEEP_RECEIVED)
 
     def i2c_received(self):
         """récupére les informations de l'arduino"""
@@ -232,7 +227,7 @@ class Serveur():
                 self.vitesse_r = list_valeur[2]
             else:
                 self.log.warning("I2C: taille inattendue (%d au lieu de %d)", len(data), length)
-            time.sleep(0.1)
+            time.sleep(I2C_SLEEP_ERROR_LOOP)
 
     def envoie_donnee(self, socket):
         """ on regarde si il s'agit de lappelle pour le control interne 
@@ -350,7 +345,5 @@ if __name__ == "__main__":
     log_lidar = logging.getLogger("src.HL.actionneur_capteur.Lidar")
     log_lidar.setLevel(level=logging.INFO)
 
-    print([logging.getLogger(name) for name in logging.root.manager.loggerDict])
-    
     boot = Serveur()
     boot.main()
