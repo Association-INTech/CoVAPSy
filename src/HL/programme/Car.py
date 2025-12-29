@@ -130,8 +130,6 @@ class Ai_Programme(Program):
     def __init__(self, serveur):
         super().__init__()
         self.log = logging.getLogger(__name__)
-        self.name = "IA autonome"
-        
         self.serveur = serveur
         self.driver = None
         self.GR86 = None

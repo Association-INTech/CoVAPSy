@@ -3,6 +3,7 @@ from src.HL.programme.programme import Program
 import threading
 from ..Autotech_constant import SOCKET_ADRESS
 import logging
+
 class Initialisation(Program):
     def __init__(self, camera, lidar, tof):
         super().__init__()
@@ -13,7 +14,7 @@ class Initialisation(Program):
         self.camera_init = 0
         self.lidar_init = 0
         self.tof_init = 0
-        self.error = ""
+
         threading.Thread(target=self.init_camera, args=(camera,), daemon=True).start()
         threading.Thread(target=self.init_lidar, args=(lidar,), daemon=True).start()
         threading.Thread(target=self.init_tof, args=(tof,), daemon=True).start()

@@ -33,17 +33,8 @@ from src.HL.actionneur_capteur.Camera import ProgramStreamCamera
 from src.HL.programme.module_initialisation import Initialisation
 from src.HL.programme.Car import Ai_Programme
 
-from Autotech_constant import I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_RECEIVED, I2C_SLEEP_ERROR_LOOP
+from Autotech_constant import I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_RECEIVED, I2C_SLEEP_ERROR_LOOP, TEXT_HEIGHT, TEXT_LEFT_OFFSET
 
- #le nombre de donnée récupéré par l'i2c
-
-
-TEXT_HEIGHT = 11
-TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
-
-
-private = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-private.bind(("127.0.0.1", 5555))
 
 # on utilise tcp pour les infos des différents informations
 telemetry = context.socket(zmq.REP)
@@ -57,7 +48,7 @@ class Serveur():
         #initialisation des différents module qui tourne tout le temps
         self.log.info("Initialisation du serveur")
 
-        
+        # initialisation des boutons et de l'i2c
         self.bp_next = Button("GPIO5", bounce_time=0.1)
         self.bp_entre = Button("GPIO6", bounce_time=0.1)
 
@@ -94,8 +85,6 @@ class Serveur():
 
         self.initialisation_module = Initialisation(Camera,Lidar,ToF)
         
-        
-
         self.programme = [SshProgramme(), self.initialisation_module, Ai_Programme(self), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self), Poweroff()]
         self.log.debug("Programmes chargés: %s", [type(p).__name__ for p in self.programme])
 
@@ -268,7 +257,7 @@ class Serveur():
         sinon le programme est lancé ou tué celon si il était déjà lancé ou tué avant"""
         self.log.info("Action utilisateur: programme %d (%s)",
             num_programme,
-            self.programme[num_programme].name)
+            type(self.programme[num_programme]).__name__)
         if self.programme[num_programme].running:
             self.programme[num_programme].kill()
             if self.programme[num_programme].controls_car:
@@ -281,7 +270,7 @@ class Serveur():
                 
             
             self.log.info("Arrêt du programme %s",
-            self.programme[num_programme].name)
+            type(self.programme[num_programme]).__name__)
             
         elif self.programme[num_programme].controls_car:
             self.programme[self.last_programme_control].kill()

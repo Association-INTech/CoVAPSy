@@ -1,9 +1,7 @@
 import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 import time
 import struct
-from Autotech_constant import I2C_SLEEP_RECEIVED, I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_ERROR_LOOP
-# I2C address of the slave
-SLAVE_ADDRESS = 0x08
+from Autotech_constant import I2C_SLEEP_RECEIVED, I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_ERROR_LOOP, SLAVE_ADDRESS
 
 class I2c_arduino:
     def __init__(self,serveur):

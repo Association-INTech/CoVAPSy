@@ -6,11 +6,11 @@ import time
 import logging 
 from src.HL.Autotech_constant import PORT_REMOTE_CONTROL
 class RemoteControl(Program):
-    """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp"""
+    """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp
+     on peut prendre le controle avec le script remote_controle_controller.py"""
     def __init__(self):
         super().__init__()
         self.log = logging.getLogger(__name__)
-        self.name = "Remote Control"
         self.controls_car = True
         self.running = False
         self.vitesse_d = 0

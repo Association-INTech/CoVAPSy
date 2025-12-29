@@ -47,7 +47,6 @@ class ProgramStreamCamera(Program):
     def __init__(self,serveur):
         super().__init__()
         self.log = logging.getLogger(__name__)
-        self.name = "Streaming Video"
         self.serveur = serveur
         self.running = False
         self.controls_car = False

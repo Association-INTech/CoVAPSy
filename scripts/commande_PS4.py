@@ -42,7 +42,6 @@ class PS4ControllerProgram(Program):
     def __init__(self):
         super().__init__()
         self.log = logging.getLogger(__name__)
-        self.name = "PS4 Controller"
         self.running = False
         self.controls_car = True
 

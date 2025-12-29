@@ -7,7 +7,6 @@ class Poweroff(Program):
     def __init__(self):
         super().__init__()
         self.log = logging.getLogger(__name__)
-        self.name = "Power off"
         self.controls_car = False
         self.running = False
 

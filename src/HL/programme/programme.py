@@ -4,10 +4,10 @@ from typing import Optional
 
 """ classe type pour tout les programme """
 class Program:
-    controls_car:bool 
-    running:bool
-    vitesse_d:Optional[float] # change me to target speed
-    direction_d:Optional[float]
+    controls_car:bool # correspond si le programme cotronle la voiture ou non pour savoir si il faut arreter l'ancien programme qui controle la voiture
+    running:bool # état de base du programme (au lancement de la voiture)
+    vitesse_d:Optional[float] # target speed
+    direction_d:Optional[float] # target direction
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
