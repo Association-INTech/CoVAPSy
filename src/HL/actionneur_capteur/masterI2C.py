@@ -2,6 +2,8 @@ import smbus #type: ignore #ignore the module could not be resolved error becaus
 import time
 import struct
 from Autotech_constant import I2C_SLEEP_RECEIVED, I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_ERROR_LOOP, SLAVE_ADDRESS
+import logging
+import threading
 
 class I2c_arduino:
     def __init__(self,serveur):
@@ -19,16 +21,18 @@ class I2c_arduino:
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
         self.log.info("I2C: bus ouvert sur /dev/i2c-1")
 
+        time.sleep(0.5)  # Give some time for the bus to settle
+
         #initialization of i2c send and received
-        threading.Thread(target=self.start_send(), daemon=True).start()
-        threading.Thread(target=self.start_received(), daemon=True).start()
+        threading.Thread(target=self.start_send, daemon=True).start()
+        threading.Thread(target=self.start_received, daemon=True).start()
     
     def start_send(self):
         """Envoie vitesse/direction régulièrement au microcontroleur. (toute les frames actuellement)"""
         self.log.info("Thread I2C loop démarré")
         while self.send_running:
             try :
-                data = struct.pack('<ff', float(round(self.serveur.programme[self.serveur.last_programme_control].vitesse_d)), float(round(self.serveur.programme[self.last_programme_control].direction_d)))
+                data = struct.pack('<ff', float(round(self.serveur.programme[self.serveur.last_programme_control].vitesse_d)), float(round(self.serveur.programme[self.serveur.last_programme_control].direction_d)))
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
             except Exception as e:
                 self.log.error("Erreur I2C write: %s", e, exc_info=True)

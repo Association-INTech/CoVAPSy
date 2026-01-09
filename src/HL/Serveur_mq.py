@@ -22,6 +22,7 @@ import subprocess
 from src.HL.actionneur_capteur.Lidar import Lidar
 from src.HL.actionneur_capteur.Camera import Camera
 from src.HL.actionneur_capteur.ToF import ToF
+from HL.actionneur_capteur.masterI2C import I2c_arduino
 from Autotech_constant import SOCKET_ADRESS, SLAVE_ADDRESS
 
 #différent programme
@@ -83,7 +84,7 @@ class Serveur():
         self.process = None
         self.temp = None
 
-        self.initialisation_module = Initialisation(Camera,Lidar,ToF)
+        self.initialisation_module = Initialisation(self,Camera,Lidar,ToF, I2c_arduino)
         
         self.programme = [SshProgramme(), self.initialisation_module, Ai_Programme(self), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self), Poweroff()]
         self.log.debug("Programmes chargés: %s", [type(p).__name__ for p in self.programme])
@@ -105,6 +106,10 @@ class Serveur():
     @property
     def tof(self):
         return self.initialisation_module.tof
+
+    @property
+    def arduino_I2C(self):
+        return self.initialisation_module.arduino_I2C
     #-----------------------------------------------------------------------------------------------------
     # affichage de l'écrans
     #-----------------------------------------------------------------------------------------------------
@@ -127,8 +132,11 @@ class Serveur():
 
     def make_voltage_im(self):
         """crée l'image de la derniére ligne qui affiche le voltage des deux batterie de la pi en temps réel"""
-        
-        received = [self.voltage_lipo , self.voltage_nimh]
+        if self.arduino_I2C is not None:
+            received = [self.arduino_I2C.voltage_lipo , self.arduino_I2C.voltage_nimh]
+        else:
+            received = [0.0, 0.0]
+
         # filter out values below 6V and round to 2 decimal places
         received = [round(elem, 2) if elem > 6 else 0.0 for elem in received]
         text = f"LiP:{received[0]:.2f}V|NiH:{received[1]:.2f}V"
@@ -301,8 +309,8 @@ class Serveur():
         self.bp_next.when_pressed = self.bouton_next
         self.bp_entre.when_pressed = self.bouton_entre
 
-        threading.Thread(target=self.i2c_loop, daemon=True).start()
-        threading.Thread(target=self.i2c_received, daemon=True).start()
+        #threading.Thread(target=self.i2c_loop, daemon=True).start()
+        #threading.Thread(target=self.i2c_received, daemon=True).start()
         threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
 
         self.log.info("Serveur démarré, entrée dans la boucle principale")
