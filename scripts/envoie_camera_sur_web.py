@@ -91,7 +91,7 @@ if __name__ = "__name__":
 
     try:
         # Set up and start the streaming server
-        address = ('', 8000)
+        address = ('0.0.0.0', 8000)
         server = StreamingServer(address, StreamingHandler)
         server.serve_forever()
     finally:
