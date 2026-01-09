@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import logging
 
 # Car control
 MAX_IA_SPEED = 2 # maximum speed for ia
@@ -57,5 +58,5 @@ Temperature = 0.7 # Temperature parameter for softmax function, used to control 
 # the higher the temperature the more unprobalbe actions become probable, the lower the temperature the more probable actions become probable.
 # In our case Higher temperature means less agressive driving and lower temperature means more aggressive driving.
 
-import logging
+
 LOGGING_LEVEL = logging.DEBUG # can be either NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
