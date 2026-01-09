@@ -8,6 +8,7 @@ import threading
 import shutil
 import scipy as sp
 import time
+import logging
 
 from picamera2 import Picamera2
 from picamera2.encoders import JpegEncoder
@@ -38,13 +39,14 @@ class JpegCallback(Output):
 
 
 
-from Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
-from programme import Program
+from src.HL.programme.Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
+from src.HL.programme.programme import Program
+from src.HL.Autotech_constant import PORT_STREAMING_CAMERA, SIZE_CAMERA_X, SIZE_CAMERA_Y, FRAME_RATE, CAMERA_QUALITY, STREAM_PATH
 
 class ProgramStreamCamera(Program):
     def __init__(self,serveur):
         super().__init__()
-        self.name = "Streaming Video"
+        self.log = logging.getLogger(__name__)
         self.serveur = serveur
         self.running = False
         self.controls_car = False
@@ -58,8 +60,9 @@ class ProgramStreamCamera(Program):
     def start(self):
         cam = self.camera
         if cam is None:
-            print("Camera not initialized yet")
+            self.log.error("Camera not initialized yet")
             return
+        
         self.running = True
         self.camera.start_stream()
     
@@ -71,7 +74,7 @@ class ProgramStreamCamera(Program):
 
 
 class Camera:
-    def __init__(self, size=(1280, 720), port=8000):
+    def __init__(self, size=(SIZE_CAMERA_X, SIZE_CAMERA_Y), port=PORT_STREAMING_CAMERA):
         self.size = size
         self.port = port
 
@@ -94,15 +97,15 @@ class Camera:
     def _start_local_capture(self):
         self.picam2 = Picamera2()
         config = self.picam2.create_video_configuration(
-            main={"size": (1280, 720)},     # plus large, moins zoomé
-            controls={"FrameRate": 30}       # FPS stable
+            main={"size": self.size},     # plus large, moins zoomé
+            controls={"FrameRate": FRAME_RATE}       # FPS stable
         )
 
         self.picam2.configure(config)
         self.output = StreamOutput()
 
         # Qualité JPEG custom
-        self.picam2.start_recording(JpegEncoder(q=10), FileOutput(self.output))
+        self.picam2.start_recording(JpegEncoder(q=CAMERA_QUALITY), FileOutput(self.output))
 
         # thread lecture last_frame
         self.capture_thread = threading.Thread(
@@ -135,7 +138,7 @@ class Camera:
         self.httpd = StreamServer(("", self.port), StreamHandler)
 
         def run_server():
-            print(f"[INFO] MJPEG stream on http://<IP>:{self.port}/stream.mjpg")
+            print(f"[INFO] MJPEG stream on http://<IP>:{self.port}/{STREAM_PATH}.mjpg")
             try:
                 self.httpd.serve_forever()
             except Exception as e:

@@ -6,7 +6,7 @@ import socketserver
 from threading import Condition
 streaming_enabled = True
 
-from Camera_serv import streaming_enabled
+from src.HL.programme.Camera_serv import streaming_enabled
 
 class FrameBuffer:
     def __init__(self):
@@ -34,6 +34,12 @@ class StreamOutput(io.BufferedIOBase):
 
 
 class StreamHandler(server.BaseHTTPRequestHandler):
+    def __init__(self):
+        self.log = logging.getLogger(__name__)
+    
+    def log_message(self, format, *args):
+        logging.getLogger(__name__).info(format % args)
+        
     def do_GET(self):
         if self.path != "/stream.mjpg":
             self.send_error(404)
@@ -63,7 +69,7 @@ class StreamHandler(server.BaseHTTPRequestHandler):
                 self.wfile.write(b"\r\n")
 
         except Exception as e:
-            logging.warning("Client disconnected: %s", e)
+            self.log.warning("Client disconnected: %s", e)
 
 
 class StreamServer(socketserver.ThreadingMixIn, server.HTTPServer):

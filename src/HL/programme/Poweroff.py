@@ -1,11 +1,12 @@
 import subprocess
 import os
-from programme import Program
+from src.HL.programme.programme import Program
+import logging
 
 class Poweroff(Program):
     def __init__(self):
         super().__init__()
-        self.name = "Power off"
+        self.log = logging.getLogger(__name__)
         self.controls_car = False
         self.running = False
 
@@ -13,6 +14,7 @@ class Poweroff(Program):
         pass
 
     def start(self):
+        self.log("Power off started")
         subprocess.Popen(
                 "sudo poweroff",
                 shell=True,

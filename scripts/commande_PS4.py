@@ -2,8 +2,9 @@ from pyPS4Controller.controller import Controller
 import time
 import os
 from threading import Thread
-from programme import Program
+from src.HL.programme.programme import Program
 from src.HL.Autotech_constant import MAX_ANGLE
+import logging
 ###################################################
 #Intialisation du protocole zmq
 ##################################################
@@ -40,7 +41,7 @@ class PS4ControllerProgram(Program):
 
     def __init__(self):
         super().__init__()
-        self.name = "PS4 Controller"
+        self.log = logging.getLogger(__name__)
         self.running = False
         self.controls_car = True
 
@@ -74,6 +75,7 @@ class MyController(Controller):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self.log = logging.getLogger(__name__)
         self.vitesse_mms = 0 # vitesse initiale en métre par milliseconde
         self.direction_d = 0 # angle initiale des roues en degrés
         self.filtered = 0
