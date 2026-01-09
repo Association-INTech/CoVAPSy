@@ -38,62 +38,66 @@ def set_vitesse_m_ms(vit):
     global vitesse_m
     vitesse_m = vit
 
-###################################################
-# Init pygame + manette
-###################################################
-pygame.init()
-pygame.joystick.init()
 
-if pygame.joystick.get_count() == 0:
-    print("Aucune manette détectée")
-    exit(1)
+if __name__ == "__main__":
+        
 
-joy = pygame.joystick.Joystick(0)
-joy.init()
-print("Manette détectée:", joy.get_name())
+    ###################################################
+    # Init pygame + manette
+    ###################################################
+    pygame.init()
+    pygame.joystick.init()
 
-###################################################
-# Boucle principale
-###################################################
-Thread(target=envoie_donnee, daemon=True).start()
+    if pygame.joystick.get_count() == 0:
+        print("Aucune manette détectée")
+        exit(1)
 
-try:
-    while True:
-        pygame.event.pump()
+    joy = pygame.joystick.Joystick(0)
+    joy.init()
+    print("Manette détectée:", joy.get_name())
 
-        # Axes :
-        # Pour Xbox/PS4 USB :
-        # L2 = axis 2   (souvent 0..1)
-        # R2 = axis 5   (souvent 0..1)
-        # Stick gauche horizontal = axis 0 (-1..1)
+    ###################################################
+    # Boucle principale
+    ###################################################
+    Thread(target=envoie_donnee, daemon=True).start()
 
-        axis_lx = joy.get_axis(0)         # Gauche droite
-        axis_l2 = joy.get_axis(2)         # Accélération inverse
-        axis_r2 = joy.get_axis(5)         # Accélération
+    try:
+        while True:
+            pygame.event.pump()
 
-        # Direction
-        direction = map_range(axis_lx, -1, 1, -angle_degre_max, angle_degre_max)
-        set_direction_degre(round(direction))
+            # Axes :
+            # Pour Xbox/PS4 USB :
+            # L2 = axis 2   (souvent 0..1)
+            # R2 = axis 5   (souvent 0..1)
+            # Stick gauche horizontal = axis 0 (-1..1)
 
-        # Accélération
-        accel = (axis_r2 + 1)/2
-        brake = (axis_l2 + 1)/2
+            axis_lx = joy.get_axis(0)         # Gauche droite
+            axis_l2 = joy.get_axis(2)         # Accélération inverse
+            axis_r2 = joy.get_axis(5)         # Accélération
 
-        # Certaines manettes vont de -1..1, d'autres 0..1
+            # Direction
+            direction = map_range(axis_lx, -1, 1, -angle_degre_max, angle_degre_max)
+            set_direction_degre(round(direction))
 
-        # Avant
-        if accel > 0.05:
-            vit = accel * vitesse_max_m_s_soft * 1000
-            set_vitesse_m_ms(round(vit))
+            # Accélération
+            accel = (axis_r2 + 1)/2
+            brake = (axis_l2 + 1)/2
 
-        # Arrière
-        elif brake > 0.05:
-            vit = brake * vitesse_min_m_s_soft * 1000
-            set_vitesse_m_ms(round(vit))
-        else :
-            set_vitesse_m_ms(0)
-        time.sleep(0.01)
+            # Certaines manettes vont de -1..1, d'autres 0..1
 
-except KeyboardInterrupt:
-    print("Fin du programme.")
-    pygame.quit()
+            # Avant
+            if accel > 0.05:
+                vit = accel * vitesse_max_m_s_soft * 1000
+                set_vitesse_m_ms(round(vit))
+
+            # Arrière
+            elif brake > 0.05:
+                vit = brake * vitesse_min_m_s_soft * 1000
+                set_vitesse_m_ms(round(vit))
+            else :
+                set_vitesse_m_ms(0)
+            time.sleep(0.01)
+
+    except KeyboardInterrupt:
+        print("Fin du programme.")
+        pygame.quit()
