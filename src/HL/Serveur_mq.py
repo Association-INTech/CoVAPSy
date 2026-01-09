@@ -22,7 +22,7 @@ import subprocess
 from src.HL.actionneur_capteur.Lidar import Lidar
 from src.HL.actionneur_capteur.Camera import Camera
 from src.HL.actionneur_capteur.ToF import ToF
-from HL.actionneur_capteur.masterI2C import I2c_arduino
+from src.HL.actionneur_capteur.masterI2C import I2c_arduino
 from Autotech_constant import SOCKET_ADRESS, SLAVE_ADDRESS
 
 #différent programme
