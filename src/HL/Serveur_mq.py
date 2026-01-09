@@ -311,7 +311,7 @@ class Serveur():
 
         #threading.Thread(target=self.i2c_loop, daemon=True).start()
         #threading.Thread(target=self.i2c_received, daemon=True).start()
-        threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
+        #threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
 
         self.log.info("Serveur démarré, entrée dans la boucle principale")
 

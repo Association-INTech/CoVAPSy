@@ -87,7 +87,7 @@ class Initialisation(Program):
         elif self.tof_init == 2:
             text += "error"
 
-        text+= "\n I2C Arduino:"
+        text+= "\n Arduino:"
         if self.arduino_I2C_init == 0:
             text += "(en cour)"
         elif self.arduino_I2C_init == 1:
