@@ -74,3 +74,9 @@ def test_onnx(model):
     model.policy.to(device)
     model.policy.train()
 
+
+def run_onnx_model(session : ort.InferenceSession,x : np.ndarray):
+
+    return session.run(None, {"input": x})[0]
+
+
