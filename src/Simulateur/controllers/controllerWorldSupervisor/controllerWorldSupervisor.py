@@ -129,17 +129,22 @@ class WebotsVehicleManager:
     # returns the lidar data of all vehicles
     def observe(self):
         # gets from Vehicle
-
-        return np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize * (n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution)), dtype=np.float32)
+        log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : we observe")
+        obs = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize * (n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution)), dtype=np.float32)
+        log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : observing {obs=}")
+        return obs
+    
 
     # reset the gym environment reset
     def reset(self, seed=None):
+        log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : trying to reset vehicle")
         # this has to be done otherwise thec cars will shiver for a while sometimes when respawning and idk why
         if supervisor.getTime() - self.last_reset >= 1e-1:
+            log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : getting info")
             self.last_reset = supervisor.getTime()
 
             vehicle = supervisor.getFromDef(f"TT02_{self.vehicle_rank}")
-
+            log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : resetting all")
             self.checkpoint_manager.reset(seed)
             trans = self.checkpoint_manager.getTranslation()
             rot = self.checkpoint_manager.getRotation()
@@ -149,8 +154,9 @@ class WebotsVehicleManager:
             self.checkpoint_manager.update()
 
             vehicle.resetPhysics()
+            log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : ok it's cooooooooool")
 
-        obs = self.observe()
+        obs = np.zeros(n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution, dtype=np.float32)
         info = {}
         log(f"CLIENT{simulation_rank}/{self.vehicle_rank} : reset over")
         return obs, info
@@ -162,8 +168,9 @@ class WebotsVehicleManager:
 
         # we should add a beacon sensor pointing upwards to detect the beacon
         obs = self.observe()
+        log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : observed {obs=}")
         sensor_data = obs[:n_sensors]
-
+        log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : sensor data {sensor_data=}")
         reward = 0
         done = np.False_
         truncated = np.False_
@@ -171,6 +178,7 @@ class WebotsVehicleManager:
         x, y, z = self.translation_field.getSFVec3f()
         b_past_checkpoint = self.checkpoint_manager.update(x, y)
         b_collided, = sensor_data # unpack sensor data
+        log(f"SUPERVISOR{simulation_rank}/{self.vehicle_rank} : be_collided {b_collided=}")
 
         if b_collided or (z < -10):
             #print(f"CLIENT{simulation_rank}/{self.vehicle_rank} : {b_collided=}, {z=}")
@@ -216,7 +224,7 @@ def main():
         #Prédiction pour séléctionner une action à partir de l"observation
         for e in envs:
             obs, reward, done, truncated, info = e.step()
-            if done:
+            if  done:
                 obs, info = e.reset()
 
             log(f"SUPERVISOR{simulation_rank}/{e.vehicle_rank} : sending {obs=}")
@@ -228,6 +236,8 @@ def main():
             log(f"SUPERVISOR{simulation_rank}/{e.vehicle_rank} : sending {truncated=}")
             e.fifo_w.write(truncated.tobytes())
             e.fifo_w.flush()
+
+            
 
 
         for i in range(n_stupid_vehicles):

@@ -18,6 +18,8 @@ class WebotsSimulationGymEnvironment(gym.Env):
     """
 
     def __init__(self, simulation_rank: int, vehicle_rank: int):
+
+        log("vvvvvvvvvvvvvvvvvvvvvvvvvv Initialisation vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
         super().__init__()
         self.simulation_rank = simulation_rank
         self.vehicle_rank = vehicle_rank
@@ -39,16 +41,17 @@ class WebotsSimulationGymEnvironment(gym.Env):
         os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}tosupervisor.pipe")
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
-        os.system(f"""
-            webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % n_map}.wbt --mode=fast --minimize --no-rendering --batch --stdout &
-            echo $! {simulation_rank}_{vehicle_rank} >>/tmp/autotech/simulationranks
-        """)
+        if vehicle_rank == 0 :
+            os.system(f"""
+                webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % n_map}.wbt --mode=fast --minimize --batch --stdout &
+                echo $! {simulation_rank}_{vehicle_rank} >>/tmp/autotech/simulationranks
+            """)
         log(f"SERVER{simulation_rank}_{vehicle_rank} : serverto{simulation_rank}_{vehicle_rank}.pipe")
         self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe", "wb")
         log(f"SERVER{simulation_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}toserver.pipe")
         self.fifo_r = open(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb")
         
-        log("-------------------------------------------------------------------")
+        log("----------------------------- Inititalisation ---------------------------------")
 
     def reset(self, seed=0):
         # basically useless function
@@ -61,6 +64,8 @@ class WebotsSimulationGymEnvironment(gym.Env):
         return obs, info
 
     def step(self, action):
+
+        log("vvvvvvvvvvvvvvvvvvvvvvvvvv STEP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
         log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : sending {action=}")
         self.fifo_w.write(action.tobytes())
         self.fifo_w.flush()
@@ -88,6 +93,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
         ], axis=1)
 
         log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : step over")
+        log("----------------------------- STEP ---------------------------------")
 
         return obs, reward, done, truncated, info
 

@@ -109,7 +109,11 @@ class VehicleDriver(Driver):
         # sends observation to the supervisor
 
         # First to be executed
-        self.fifo_w.write(self.observe().tobytes())
+        log(f"CLIENT{self.simulation_rank}/{self.i} : trying to write obs")
+        obs = self.observe()
+        log(f"CLIENT{self.simulation_rank}/{self.i} : driver sending {obs=}")
+        self.fifo_w.write(obs.tobytes())
+        self.fifo_w.flush() 
         
         log(f"CLIENT{self.simulation_rank}/{self.i} : trying to read from fifo")    
         action = np.frombuffer(self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64)
