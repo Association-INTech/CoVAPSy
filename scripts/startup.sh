@@ -9,6 +9,7 @@ export PYTHONPATH=$PYTHONPATH:/home/intech/CoVAPSy
 cd /home/intech/CoVAPSy
 
 # Pull the latest changes from the repository
+git reset --hard
 git pull 
 
 uv sync --extra rpi
