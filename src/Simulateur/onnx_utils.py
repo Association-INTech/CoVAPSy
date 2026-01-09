@@ -3,7 +3,7 @@ from stable_baselines3 import PPO
 import torch.nn as nn
 import torch
 from config import *
-
+import numpy as np
 from CNN1DExtractor import CNN1DExtractor
 from TemporalResNetExtractor import TemporalResNetExtractor
 
