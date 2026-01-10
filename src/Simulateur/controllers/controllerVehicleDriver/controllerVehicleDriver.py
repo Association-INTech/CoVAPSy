@@ -4,6 +4,7 @@ import time
 import os
 import re 
 import sys
+import logging
 
 # add src/Simulateur to sys.path
 path = __file__.rsplit('/', 3)[0]
@@ -11,12 +12,6 @@ sys.path.insert(0, path)
 
 from config import *
 from vehicle import Driver
-
-
-
-def log(s: str):
-    if True:
-        print(s, file=open("/tmp/autotech/logs", "a"))
 
 class VehicleDriver(Driver):
     """
@@ -26,6 +21,7 @@ class VehicleDriver(Driver):
 
     def __init__(self):
         super().__init__()
+
 
         basicTimeStep = int(self.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
@@ -63,9 +59,15 @@ class VehicleDriver(Driver):
             ).group(1)
         )
 
-        log(f"CLIENT{self.simulation_rank}/{self.i} : serverto{self.simulation_rank}_{self.i}.pipe")
+        self.handler = logging.FileHandler(f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.i}.log")
+        self.handler.setFormatter(FORMATTER)
+        self.log = logging.getLogger("CLIENT")
+        self.log.setLevel(level=LOG_LEVEL)
+        self.log.addHandler(self.handler)
+
+        self.log.debug("Connection to the server")
         self.fifo_r = open(f"/tmp/autotech/serverto{self.simulation_rank}_{self.i}.pipe", "rb")
-        log(f"CLIENT{self.simulation_rank}/{self.i} : {self.simulation_rank}_{self.i}tosupervisor.pipe")
+        self.log.debug("Connection with the supervisor")
         self.fifo_w = open(f"/tmp/autotech/{self.simulation_rank}_{self.i}tosupervisor.pipe", "wb")
 
 
@@ -109,15 +111,16 @@ class VehicleDriver(Driver):
         # sends observation to the supervisor
 
         # First to be executed
-        log(f"CLIENT{self.simulation_rank}/{self.i} : trying to write obs")
+        
+        self.log.info("Starting step")
         obs = self.observe()
-        log(f"CLIENT{self.simulation_rank}/{self.i} : driver sending {obs=}")
+        self.log.info(f"Observe {obs=}")
         self.fifo_w.write(obs.tobytes())
         self.fifo_w.flush() 
         
-        log(f"CLIENT{self.simulation_rank}/{self.i} : trying to read from fifo")    
+        self.log.debug("Trying to read action from the server")    
         action = np.frombuffer(self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64)
-        log(f"CLIENT{self.simulation_rank}/{self.i} : received {action=}")
+        self.log.info(f"received {action=}")
 
         # Simulation step
 
@@ -149,6 +152,7 @@ class VehicleDriver(Driver):
 #----------------Programme principal--------------------
 def main():
     driver = VehicleDriver()
+    driver.log.info("Starting the vehicle driver\n")
     driver.run()
 
 

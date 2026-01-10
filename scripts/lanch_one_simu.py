@@ -16,10 +16,7 @@ from TemporalResNetExtractor import TemporalResNetExtractor
 from CNN1DResNetExtractor import CNN1DResNetExtractor
 # -------------------------------------------------------------------------
 
-def log(s: str):
-    # Conservez votre fonction de log
-    if B_DEBUG:
-        print(s, file=open("/tmp/autotech/logs", "a"))
+
 
 # --- Chemin vers le fichier ONNX ---
 
@@ -39,8 +36,6 @@ if __name__ == "__main__":
         os.mkdir("/tmp/autotech/")
 
     os.system('if [ -n "$(ls /tmp/autotech)" ]; then rm /tmp/autotech/*; fi')
-    if B_DEBUG:
-        print("Webots started", file=open("/tmp/autotech/logs", "w"))
 
 
     # 2. Initialisation de la session ONNX Runtime

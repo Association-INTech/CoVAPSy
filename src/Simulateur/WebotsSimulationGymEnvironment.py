@@ -6,9 +6,6 @@ import gymnasium as gym
 from config import *
 
 
-def log(s: str):
-    if B_DEBUG:
-        print(s, file=open("/tmp/autotech/logs", "a"))
 class WebotsSimulationGymEnvironment(gym.Env):
     """
     One environment for each vehicle
@@ -19,10 +16,19 @@ class WebotsSimulationGymEnvironment(gym.Env):
 
     def __init__(self, simulation_rank: int, vehicle_rank: int):
 
-        log("vvvvvvvvvvvvvvvvvvvvvvvvvv Initialisation vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
+        
         super().__init__()
         self.simulation_rank = simulation_rank
         self.vehicle_rank = vehicle_rank
+
+        self.handler = logging.FileHandler(f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.vehicle_rank}.log")
+        self.handler.setFormatter(FORMATTER)
+        self.log = logging.getLogger("SERVER")
+        self.log.setLevel(level=LOG_LEVEL)
+        self.log.addHandler(self.handler)
+
+
+        self.log.info("Initialisation started")
 
         # this is only true if lidar_horizontal_resolution = camera_horizontal_resolution
         box_min = np.zeros([2, context_size, lidar_horizontal_resolution], dtype=np.float32)
@@ -34,7 +40,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
         if not os.path.exists("/tmp/autotech"):
             os.mkdir("/tmp/autotech")
 
-        log(f"SERVER{simulation_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}")
+        self.log.debug(f"Creation of the pipes")
 
         os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe")
         os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe")
@@ -46,12 +52,13 @@ class WebotsSimulationGymEnvironment(gym.Env):
                 webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % n_map}.wbt --mode=fast --minimize --batch --stdout &
                 echo $! {simulation_rank}_{vehicle_rank} >>/tmp/autotech/simulationranks
             """)
-        log(f"SERVER{simulation_rank}_{vehicle_rank} : serverto{simulation_rank}_{vehicle_rank}.pipe")
+
+        self.log.debug("Connection to the vehicle")
         self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe", "wb")
-        log(f"SERVER{simulation_rank}_{vehicle_rank} : {simulation_rank}_{vehicle_rank}toserver.pipe")
+        self.log.debug("Connection to the supervisor")
         self.fifo_r = open(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb")
         
-        log("----------------------------- Inititalisation ---------------------------------")
+        self.log.info("Initialisation finished\n")
 
     def reset(self, seed=0):
         # basically useless function
@@ -60,26 +67,26 @@ class WebotsSimulationGymEnvironment(gym.Env):
         # this is true for lidar_horizontal_resolution = camera_horizontal_resolution
         self.context = obs = np.zeros([2, context_size, lidar_horizontal_resolution], dtype=np.float32)
         info = {}
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : finished reset")
+        self.log.info(f"reset finished\n")
         return obs, info
 
     def step(self, action):
 
-        log("vvvvvvvvvvvvvvvvvvvvvvvvvv STEP vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv")
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : sending {action=}")
+        self.log.info("Starting step")
+        self.log.info(f"sending {action=}")
         self.fifo_w.write(action.tobytes())
         self.fifo_w.flush()
 
         # communication with the supervisor
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : trying to read the fifo_r")
+        self.log.debug("trying to get info from supervisor")
         cur_state   = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize * (n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution)), dtype=np.float32)
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {cur_state=}")
+        self.log.info(f"received {cur_state=}")
         reward      = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32)[0] # scalar
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {reward=}")
+        self.log.info(f"received {reward=}")
         done        = np.frombuffer(self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool)[0] # scalar
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {done=}")
+        self.log.info(f"received {done=}")
         truncated   = np.frombuffer(self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool)[0] # scalar
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : received {truncated=}")
+        self.log.info(f"received {truncated=}")
         info        = {}
 
         cur_state = np.nan_to_num(cur_state[n_sensors:], nan=0., posinf=30.)
@@ -92,8 +99,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
             [lidar_obs[None], camera_obs[None]]
         ], axis=1)
 
-        log(f"SERVER{self.simulation_rank}_{self.vehicle_rank} : step over")
-        log("----------------------------- STEP ---------------------------------")
+        self.log.info("step over")
 
         return obs, reward, done, truncated, info
 

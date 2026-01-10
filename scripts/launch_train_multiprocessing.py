@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -12,30 +13,27 @@ simu_path = __file__.rsplit('/', 2)[0] + '/src/Simulateur'
 if simu_path not in sys.path:
     sys.path.insert(0, simu_path)
 
+from Simulateur.config import LOG_LEVEL
 from config import *
 from TemporalResNetExtractor import TemporalResNetExtractor
 from CNN1DResNetExtractor import CNN1DResNetExtractor
 from onnx_utils import *
 
 from WebotsSimulationGymEnvironment import WebotsSimulationGymEnvironment
-if B_DEBUG: from DynamicActionPlotCallback import DynamicActionPlotDistributionCallback
-
-def log(s: str):
-    if B_DEBUG:
-        print(s, file=open("/tmp/autotech/logs", "a"))
-
+if LOG_LEVEL == logging.DEBUG: from DynamicActionPlotCallback import DynamicActionPlotDistributionCallback
 
 
 if __name__ == "__main__":
+
     if not os.path.exists("/tmp/autotech/"):
         os.mkdir("/tmp/autotech/")
 
     os.system('if [ -n "$(ls /tmp/autotech)" ]; then rm /tmp/autotech/*; fi')
-    if B_DEBUG:
-        print("Webots started", file=open("/tmp/autotech/logs", "w"))
+    
 
     def make_env(simulation_rank: int, vehicle_rank: int):
-        log(f"CAREFUL !!! created an SERVER env with {simulation_rank}_{vehicle_rank}")
+        if LOG_LEVEL == logging.DEBUG:
+            print("CAREFUL !!! created an SERVER env with {simulation_rank}_{vehicle_rank}")
         return WebotsSimulationGymEnvironment(simulation_rank, vehicle_rank)
 
     envs = SubprocVecEnv([lambda simulation_rank=simulation_rank, vehicle_rank=vehicle_rank : make_env(simulation_rank, vehicle_rank) for vehicle_rank in range(n_vehicles) for simulation_rank in range(n_simulations)])
@@ -111,7 +109,7 @@ if __name__ == "__main__":
     print(f"{model.batch_size=}")
     print(f"{model.device=}")
 
-    log(f"SERVER : finished executing")
+    print("SERVER : finished executing")
 
     # obs = envs.reset()
     # while True:
@@ -124,7 +122,7 @@ if __name__ == "__main__":
         export_onnx(model)
         test_onnx(model)
 
-        if B_DEBUG:
+        if LOG_LEVEL <= logging.DEBUG:
            model.learn(total_timesteps=500_000, callback=DynamicActionPlotDistributionCallback())
         else:
             model.learn(total_timesteps=500_000)
