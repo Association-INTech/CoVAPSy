@@ -33,7 +33,7 @@ uv sync --extra rpi
 
 Navigate to the simulator directory.
 ```bash
-cd scripts
+cd src/Simulateur
 ```
 
 Run the multi-process training script.

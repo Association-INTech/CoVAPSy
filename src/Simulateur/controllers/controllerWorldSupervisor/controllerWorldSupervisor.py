@@ -225,7 +225,7 @@ def main():
         for e in envs:
             obs, reward, done, truncated, info = e.step()
             if  done:
-                obs, info = e.reset()
+               obs, info = e.reset()
 
             log(f"SUPERVISOR{simulation_rank}/{e.vehicle_rank} : sending {obs=}")
             e.fifo_w.write(obs.tobytes())
