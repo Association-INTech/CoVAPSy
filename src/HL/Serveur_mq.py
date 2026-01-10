@@ -33,6 +33,7 @@ from src.HL.programme.Poweroff import Poweroff
 from src.HL.actionneur_capteur.Camera import ProgramStreamCamera
 from src.HL.programme.module_initialisation import Initialisation
 from src.HL.programme.Car import Ai_Programme
+from backend import BackendAPI
 
 from Autotech_constant import I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_RECEIVED, I2C_SLEEP_ERROR_LOOP, TEXT_HEIGHT, TEXT_LEFT_OFFSET
 
@@ -86,7 +87,14 @@ class Serveur():
 
         self.initialisation_module = Initialisation(self,Camera,Lidar,ToF, I2c_arduino)
         
-        self.programme = [SshProgramme(), self.initialisation_module, Ai_Programme(self), PS4ControllerProgram(), RemoteControl(), ProgramStreamCamera(self), Poweroff()]
+        self.programme = [SshProgramme(),
+                         self.initialisation_module, 
+                         Ai_Programme(self), 
+                         PS4ControllerProgram(), 
+                         RemoteControl(), 
+                         ProgramStreamCamera(self), 
+                         BackendAPI(self, host="0.0.0.0", port=8001, site_dir="/home/intech/CoVAPSy/site_controle"),
+                         Poweroff()]
         self.log.debug("Programmes chargés: %s", [type(p).__name__ for p in self.programme])
 
         # donnée de l'écran
