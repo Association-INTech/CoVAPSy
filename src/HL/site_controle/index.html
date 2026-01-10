@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>CoVAPSy – Remote Control</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>🚗 CoVAPSy – Remote Control</h1>
+
+<div class="grid">
+
+    <!-- TELEMETRY -->
+    <div class="card">
+        <h2>📊 Télémétrie</h2>
+        <p>LiPo: <span id="lipo">--</span> V</p>
+        <p>NiMH: <span id="nimh">--</span> V</p>
+        <p>Vitesse réelle: <span id="vitesse">--</span></p>
+        <p>Programme actif: <span id="active_program">--</span></p>
+    </div>
+
+    <!-- CAMERA -->
+    <div class="card">
+        <h2>📷 Caméra</h2>
+        <img id="camera" src="" alt="Camera stream">
+    </div>
+
+    <!-- PROGRAMS -->
+    <div class="card full">
+        <h2>🧠 Programmes</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>État</th>
+                    <th>Contrôle voiture</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="program_table"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>

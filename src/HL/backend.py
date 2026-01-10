@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from programme import Program
+from src.HL.programme.programme import Program
 from Autotech_constant import (
     LOGGING_LEVEL,
     PORT_STREAMING_CAMERA,
@@ -38,7 +38,7 @@ class BackendAPI(Program):
         server: Any,
         host: str = "0.0.0.0",
         port: int = 8001,
-        site_dir: Optional[str] = None,  # ex: "/home/intech/CoVAPSy/site_controle"
+        site_dir: Optional[str] = None,  # ex: "/home/intech/CoVAPSy/src/HL/site_controle"
         cors_allow_origins: Optional[List[str]] = None,
     ):
         super().__init__()

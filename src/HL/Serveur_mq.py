@@ -93,7 +93,7 @@ class Serveur():
                          PS4ControllerProgram(), 
                          RemoteControl(), 
                          ProgramStreamCamera(self), 
-                         BackendAPI(self, host="0.0.0.0", port=8001, site_dir="/home/intech/CoVAPSy/site_controle"),
+                         BackendAPI(self, host="0.0.0.0", port=8001, site_dir="/home/intech/CoVAPSy/src/HL/site_controle"),
                          Poweroff()]
         self.log.debug("Programmes chargés: %s", [type(p).__name__ for p in self.programme])
 
