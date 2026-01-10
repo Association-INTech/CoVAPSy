@@ -1,21 +1,23 @@
-# camera_server.py
+# camera_serv.py
 import io
 import logging
 from http import server
 import socketserver
 from threading import Condition
+
+from src.HL.Autotech_constant import STREAM_PATH  # si tu veux un path configurable
+
 streaming_enabled = True
 
-from src.HL.programme.Camera_serv import streaming_enabled
 
 class FrameBuffer:
     def __init__(self):
         self.frame = None
         self.condition = Condition()
 
-    def update(self, data):
+    def update(self, data: bytes):
         # Only accept full JPEG frames
-        if data.startswith(b'\xff\xd8') and data.endswith(b'\xff\xd9'):
+        if data.startswith(b"\xff\xd8") and data.endswith(b"\xff\xd9"):
             with self.condition:
                 self.frame = data
                 self.condition.notify_all()
@@ -34,14 +36,15 @@ class StreamOutput(io.BufferedIOBase):
 
 
 class StreamHandler(server.BaseHTTPRequestHandler):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.log = logging.getLogger(__name__)
-    
+        super().__init__(*args, **kwargs)
+
     def log_message(self, format, *args):
-        logging.getLogger(__name__).info(format % args)
-        
+        self.log.info(format % args)
+
     def do_GET(self):
-        if self.path != "/stream.mjpg":
+        if self.path != f"/{STREAM_PATH}.mjpg":
             self.send_error(404)
             return
 
@@ -63,7 +66,7 @@ class StreamHandler(server.BaseHTTPRequestHandler):
 
                 self.wfile.write(b"--FRAME\r\n")
                 self.send_header("Content-Type", "image/jpeg")
-                self.send_header("Content-Length", len(frame))
+                self.send_header("Content-Length", str(len(frame)))
                 self.end_headers()
                 self.wfile.write(frame)
                 self.wfile.write(b"\r\n")

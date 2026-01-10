@@ -66,15 +66,6 @@ class Serveur():
 
         self.length_i2c_received = I2C_NUMBER_DATA_RECEIVED #nombre de donnée à récupéré de l'arduino (voltage lipo, voltage nimh)
         
-        # initialisation des donnnée de la voiture
-        self.vitesse_d = 0 #vitesse demandé par le programme
-        self.direction = 0 #direction des roue 
-
-        #initialisation des variable reçue de l'arduino pour débugage
-        self.voltage_lipo = 0
-        self.voltage_nimh = 0
-        self.vitesse_r = 0 #vitesse réel de la voiture
-
         # initialisation des commande de temps
         self.initial_time = time.time()
         self.last_cmd_time = time.time()
@@ -200,68 +191,6 @@ class Serveur():
         self.start_process(self.Screen)
 
 
-
-    #---------------------------------------------------------------------------------------------------
-    # fonction pour la communication
-    #---------------------------------------------------------------------------------------------------
-    def i2c_loop(self):
-        """Envoie vitesse/direction régulièrement au microcontroleur. (toute les frames actuellement)"""
-        self.log.info("Thread I2C loop démarré")
-        while True:
-            try :
-                data = struct.pack('<ff', float(round(self.programme[self.last_programme_control].vitesse_d)), float(round(self.programme[self.last_programme_control].direction_d)))
-                self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-            except Exception as e:
-                self.log.error("Erreur I2C write: %s", e, exc_info=True)
-                time.sleep(I2C_SLEEP_RECEIVED)
-
-    def i2c_received(self):
-        """récupére les informations de l'arduino"""
-        self.log.info("Thread I2C receive démarré")
-        length = self.length_i2c_received * 4 
-        while True:
-            data = self.bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
-            # Convert the byte data to a float
-            if len(data) >= length:
-                float_values = struct.unpack('f' * self.length_i2c_received, bytes(data[:length]))
-                list_valeur = list(float_values)
-
-                # on enregistre les valeur
-                self.voltage_lipo = list_valeur[0]
-                self.voltage_nimh = list_valeur[1]
-                self.vitesse_r = list_valeur[2]
-            else:
-                self.log.warning("I2C: taille inattendue (%d au lieu de %d)", len(data), length)
-            time.sleep(I2C_SLEEP_ERROR_LOOP)
-
-    def envoie_donnee(self, socket):
-        """ on regarde si il s'agit de lappelle pour le control interne 
-        (is_private) ou si on veux prendre le controle depuis le pc."""
-        import base64
-        from io import BytesIO
-        while True:
-            info = socket.recv_json()
-            if info["get"] == "info":
-                socket.send_json({
-                "voltage_lipo": self.voltage_lipo,
-                "voltage_nimh": self.voltage_nimh,
-                "vitesse_reelle": self.vitesse_r,
-                "vitesse_demande": self.vitesse_d,
-                "direction" : self.direction,
-                "timestamp": time.time() - self.initial_time
-            })
-            elif info["cmd"] == "menu":
-                if info["menu"] in self.programme.key:
-                    self.start_process(self,info["menu"]) #lancement du menu reçue
-                    socket.send_json({"status":"ok"})
-            elif info["get"] == "menu":
-                socket.send_json(self.programme)
-            else :
-                socket.send_json({"Error" : "not understand"})
-
-
-
-    
     #---------------------------------------------------------------------------------------------------
     # Processus
     #---------------------------------------------------------------------------------------------------
@@ -303,23 +232,13 @@ class Serveur():
             self.programme[num_programme].start()
             
 
-        
-        
-
-
     #---------------------------------------------------------------------------------------------------
     # car function 
     #---------------------------------------------------------------------------------------------------
 
-
-
     def main(self):
         self.bp_next.when_pressed = self.bouton_next
         self.bp_entre.when_pressed = self.bouton_entre
-
-        #threading.Thread(target=self.i2c_loop, daemon=True).start()
-        #threading.Thread(target=self.i2c_received, daemon=True).start()
-        threading.Thread(target=self.envoie_donnee, args=(telemetry,), daemon=True).start()
 
         self.log.info("Serveur démarré, entrée dans la boucle principale")
 
