@@ -80,7 +80,7 @@ class BackendAPI(Program):
                   <head><meta charset="utf-8"><title>CoVAPSy</title></head>
                   <body>
                     <h3>CoVAPSy Control</h3>
-                    <p>Frontend: <a href="/static/">/static/</a></p>
+                    <p>Frontend: <a href="/static/index.html">/static/index.html</a></p>
                   </body>
                 </html>
                 """
