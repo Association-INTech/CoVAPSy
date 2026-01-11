@@ -53,7 +53,7 @@ function drawSpeedChart() {
     ctx.fillText("Réelle", w - 100, 35);
 }
 
-function drawSteering(angle) {
+function drawSteering(directionDeg) {
     const canvas = document.getElementById("steeringViz");
     if (!canvas) return;
 
@@ -64,18 +64,29 @@ function drawSteering(angle) {
     ctx.clearRect(0, 0, w, h);
 
     const centerX = w / 2;
-    const centerY = h * 0.9;
-    const radius = h * 0.7;
+    const centerY = h * 0.85;
+    const radius = h * 0.65;
 
-    // rapporteur
+    /* -------- Rapporteur (-18° à +18°) -------- */
     ctx.strokeStyle = "#444";
+    ctx.lineWidth = 1;
+
+    const maxDeg = 18;
+
     ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, Math.PI, 0);
+    ctx.arc(
+        centerX,
+        centerY,
+        radius,
+        (-90 - maxDeg) * Math.PI / 180,
+        (-90 + maxDeg) * Math.PI / 180
+    );
     ctx.stroke();
 
-    // graduations
-    for (let i = -45; i <= 45; i += 15) {
-        const a = Math.PI + (i * Math.PI / 180);
+    /* -------- Graduations -------- */
+    for (let d = -18; d <= 18; d += 6) {
+        const a = (d - 90) * Math.PI / 180;
+
         ctx.beginPath();
         ctx.moveTo(
             centerX + Math.cos(a) * (radius - 10),
@@ -86,24 +97,30 @@ function drawSteering(angle) {
             centerY + Math.sin(a) * radius
         );
         ctx.stroke();
+
+        ctx.fillStyle = "#777";
+        ctx.font = "10px monospace";
+        ctx.fillText(
+            `${d}°`,
+            centerX + Math.cos(a) * (radius + 10) - 8,
+            centerY + Math.sin(a) * (radius + 10) + 3
+        );
     }
 
-    // mapping direction → angle
-    const maxAngleDeg = 45;
-    const a = Math.PI + (angle / 1.0) * (maxAngleDeg * Math.PI / 180);
+    /* -------- Tige (direction demandée) -------- */
+    const angleRad = (directionDeg - 90) * Math.PI / 180;
 
-    // tige
     ctx.strokeStyle = "#00ff88";
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.lineTo(
-        centerX + Math.cos(a) * (radius - 20),
-        centerY + Math.sin(a) * (radius - 20)
+        centerX + Math.cos(angleRad) * (radius - 20),
+        centerY + Math.sin(angleRad) * (radius - 20)
     );
     ctx.stroke();
 
-    // centre
+    /* -------- Centre -------- */
     ctx.fillStyle = "#00ff88";
     ctx.beginPath();
     ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
