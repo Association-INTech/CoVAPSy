@@ -7,7 +7,6 @@ from checkpointmanager import CheckpointManager, checkpoints
 
 from controller import Supervisor
 supervisor = Supervisor()
-
 import torch.nn as nn
 
 import psutil
@@ -57,10 +56,6 @@ checkpoint_positions = [
     [-2.01029, -2.51669, 0.0391],
 ]
 
-def log(s: str):
-    if B_DEBUG:
-        print(s, file=open("/tmp/autotech/logs", "a"))
-
 # webots precess launches webots-bin internally who is the process that launches the controllers 
 # that's why we need to get the pppid
 proc = psutil.Process(os.getpid()) #current
@@ -78,11 +73,11 @@ simulation_rank = int(
 )
 
 
-log(f"CLIENT ?{pppid}? {simulation_rank=}")
+print(f"CLIENT ?{pppid}? {simulation_rank=}")
 
 
 
-class WebotsVehicleGymEnvironment(gym.Env):
+class WebotsVehicleManager:
     """
     One environment for each vehicle
 
@@ -102,46 +97,55 @@ class WebotsVehicleGymEnvironment(gym.Env):
         # negative value so that the first reset is not skipped
         self.last_reset = -1e6
 
-        # Emitter
-        self.emitter = supervisor.getDevice(f"supervisor_emitter_{vehicle_rank}")
-        self.emitter.setChannel(2 * self.vehicle_rank)
-
-        # Receiver
-        self.receiver = supervisor.getDevice(f"supervisor_receiver_{vehicle_rank}")
-        self.receiver.enable(self.sensorTime)
-        self.receiver.setChannel(2 * self.vehicle_rank + 1)
+        proc = psutil.Process(os.getpid()) #current
+        parent = proc.parent() #parent
+        grandparent = parent.parent() if parent else None #grandparent
+        pppid = str(grandparent.pid)
 
 
-        log(f"CLIENT{simulation_rank}/{vehicle_rank} : begins init")
-        log(f"CLIENT{simulation_rank}/{vehicle_rank} : {simulation_rank}toserver.pipe")
-        self.fifo_w = open(f"/tmp/autotech/{simulation_rank}toserver.pipe", "wb")
-        log(f"CLIENT{simulation_rank}/{vehicle_rank} : serverto{simulation_rank}.pipe")
-        self.fifo_r = open(f"/tmp/autotech/serverto{simulation_rank}.pipe", "rb")
+        self.simulation_rank = int(
+            re.search(
+                pppid + r" (\d+)",
+                open("/tmp/autotech/simulationranks", "r").read(),
+                re.MULTILINE
+            ).group(1)
+        )
 
-        # Last data received from the car
-        self.last_data = np.zeros(n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution, dtype=np.float32)
+        self.handler = logging.FileHandler(f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.vehicle_rank}.log")
+        self.handler.setFormatter(FORMATTER)
+        self.log = logging.getLogger("SUPERVISOR")
+        self.log.setLevel(level=LOG_LEVEL)
+        self.log.addHandler(self.handler)
+
+
+        self.log.debug("Connection to the vehicle")
+        self.fifo_r = open(f"/tmp/autotech/{self.simulation_rank}_{self.vehicle_rank}tosupervisor.pipe", "rb")
+        self.log.debug("Connection to the server")
+        self.fifo_w = open(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "wb")
+        
 
         self.translation_field = supervisor.getFromDef(f"TT02_{self.vehicle_rank}").getField("translation") # may cause access issues ...
         self.rotation_field = supervisor.getFromDef(f"TT02_{self.vehicle_rank}").getField("rotation") # may cause access issues ...
 
     # returns the lidar data of all vehicles
     def observe(self):
-        # gets from Receiver
-        if self.receiver.getQueueLength() > 0:
-            while self.receiver.getQueueLength() > 1:
-                self.receiver.nextPacket()
-            self.last_data = np.frombuffer(self.receiver.getBytes(), dtype=np.float32)
-
-        return self.last_data
+        # gets from Vehicle
+        self.log.debug("trying to observe")
+        obs = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize * (n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution)), dtype=np.float32)
+        self.log.info(f"observing {obs=}")
+        return obs
+    
 
     # reset the gym environment reset
     def reset(self, seed=None):
+        self.log.debug("trying to reset vehicle")
         # this has to be done otherwise thec cars will shiver for a while sometimes when respawning and idk why
         if supervisor.getTime() - self.last_reset >= 1e-1:
+            self.log.debug("getting info from vehicle")
             self.last_reset = supervisor.getTime()
 
             vehicle = supervisor.getFromDef(f"TT02_{self.vehicle_rank}")
-
+            self.log.debug("resetting vehicle physics")
             self.checkpoint_manager.reset(seed)
             trans = self.checkpoint_manager.getTranslation()
             rot = self.checkpoint_manager.getRotation()
@@ -151,22 +155,23 @@ class WebotsVehicleGymEnvironment(gym.Env):
             self.checkpoint_manager.update()
 
             vehicle.resetPhysics()
+            self.log.info("vehicle reset done")
+            
 
-        obs = self.observe()
+        obs = np.zeros(n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution, dtype=np.float32)
         info = {}
-        log(f"CLIENT{simulation_rank}/{self.vehicle_rank} : reset over")
         return obs, info
 
     # step function of the gym environment
-    def step(self, action):
-        action_steering = np.linspace(-.4, .4, n_actions_steering, dtype=np.float32)[action[0], None]
-        action_speed = np.linspace(self.v_min, self.v_max, n_actions_speed, dtype=np.float32)[action[1], None]
-        self.emitter.send(np.array([action_steering, action_speed], dtype=np.float32).tobytes())
+    def step(self):
+        #action_steering = np.linspace(-.4, .4, n_actions_steering, dtype=np.float32)[action[0], None]
+        #action_speed = np.linspace(self.v_min, self.v_max, n_actions_speed, dtype=np.float32)[action[1], None]
 
         # we should add a beacon sensor pointing upwards to detect the beacon
+        self.log.debug("getting observation")
         obs = self.observe()
+        self.log.info(f"observed {obs=}")
         sensor_data = obs[:n_sensors]
-
         reward = 0
         done = np.False_
         truncated = np.False_
@@ -191,17 +196,16 @@ class WebotsVehicleGymEnvironment(gym.Env):
 
 def main():
 
-    envs = [WebotsVehicleGymEnvironment(i) for i in range(n_vehicles)]
-    log(f"CLIENT ALL : envs created")
+    envs = [WebotsVehicleManager(i) for i in range(n_vehicles)]
+    print("CLIENT ALL : envs created")
     # check_env(env)
 
     logdir = "./Webots_tb/"
 
-    log(f"CLIENT ALL : {envs=}")
     supervisor.step()
-    log("-------------------------------------------------------------------")
+    
     for i, e in enumerate(envs):
-        log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : reset")
+        e.log.debug("CLIENT : reset")
         e.reset(i)
 
     for i in range(n_vehicles, n_vehicles + n_stupid_vehicles):
@@ -215,27 +219,22 @@ def main():
     last_moved = [0 for _ in range(n_stupid_vehicles)]
 
     while supervisor.step() != -1:
-        log(f"CLIENT ALL : begin step")
+        #print("CLIENT ALL : begin step")
         #Prédiction pour séléctionner une action à partir de l"observation
         for e in envs:
-            log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : trying to read from fifo")
-            action = np.frombuffer(e.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64)
-            log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : received {action=}")
+            obs, reward, done, truncated, info = e.step()
+            if  done:
+               obs, info = e.reset()
 
-            obs, reward, done, truncated, info = e.step(action)
-
-            if done:
-                obs, info = e.reset()
-
-            log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : sending {obs=}")
+            e.log.info(f"sending {obs=}")
             e.fifo_w.write(obs.tobytes())
-            log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : sending {reward=}")
+            e.log.info(f"sending {reward=}")
             e.fifo_w.write(reward.tobytes())
-            log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : sending {done=}")
+            e.log.info(f"sending {done=}")
             e.fifo_w.write(done.tobytes())
-            log(f"CLIENT{simulation_rank}/{e.vehicle_rank} : sending {truncated=}")
+            e.log.info(f"sending {truncated=}")
             e.fifo_w.write(truncated.tobytes())
-            e.fifo_w.flush()
+            e.fifo_w.flush()     
 
 
         for i in range(n_stupid_vehicles):
