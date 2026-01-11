@@ -16,6 +16,7 @@ authors = [
 dependencies = [
     "fastapi>=0.128.0",
     "uvicorn>=0.40.0",
+    "websocket>=0.2.1",
 ]
 
 [project.optional-dependencies]
