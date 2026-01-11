@@ -17,6 +17,7 @@ from Autotech_constant import (
     LOGGING_LEVEL,
     PORT_STREAMING_CAMERA,
     STREAM_PATH,
+    ON_START_BACKEND,
 )
 
 class BackendAPI(Program):
@@ -86,6 +87,10 @@ class BackendAPI(Program):
                 """
 
         self._setup_routes()
+
+        time.sleep(1)  # Petit délai pour s'assurer que tout est prêt avant de démarrer
+        if ON_START_BACKEND:
+            self.start()
 
     # ----------------------------
     # Helpers: lecture état voiture
