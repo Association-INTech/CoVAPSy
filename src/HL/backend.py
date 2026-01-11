@@ -121,9 +121,21 @@ class BackendAPI(Program):
         if isinstance(programmes, list) and 0 <= last_ctrl < len(programmes):
             prog_name = type(programmes[last_ctrl]).__name__
 
+        vitesse_d = float(getattr(self.server, "vitesse_d", 0.0) or 0.0)
+        direction_d = float(getattr(self.server, "direction_d", 0.0) or 0.0)
+
         return {
-            "battery": {"lipo": voltage_lipo, "nimh": voltage_nimh},
-            "car": {"vitesse_reelle": vitesse_r, "programme_controle": prog_name, "programme_id": last_ctrl},
+            "battery": {
+                "lipo": voltage_lipo,
+                "nimh": voltage_nimh
+            },
+            "car": {
+                "vitesse_reelle": vitesse_r,
+                "vitesse_demandee": vitesse_d,
+                "direction_demandee": direction_d,
+                "programme_controle": prog_name,
+                "programme_id": last_ctrl
+            },
             "timestamp": time.time(),
         }
 

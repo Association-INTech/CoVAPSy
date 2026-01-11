@@ -117,6 +117,7 @@ class Serveur():
     @property
     def direction_d(self):
         return self.programme[self.last_programme_control].direction_d
+        
     #-----------------------------------------------------------------------------------------------------
     # affichage de l'écrans
     #-----------------------------------------------------------------------------------------------------

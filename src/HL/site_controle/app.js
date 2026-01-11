@@ -26,7 +26,14 @@ async function killProgram(id) {
 function updateTelemetry(t) {
     document.getElementById("lipo").textContent = t.battery.lipo.toFixed(2);
     document.getElementById("nimh").textContent = t.battery.nimh.toFixed(2);
-    document.getElementById("vitesse").textContent = t.car.vitesse_reelle.toFixed(2);
+    document.getElementById("vitesse").textContent =
+        t.car.vitesse_reelle.toFixed(2);
+
+    document.getElementById("vitesse_d").textContent =
+        t.car.vitesse_demandee.toFixed(2);
+
+    document.getElementById("direction_d").textContent =
+        t.car.direction_demandee.toFixed(2);
     document.getElementById("active_program").textContent =
         t.car.programme_controle ?? "Aucun";
 }
