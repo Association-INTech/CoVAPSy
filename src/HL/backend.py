@@ -148,6 +148,25 @@ class BackendAPI(Program):
         # ton chemin réel est /stream.mjpg d’après ton message, pas /stream
         # donc on renvoie les deux pour compatibilité:
         return f"http://{ip}:{PORT_STREAMING_CAMERA}/stream.mjpg"
+    
+    def _lidar(self):
+        return getattr(self.server, "lidar", None)
+
+    def _get_lidar_points_cartesian(self):
+        lidar = self._lidar()
+        if not lidar:
+            return None
+
+        # Attention: numpy → list
+        x = (np.cos(lidar.xTheta) * lidar.rDistance).tolist()
+        y = (np.sin(lidar.xTheta) * lidar.rDistance).tolist()
+
+        return {
+            "x": x,
+            "y": y,
+            "unit": "mm",
+            "timestamp": time.time(),
+        }
 
     # ----------------------------
     # Routes
@@ -207,6 +226,28 @@ class BackendAPI(Program):
         def camera_stream():
             # On ne proxifie pas (mauvais plan). On donne juste l'URL.
             return {"url": self._camera_stream_url()}
+        
+        @self.app.get("/api/lidar")
+        def lidar_snapshot():
+            data = self._get_lidar_points_cartesian()
+            if data is None:
+                raise HTTPException(status_code=503, detail="Lidar not available")
+            return data
+        
+        @self.app.websocket("/api/lidar/ws")
+        async def lidar_ws(ws: WebSocket):
+            await ws.accept()
+            self.logger.info("Lidar WS client connected")
+
+            try:
+                while True:
+                    data = self._get_lidar_points_cartesian()
+                    if data:
+                        await ws.send_json(data)
+                    await asyncio.sleep(0.05)  # 20 Hz
+            except WebSocketDisconnect:
+                self.logger.info("Lidar WS client disconnected")
+
 
     # ----------------------------
     # Program interface

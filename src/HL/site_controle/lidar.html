@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>LIDAR</title>
+  <style>
+    canvas { background: #111; }
+  </style>
+</head>
+<body>
+
+<canvas id="lidar" width="600" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("lidar");
+const ctx = canvas.getContext("2d");
+const scale = 0.05; // mm → pixels
+
+const ws = new WebSocket("ws://" + location.host + "/api/lidar/ws");
+
+ws.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // origine au centre
+  ctx.save();
+  ctx.translate(canvas.width/2, canvas.height/2);
+
+  // grille simple
+  ctx.strokeStyle = "#333";
+  for (let r = 500; r <= 5000; r += 500) {
+    ctx.beginPath();
+    ctx.arc(0, 0, r * scale, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // points lidar
+  ctx.fillStyle = "#00ff88";
+  for (let i = 0; i < data.x.length; i++) {
+    ctx.fillRect(
+      data.x[i] * scale,
+      -data.y[i] * scale,
+      2, 2
+    );
+  }
+
+  ctx.restore();
+};
+</script>
+
+</body>
+</html>
