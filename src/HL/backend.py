@@ -52,7 +52,8 @@ class BackendAPI(Program):
         self.server = server
         self.controls_car = False
         self.running = False
-        self.lidar_yaw = 0.0  # radians
+        self.lidar_yaw = 0  # rotation fixe pour que "devant" = haut écran
+
 
         self.host = host
         self.port = port
@@ -179,8 +180,10 @@ class BackendAPI(Program):
         theta_world = theta_lidar + self.lidar_yaw
 
         # projection
-        x = np.sin(theta_world) * r
-        y = -np.cos(theta_world) * r  # Y vers le haut écran
+        # Repère monde: +Y = devant le lidar
+        x = -np.sin(theta_world) * r
+        y = np.cos(theta_world) * r
+
 
         return {
             "x": x.tolist(),
