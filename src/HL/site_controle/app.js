@@ -1,4 +1,115 @@
 const API = ""; // même origine (FastAPI)
+const speedHistory = {
+    real: [],
+    demand: [],
+    maxPoints: 100
+};
+
+function drawSpeedChart() {
+    const canvas = document.getElementById("speedChart");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // axes
+    ctx.strokeStyle = "#444";
+    ctx.beginPath();
+    ctx.moveTo(40, 10);
+    ctx.lineTo(40, h - 20);
+    ctx.lineTo(w - 10, h - 20);
+    ctx.stroke();
+
+    const maxVal = Math.max(
+        ...speedHistory.real,
+        ...speedHistory.demand,
+        1
+    );
+
+    function drawCurve(data, color) {
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+
+        data.forEach((v, i) => {
+            const x = 40 + (i / speedHistory.maxPoints) * (w - 60);
+            const y = h - 20 - (v / maxVal) * (h - 40);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+
+        ctx.stroke();
+    }
+
+    drawCurve(speedHistory.demand, "#ffaa00"); // consigne
+    drawCurve(speedHistory.real, "#00ff88");   // réel
+
+    // légende
+    ctx.fillStyle = "#ffaa00";
+    ctx.fillText("Consigne", w - 100, 20);
+    ctx.fillStyle = "#00ff88";
+    ctx.fillText("Réelle", w - 100, 35);
+}
+
+function drawSteering(angle) {
+    const canvas = document.getElementById("steeringViz");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const centerX = w / 2;
+    const centerY = h * 0.9;
+    const radius = h * 0.7;
+
+    // rapporteur
+    ctx.strokeStyle = "#444";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, Math.PI, 0);
+    ctx.stroke();
+
+    // graduations
+    for (let i = -45; i <= 45; i += 15) {
+        const a = Math.PI + (i * Math.PI / 180);
+        ctx.beginPath();
+        ctx.moveTo(
+            centerX + Math.cos(a) * (radius - 10),
+            centerY + Math.sin(a) * (radius - 10)
+        );
+        ctx.lineTo(
+            centerX + Math.cos(a) * radius,
+            centerY + Math.sin(a) * radius
+        );
+        ctx.stroke();
+    }
+
+    // mapping direction → angle
+    const maxAngleDeg = 45;
+    const a = Math.PI + (angle / 1.0) * (maxAngleDeg * Math.PI / 180);
+
+    // tige
+    ctx.strokeStyle = "#00ff88";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(
+        centerX + Math.cos(a) * (radius - 20),
+        centerY + Math.sin(a) * (radius - 20)
+    );
+    ctx.stroke();
+
+    // centre
+    ctx.fillStyle = "#00ff88";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+    ctx.fill();
+}
+
 
 async function fetchStatus() {
     const res = await fetch(`${API}/api/status`);
@@ -36,6 +147,17 @@ function updateTelemetry(t) {
         t.car.direction_demandee.toFixed(2);
     document.getElementById("active_program").textContent =
         t.car.programme_controle ?? "Aucun";
+    speedHistory.real.push(t.car.vitesse_reelle);
+    speedHistory.demand.push(t.car.vitesse_demandee);
+
+    if (speedHistory.real.length > speedHistory.maxPoints) {
+        speedHistory.real.shift();
+        speedHistory.demand.shift();
+    }
+
+    drawSpeedChart();
+    drawSteering(t.car.direction_demandee);
+
 }
 
 function updatePrograms(programs) {

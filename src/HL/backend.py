@@ -282,7 +282,7 @@ class BackendAPI(Program):
                     data = self._get_lidar_points_cartesian()
                     if data:
                         await ws.send_json(data)
-                    await asyncio.sleep(0.05)  # 20 Hz
+                    await asyncio.sleep(0.1)
             except WebSocketDisconnect:
                 self.logger.info("Lidar WS client disconnected")
 
