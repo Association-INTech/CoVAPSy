@@ -27,7 +27,7 @@ import os
 import _thread as thread
 import numpy as np
 import matplotlib.pyplot as plt
-import logging as log
+import logging
 
 class Lidar():
     measureMsgHeads = {'ME', 'GE', 'MD', 'GD'}
@@ -66,6 +66,7 @@ class Lidar():
         return ns
 
     def __init__(self, ip, port, startStep=0):
+        self.log = logging.getLogger(__name__)
         self.ip = ip
         self.port = port
         # For decoding measuring data
@@ -109,9 +110,9 @@ class Lidar():
         # axp.set_thetamax(deg2theta(45))
         # axp.set_thetamax(deg2theta(270 + 45))
         axp.grid(True)
-        log.info('Plotter started, press any key to exit')
+        self.log.info('Plotter started, press any key to exit')
 
-        log.debug(f'{self.xTheta}, {self.rDistance}')
+        self.log.debug(f'{self.xTheta}, {self.rDistance}')
         while True:
             X, Y = toCartesian(self.xTheta, self.rDistance)
 
@@ -143,14 +144,14 @@ class Lidar():
         gateway = formatZeros(gateway)
         netmask = formatZeros(netmask)
         cmd = f'$IP{ip}{netmask}{gateway}\r\n'
-        log.debug(f'ChangeIP cmd:  {cmd}')
+        self.log.debug(f'ChangeIP cmd:  {cmd}')
         self.send(cmd)
 
     # Start continous read mode
     def startContinuous(self, start: int, end: int, withIntensity=False):
         head = 'ME' if withIntensity else 'MD'
         cmd = f'{head}{start:04d}{end:04d}00000\r\n'
-        log.debug(cmd)
+        self.log.debug(cmd)
         self.head = cmd.strip()
         self.send(cmd)
 
@@ -184,7 +185,7 @@ class Lidar():
                 return True
             else:
                 self.buf += line.strip()
-                # log.debug(f'buf size {len(self.buf)}')
+                # self.log.debug(f'buf size {len(self.buf)}')
                 if len(self.buf) >= self.expectedPacketSize:
                     self.decodeDistance(self.buf)
                     self.buf = ''
@@ -197,7 +198,7 @@ class Lidar():
             lines = msg.split()
             for line in lines:
                 if not self.handleMsgLine(line):
-                    log.debug(f'ignore {line}')
+                    self.log.debug(f'ignore {line}')
 
         def loop():
             try:
@@ -207,7 +208,7 @@ class Lidar():
                         msg = m.decode()
                         handleMeasuring(msg)
                     except socket.timeout as e:
-                        log.error('Read timeout, sensor disconnected?')
+                        self.log.error('Read timeout, sensor disconnected?')
                         os._exit(1)
             finally:
                 self.sock.close()

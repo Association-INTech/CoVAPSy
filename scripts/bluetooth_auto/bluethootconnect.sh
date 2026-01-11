@@ -31,4 +31,4 @@ while read -r line; do
     bluetoothctl connect "$mac"
 
     echo
-done < ./bluethoot_mac.txt
+done < ./scripts/bluetooth_auto/bluethoot_mac.txt

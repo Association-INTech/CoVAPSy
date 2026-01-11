@@ -1,133 +1,158 @@
 from pyPS4Controller.controller import Controller
 import time
+import os
 from threading import Thread
-
-#Pour le protocole I2C de communication entre la rasberie Pi et l'arduino
-import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
-import numpy as np
-import struct
-
+from src.HL.programme.programme import Program
+from src.HL.Autotech_constant import MAX_ANGLE
+import logging
 ###################################################
-#Intialisation du protocole I2C
+#Intialisation du protocole zmq
 ##################################################
 
-# Create an SMBus instance
-bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
+def envoie_donnee(Voiture): #si utilisation de la voiture directement
+    print("lancement de l'i2c")
+    import smbus
+    import struct
+    from src.HL.Autotech_constant import SLAVE_ADDRESS
 
-# I2C address of the slave
-SLAVE_ADDRESS = 0x08
+    bus = smbus.SMBus(1)
+    while True:
+            try :
+                data = struct.pack('<ff', float(round(Voiture.vitesse_mms)), float(round(Voiture.direction_d)))
+                bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+                #time.sleep(0.00005)
+            except Exception as e:
+                print("i2c mort" + str(e))
+                time.sleep(1)
 
-def write_vitesse_direction(vitesse,direction):
-    # Convert string to list of ASCII values
-    data = struct.pack('<ff', float(vitesse), float(direction))
-    bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-
-###################################################
-#Intialisation des moteurs
-##################################################
-
-direction_d = 0 # angle initiale des roues en degrés
-vitesse_m = 0   # vitesse initiale en métre par milliseconde
 
 #paramètres de la fonction vitesse_m_s, à étalonner
-vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture en métre
 vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
 vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
 
-angle_degre_max = +18 #vers la gauche
-
-
+MAX_LEFT = -32767 + 3000   # deadzone 3000
 
 # fonction naturel map de arduino pour plus de lisibilité
 def map_range(x, in_min,in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
+class PS4ControllerProgram(Program):
 
-def set_direction_degre(angle_degre) :
-    global direction_d
-    direction_d = angle_degre
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
+    def __init__(self):
+        super().__init__()
+        self.log = logging.getLogger(__name__)
+        self.running = False
+        self.controls_car = True
+
+        #initialisation
+        self.controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
+        self.controller.stop = True
+
+
+    def start(self):
+        self.running = True
+        self.controller.stop = False
+        self.thread = Thread(
+            target=self.controller.listen, kwargs=dict(timeout=60),
+            daemon=True
+        )
+        self.thread.start()
+
+    def kill(self):
+        self.controller.stop = True
+        self.running = False
+
+    @property
+    def vitesse_d(self):
+        return self.controller.vitesse_mms
     
-def set_vitesse_m_ms(vitesse_m_ms):
-    global vitesse_m
-    vitesse_m = vitesse_m_ms
-    print("angle_degré: ",direction_d,"vitesse: ",vitesse_m)
-        
-def recule(): #actuellement ne sert a rien car on peux juste envoyer une vitesse négative 
-    global vitesse_m
-    vitesse_m = -2000
-
+    @property
+    def direction_d(self):
+        return self.controller.direction_d
 
 class MyController(Controller):
 
     def __init__(self, **kwargs):
-        Controller.__init__(self, **kwargs)
+        super().__init__(**kwargs)
+        self.log = logging.getLogger(__name__)
+        self.vitesse_mms = 0 # vitesse initiale en métre par milliseconde
+        self.direction_d = 0 # angle initiale des roues en degrés
+        self.filtered = 0
+        self.alpha = 0.3
+        self.running = 0
+
+    def stable_direction(self,value):
+
+        # Deadzone
+        if value < MAX_LEFT:
+            target = -MAX_ANGLE
+        else:
+            target = map_range(value, -32767, 0, -MAX_ANGLE, 0)
+
+        # Low-pass filtering
+        self.filtered = self.filtered * (1 - self.alpha) + target * self.alpha
+        return self.filtered
+
         
     def on_R2_press(self,value):
         vit = map_range(value,-32252,32767,0,vitesse_max_m_s_soft*1000)
         if (vit < 0):
-            set_vitesse_m_ms(0)
+            self.vitesse_mms = 0
         else:
-            set_vitesse_m_ms(vit)
+            self.vitesse_mms = vit
     def on_R2_release(self): # arrete la voiture lorsque L2 est arrété d'étre préssé. 
-        set_vitesse_m_ms(0)
+        self.vitesse_mms = 0
     
     
  
     def on_L3_x_at_rest(self):
-        set_direction_degre(0)
+        self.direction = 0
         
     def on_R1_press(self): #arret d'urgence
-        set_vitesse_m_ms(0)
+        self.vitesse_mms = 0
         
     def on_R1_release(self):
-        set_vitesse_m_ms(0)
+        self.vitesse_mms = 0
+    
+
+
+    def on_L3_right(self,value):
+        # print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        dir = map_range(value, 0, 32767, 0, MAX_ANGLE)
+        self.direction_d = dir
+
+    def on_L3_left(self,value):
+        #print("x_r :", value, "degré : ",map_range(value,-32767, 0, -MAX_ANGLE, 0 ))
+        dir = self.stable_direction(value)
+        self.direction_d = dir
+
+
+    def on_L2_press(self, value):
+        #print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
+        vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
+        if (vit > 0):
+            self.vitesse_mms = 0
+        else:
+            self.vitesse_mms = vit
+    
+    def on_L2_release(self): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
+        self.vitesse_mms = 0
     
     def on_L3_up(self,value):
         pass
     def on_L3_down(self,value):
         pass
+    def on_L3_y_at_rest(self):
+        pass
 
+if __name__ == "__main__":
+    controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
+    try:
+        Thread(target = envoie_donnee,args=(controller,), daemon=True).start()
+        controller.listen(timeout=60)
 
-    def on_L3_right(self,value):
-        # print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
-        dir = map_range(value, 0, 32767, 0, angle_degre_max)
-        set_direction_degre(dir)
-
-    def on_L3_left(self,value):
-        print("x_r :", value, "degré : ",map_range(value,-32767, 0, -angle_degre_max, 0 ))
-        dir = map_range(value,-32767, 0, -angle_degre_max, 0 )
-        set_direction_degre(dir)
-
-
-    def on_L2_press(self, value):
-        print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
-        vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
-        if (vit > 0):
-            set_vitesse_m_ms(0)
-        else:
-            set_vitesse_m_ms(vit)
-    
-    def on_L2_release(self): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
-        set_vitesse_m_ms(0)
-
-#envoie de la direction et de l'angle toute les millisecondes
-def envoie_direction_degre():
-    while True :
-        write_vitesse_direction(int(vitesse_m), int(direction_d))
-        time.sleep(0.001)
-
-
-# boucle principal
-controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
-try:
-    Thread(target = envoie_direction_degre, daemon=True).start()
-    controller.listen(timeout=60)
-
-except KeyboardInterrupt:
-    print("Arrêt du programme")
-    controller.stop()
-    exit(0)
-
-
+    except KeyboardInterrupt:
+        print("Arrêt du programme")
+        controller.stop()
+        exit(0)

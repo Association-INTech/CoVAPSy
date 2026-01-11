@@ -1,3 +1,4 @@
+import cv2
 from picamera2 import Picamera2 # type: ignore
 from PIL import Image
 import numpy as np
@@ -6,7 +7,12 @@ import logging as log
 import threading
 import shutil
 import scipy as sp
+import time
+import logging
 
+from picamera2 import Picamera2
+from picamera2.encoders import JpegEncoder
+from picamera2.outputs import FileOutput
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
 DEBUG_DIR = "Debug"  # Directory for debug images
@@ -19,66 +25,165 @@ COLOUR_KEY = {
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
 
-class Camera:
-    def __init__(self):
-        os.environ["LIBCAMERA_LOG_LEVELS"] = "WARN"
-        self.debug_counter = 0  # Counter for debug images
-        self.image_no = 0
-        self.image_path = None
-        self.picam2 = Picamera2()
-        config = self.picam2.create_preview_configuration(main={"size": (1920, 1080)})
-        self.picam2.configure(config)
-        self.picam2.start()
-        self.flag_stop = False
-        self.thread = None  # Stocke le thread pour contrôle ultérieur
-        picamera2_logger = log.getLogger("picamera2")
-        picamera2_logger.setLevel(log.INFO)
-        os.makedirs(SAVE_DIR, exist_ok=True)  # Crée le répertoire s'il n'existe pas
-        os.makedirs(DEBUG_DIR, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
-        os.makedirs(DEBUG_DIR_wayfinding, exist_ok=True)  # Crée le répertoire de débogage s'il n'existe pas
-        self.capture_image()  # Capture une image pour initialiser le répertoire de sauvegarde
-        
-    def capture_image(self):
-        
-        self.image_path = os.path.join(SAVE_DIR, f"frame_{self.image_no:02d}.jpg")
-        frame = self.picam2.capture_array()
-        image = Image.fromarray(frame).convert("RGB")
-        image.save(self.image_path)
-        self.image_no += 1
-        return image
-    
-    def capture_images_continus(self):
-        while True:
-            for i in range(N_IMAGES):
-                self.capture_image()
-                if self.flag_stop:
-                    break
-            if self.flag_stop:
-                break
-            self.image_no = 0
+from picamera2.outputs import Output
 
-    def start(self):
-        """Démarre la capture en continu dans un thread séparé."""
-        if self.thread is None or not self.thread.is_alive():  # Évite de lancer plusieurs threads
-            self.flag_stop = False  # Réinitialiser le flag d'arrêt
-            self.thread = threading.Thread(target=self.capture_images_continus, daemon=True)
-            self.thread.start()
+class JpegCallback(Output):
+    def __init__(self, parent_cam):
+        super().__init__()
+        self.parent = parent_cam
+
+    def outputframe(self, frame, keyframe=True):
+        # frame = bytes JPEG
+        self.parent._on_new_frame(frame)
+
+
+
+
+from src.HL.programme.Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
+from src.HL.programme.programme import Program
+from src.HL.Autotech_constant import PORT_STREAMING_CAMERA, SIZE_CAMERA_X, SIZE_CAMERA_Y, FRAME_RATE, CAMERA_QUALITY, STREAM_PATH
+
+class ProgramStreamCamera(Program):
+    def __init__(self,serveur):
+        super().__init__()
+        self.log = logging.getLogger(__name__)
+        self.serveur = serveur
+        self.running = False
+        self.controls_car = False
     
-    def stop(self):
-        """Arrête la capture et attend que le thread se termine proprement."""
-        self.flag_stop = True
-        if self.thread is not None:
-            self.thread.join()  # Attendre la fin du thread avant de continuer
-        self.picam2.stop()
-        self.picam2.close()
-        shutil.rmtree(SAVE_DIR)  # Supprime le répertoire des images capturées
+    @property
+    def camera(self):
+        # accès dynamique
+        return self.serveur.camera
+
+    
+    def start(self):
+        cam = self.camera
+        if cam is None:
+            self.log.error("Camera not initialized yet")
+            return
         
+        self.running = True
+        self.camera.start_stream()
+    
+    def kill(self):
+        self.running = False
+        self.camera.stop_stream()
+
+
+
+
+class Camera:
+    def __init__(self, size=(SIZE_CAMERA_X, SIZE_CAMERA_Y), port=PORT_STREAMING_CAMERA):
+        self.size = size
+        self.port = port
+
+        self.streaming = False
+        self.stream_thread = None
+        self.picam2 = None
+
+        self.last_frame = None
+        self.debug_counter = 0
+        self.image_no = 0
+
+
+        # Démarrage en mode "acquisition locale sans stream"
+        self._start_local_capture()
+
+
+    # ----------------------------------------------------------
+    # Capture locale (sans MJPEG server)
+    # ----------------------------------------------------------
+    def _start_local_capture(self):
+        self.picam2 = Picamera2()
+        config = self.picam2.create_video_configuration(
+            main={"size": self.size},     # plus large, moins zoomé
+            controls={"FrameRate": FRAME_RATE}       # FPS stable
+        )
+
+        self.picam2.configure(config)
+        self.output = StreamOutput()
+
+        # Qualité JPEG custom
+        self.picam2.start_recording(JpegEncoder(q=CAMERA_QUALITY), FileOutput(self.output))
+
+        # thread lecture last_frame
+        self.capture_thread = threading.Thread(
+            target=self._update_last_frame_loop,
+            daemon=True
+        )
+        self.capture_thread.start()
+
+
+    def _update_last_frame_loop(self):
+        """Récupère en continu la dernière frame JPEG."""
+        while True:
+            jpeg = frame_buffer.get()
+            if jpeg:
+                np_frame = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
+                if np_frame is not None:
+                    self.last_frame = cv2.cvtColor(np_frame, cv2.COLOR_BGR2RGB)
+            time.sleep(0.01)
+
+
+    # ----------------------------------------------------------
+    # Contrôle streaming MJPEG
+    # ----------------------------------------------------------
+    def start_stream(self):
+        if self.streaming:
+            return
+        import src.HL.programme.Camera_serv
+        src.HL.programme.Camera_serv.streaming_enabled = True
+
+        self.httpd = StreamServer(("", self.port), StreamHandler)
+
+        def run_server():
+            print(f"[INFO] MJPEG stream on http://<IP>:{self.port}/{STREAM_PATH}.mjpg")
+            try:
+                self.httpd.serve_forever()
+            except Exception as e:
+                print("Serveur MJPEG arrêté:", e)
+
+        self.stream_thread = threading.Thread(target=run_server, daemon=True)
+        self.stream_thread.start()
+        self.streaming = True
+
+
+
+    def stop_stream(self):
+        if not self.streaming:
+            return
+
+        import src.HL.programme.Camera_serv
+        src.HL.programme.Camera_serv.streaming_enabled = False
+
+        print("[INFO] Shutting down MJPEG server...")
+
+        self.httpd.shutdown()
+        self.httpd.server_close()
+        self.stream_thread.join()
+
+        self.streaming = False
+        print("[INFO] Stream stopped.")
+
+
+
+
+    def toggle_stream(self):
+        if self.streaming:
+            print("[INFO] Stopping stream")
+            self.stop_stream()
+        else:
+            print("[INFO] Starting stream")
+            self.start_stream()
+
+
+    # ----------------------------------------------------------
+    # Interface publique
+    # ----------------------------------------------------------
     def get_last_image(self):
-        last_image_no= self.image_no - 1 if self.image_no > 0 else 99 # 
-        image_path = os.path.join(SAVE_DIR, f"frame_{last_image_no:02d}.jpg")
-        image= Image.open(image_path).convert("RGB")
-        image_np = np.array(image)
-        return image_np
+        return self.last_frame
+
     
     def camera_matrix(self, vector_size=128, image=None):
         """
@@ -210,10 +315,20 @@ class Camera:
 
 if __name__ == "__main__":
     log.basicConfig(level=log.DEBUG)
-    image_path = "src\HL\wrong_direction33.jpg"  # Replace with your image path
+
     camera = Camera()
-    camera.start()
-    pil_image = Image.open(image_path).convert("RGB")  # Open and ensure it's in RGB format
-    image = np.array(pil_image)  # Convert to NumPy array
-    
-    print(camera.is_running_in_reversed(image=image, LEFT_IS_GREEN=True))  # Check if the car is running in reverse
+
+    print("Attente frame...")
+    while camera.get_last_image() is None:
+        time.sleep(0.05)
+
+    frame = camera.get_last_image()
+    matrix = camera.camera_matrix()
+    print("camera_matrix OK")
+
+    input("Appuyer pour lancer le stream...")
+    camera.toggle_stream()
+
+    while True:
+        if input("Toggle ? ") == "o":
+            camera.toggle_stream()

@@ -9,7 +9,10 @@ This project now uses [UV](https://github.com/astral-sh/uv) for fast, reliable P
 curl -LsSf https://astral.sh/uv/install.sh | sh
 source $HOME/.cargo/env
 ```
-
+## Initialise uv for using external dependencies not installable in uv
+```bash
+uv venv --system-site-packages
+```
 ### Install Project Dependencies
 ```bash
 # Install all runtime dependencies
