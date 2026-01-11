@@ -16,7 +16,9 @@ const canvas = document.getElementById("lidar");
 const ctx = canvas.getContext("2d");
 const scale = 0.05; // mm → pixels
 
-const ws = new WebSocket("ws://" + location.host + "/api/lidar/ws");
+const proto = location.protocol === "https:" ? "wss" : "ws";
+const ws = new WebSocket(proto + "://" + location.host + "/api/lidar/ws");
+
 
 ws.onmessage = (e) => {
   const data = JSON.parse(e.data);

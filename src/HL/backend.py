@@ -11,6 +11,10 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+import numpy as np
+import asyncio
+from fastapi import WebSocket
+from fastapi.websockets import WebSocketDisconnect
 
 from src.HL.programme.programme import Program
 from Autotech_constant import (
@@ -48,6 +52,7 @@ class BackendAPI(Program):
         self.server = server
         self.controls_car = False
         self.running = False
+        self.lidar_yaw = 0.0  # radians
 
         self.host = host
         self.port = port
@@ -91,6 +96,8 @@ class BackendAPI(Program):
         time.sleep(1)  # Petit délai pour s'assurer que tout est prêt avant de démarrer
         if ON_START_BACKEND:
             self.start()
+        
+
 
     # ----------------------------
     # Helpers: lecture état voiture
@@ -154,19 +161,35 @@ class BackendAPI(Program):
 
     def _get_lidar_points_cartesian(self):
         lidar = self._lidar()
-        if not lidar:
+        if not lidar or lidar.rDistance is None:
             return None
 
-        # Attention: numpy → list
-        x = (np.cos(lidar.xTheta) * lidar.rDistance).tolist()
-        y = (np.sin(lidar.xTheta) * lidar.rDistance).tolist()
+        r = np.asarray(lidar.rDistance)
+        n = r.shape[0]
+
+        # angles du lidar (repère capteur)
+        theta_lidar = np.linspace(
+            -3*np.pi/4,   # -135°
+            +3*np.pi/4,   # +135°
+            n,
+            endpoint=True
+        )
+
+        # correction d’orientation
+        theta_world = theta_lidar + self.lidar_yaw
+
+        # projection
+        x = np.sin(theta_world) * r
+        y = -np.cos(theta_world) * r  # Y vers le haut écran
 
         return {
-            "x": x,
-            "y": y,
+            "x": x.tolist(),
+            "y": y.tolist(),
             "unit": "mm",
             "timestamp": time.time(),
         }
+
+
 
     # ----------------------------
     # Routes
