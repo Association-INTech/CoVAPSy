@@ -102,7 +102,31 @@ function initLidar() {
             ctx.fillText(`${i * 10} cm`, r + 2, 0);
             }
         }
+        // FOV du lidar (270°)
+        ctx.strokeStyle = "#444";
+        ctx.lineWidth = 1;
 
+        const fovMin = -135 * Math.PI / 180;
+        const fovMax =  135 * Math.PI / 180;
+        const fovRadius = 1500 * scale;
+
+        ctx.beginPath();
+        // ligne gauche
+        ctx.moveTo(0, 0);
+        ctx.lineTo(
+        Math.sin(fovMin) * fovRadius,
+        -Math.cos(fovMin) * fovRadius
+        );
+        ctx.stroke();
+
+        // ligne droite
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(
+        Math.sin(fovMax) * fovRadius,
+        -Math.cos(fovMax) * fovRadius
+        );
+        ctx.stroke();
         /* ---------- Axes ---------- */
         ctx.strokeStyle = "#555";
         ctx.beginPath();
