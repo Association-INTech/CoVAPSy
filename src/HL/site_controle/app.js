@@ -68,10 +68,77 @@ async function init() {
     const camUrl = await fetchCameraUrl();
     document.getElementById("camera").src = camUrl;
 
-    // refresh toutes les 250 ms
+    initLidar();
     setInterval(refresh, 250);
     refresh();
 }
+
+function initLidar() {
+    const canvas = document.getElementById("lidar");
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    const scale = 0.15; // 10 cm = 15 px
+
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(proto + "://" + location.host + "/api/lidar/ws");
+
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+
+        /* ---------- Grille ---------- */
+        const circleStepMM = 100; // 10 cm
+        const circleCount = 15;
+
+        ctx.strokeStyle = "#333";
+        ctx.lineWidth = 1;
+
+        for (let i = 1; i <= circleCount; i++) {
+            const r = i * circleStepMM * scale;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.fillStyle = "#777";
+            ctx.font = "10px monospace";
+            ctx.fillText(`${i * 10} cm`, r + 4, 0);
+        }
+
+        /* ---------- Axes ---------- */
+        ctx.strokeStyle = "#555";
+        ctx.beginPath();
+        ctx.moveTo(-canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, 0);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, -canvas.height / 2);
+        ctx.lineTo(0, canvas.height / 2);
+        ctx.stroke();
+
+        /* ---------- Points LIDAR ---------- */
+        ctx.fillStyle = "#00ff88";
+        for (let i = 0; i < data.x.length; i++) {
+            ctx.fillRect(
+                data.x[i] * scale,
+               -data.y[i] * scale,
+                2, 2
+            );
+        }
+
+        ctx.restore();
+    };
+
+    ws.onclose = () => {
+        console.warn("LIDAR WS disconnected");
+    };
+}
+
 
 init();
  
