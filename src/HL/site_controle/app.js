@@ -95,9 +95,12 @@ function initLidar() {
             ctx.arc(0, 0, r, 0, Math.PI * 2);
             ctx.stroke();
 
+            if (i % (circleCount / 3) === 0){
+            // label distance
             ctx.fillStyle = "#777";
             ctx.font = "10px monospace";
-            ctx.fillText(`${i * 10} cm`, r + 4, 0);
+            ctx.fillText(`${i * 10} cm`, r + 2, 0);
+            }
         }
 
         /* ---------- Axes ---------- */
@@ -131,15 +134,24 @@ function initLidar() {
 }
 
 
-async function init() {
-    const camUrl = await fetchCameraUrl();
-    document.getElementById("camera").src = camUrl;
 
-    initLidar();
-    setInterval(refresh, 250);
-    refresh();
+async function init() {
+    try {
+        const camUrl = await fetchCameraUrl();
+        const camEl = document.getElementById("camera");
+        if (camEl) {
+            camEl.src = camUrl;
+        } else {
+            console.warn("Element #camera introuvable au moment d'init");
+        }
+
+        initLidar();
+        setInterval(refresh, 250);
+        refresh();
+    } catch (e) {
+        console.error("Erreur dans init:", e);
+    }
 }
 
-
-init();
+window.addEventListener("DOMContentLoaded", init);
  
