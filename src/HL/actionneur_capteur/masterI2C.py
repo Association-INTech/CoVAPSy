@@ -32,7 +32,7 @@ class I2c_arduino:
         self.log.info("Thread I2C loop démarré")
         while self.send_running:
             try :
-                data = struct.pack('<ff', float(round(self.serveur.programme[self.serveur.last_programme_control].vitesse_d)), float(round(self.serveur.programme[self.serveur.last_programme_control].direction_d)))
+                data = struct.pack('<ff', float(round(self.serveur.vitesse_d)), float(round(self.serveur.direction_d)))
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
             except Exception as e:
                 self.log.error("Erreur I2C write: %s", e, exc_info=True)

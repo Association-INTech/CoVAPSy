@@ -109,6 +109,14 @@ class Serveur():
     @property
     def arduino_I2C(self):
         return self.initialisation_module.arduino_I2C
+    
+    @property
+    def vitesse_d(self):
+        return self.programme[self.last_programme_control].vitesse_d
+    
+    @property
+    def direction_d(self):
+        return self.programme[self.last_programme_control].direction_d
     #-----------------------------------------------------------------------------------------------------
     # affichage de l'écrans
     #-----------------------------------------------------------------------------------------------------

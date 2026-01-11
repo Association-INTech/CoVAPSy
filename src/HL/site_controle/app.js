@@ -44,7 +44,6 @@ function updatePrograms(programs) {
             <td>${p.running ? "🟢" : "🔴"}</td>
             <td>${p.controls_car ? "🚗" : "-"}</td>
             <td>
-                <button class="toggle" onclick="toggleProgram(${p.id})">Toggle</button>
                 <button class="start" onclick="startProgram(${p.id})">Start</button>
                 <button class="kill" onclick="killProgram(${p.id})">Kill</button>
             </td>
