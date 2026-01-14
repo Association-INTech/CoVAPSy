@@ -139,16 +139,15 @@ async function fetchCameraUrl() {
     return data.url;
 }
 
-async function toggleProgram(id) {
-    await fetch(`${API}/api/programs/${id}/toggle`, { method: "POST" });
-}
 
 async function startProgram(id) {
     await fetch(`${API}/api/programs/${id}/start`, { method: "POST" });
+    refreshPrograms();
 }
 
 async function killProgram(id) {
     await fetch(`${API}/api/programs/${id}/kill`, { method: "POST" });
+    refreshPrograms();
 }
 
 function updateTelemetry(t) {
@@ -198,17 +197,15 @@ function updatePrograms(programs) {
         tbody.appendChild(tr);
     }
 }
-
-async function refresh() {
+async function refreshPrograms() {
     try {
-        const data = await fetchStatus();
-        updateTelemetry(data.telemetry);
-        updatePrograms(data.programs);
+        const res = await fetch("/api/programs");
+        const programs = await res.json();
+        updatePrograms(programs);
     } catch (e) {
-        console.error("API unreachable", e);
+        console.error("Failed to refresh programs", e);
     }
 }
-
 function initLidar() {
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
@@ -301,7 +298,30 @@ function initLidar() {
         console.warn("LIDAR WS disconnected");
     };
 }
+function initTelemetryWS() {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    const ws = new WebSocket(proto + "://" + location.host + "/api/telemetry/ws");
 
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        updateTelemetry(data);
+    };
+
+    ws.onclose = () => {
+        console.warn("Telemetry WS disconnected, retrying...");
+        setTimeout(initTelemetryWS, 1000);
+    };
+}
+
+async function loadProgramsOnce() {
+    try {
+        const res = await fetch("/api/programs");
+        const programs = await res.json();
+        updatePrograms(programs);
+    } catch (e) {
+        console.error("Failed to load programs", e);
+    }
+}
 
 
 async function init() {
@@ -315,8 +335,8 @@ async function init() {
         }
 
         initLidar();
-        setInterval(refresh, 250);
-        refresh();
+        initTelemetryWS();
+        loadProgramsOnce();
     } catch (e) {
         console.error("Erreur dans init:", e);
     }

@@ -285,6 +285,18 @@ class BackendAPI(Program):
                     await asyncio.sleep(0.1)
             except WebSocketDisconnect:
                 self.logger.info("Lidar WS client disconnected")
+        @self.app.websocket("/api/telemetry/ws")
+        async def telemetry_ws(ws: WebSocket):
+            await ws.accept()
+            self.logger.info("Telemetry WS client connected")
+
+            try:
+                while True:
+                    data = self._get_telemetry()
+                    await ws.send_json(data)
+                    await asyncio.sleep(0.25)  # 4 Hz, comme avant
+            except WebSocketDisconnect:
+                self.logger.info("Telemetry WS client disconnected")
 
 
     # ----------------------------
