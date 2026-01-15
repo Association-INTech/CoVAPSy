@@ -8,15 +8,14 @@ def too_close(lidar,dir):
     # if dir==True: we're near the right wall
     R=0.83
     l=len(lidar)
-    forw=lidar[l//2]
+    straight=lidar[l//2]
     if dir:
-        m=min(lidar[l//2:])
+        nearest=min(lidar[l//2:])
     else:
-        m=min(lidar[:l//2])
-    Th=np.arccos(m/forw)
-    if m < R*(1-np.sin(Th)):
-        return True
-    return False
+        nearest=min(lidar[:l//2])
+    theta=np.arccos(nearest/straight)
+    L=R*(1-np.sin(theta))
+    return nearest < L
 
 class State(Enum):
     AI=auto()
@@ -131,9 +130,7 @@ class VehicleDriver(Driver):
     def back(self):
         #si mur de "dir": braquer à "dir"" et reculer jusqu'à pouvoir réavancer (distance au mur à vérif)
         lidar,cam=self.observe()[1:]
-        S=0
-        for i in range(len(cam)):
-            S+=cam[i]
+        S=sum(cam)
         dir = S>0
         if dir:
             self.setSteeringAngle(0.33)
