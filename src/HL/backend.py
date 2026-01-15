@@ -88,6 +88,7 @@ class BackendAPI(Program):
                   <body>
                     <h3>CoVAPSy Control</h3>
                     <p>Frontend: <a href="/static/index.html">/static/index.html</a></p>
+                    <p>Lidar: <a href="/static/lidar.html">/static/lidar.html</a></p>
                   </body>
                 </html>
                 """

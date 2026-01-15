@@ -65,3 +65,8 @@ img {
     display: block;
 }
 
+
+a:hover > img,
+a:hover > canvas {
+    outline: 2px solid #00ff88;
+}

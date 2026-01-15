@@ -328,8 +328,12 @@ async function init() {
     try {
         const camUrl = await fetchCameraUrl();
         const camEl = document.getElementById("camera");
-        if (camEl) {
+        const camLink = document.getElementById("camera-link");
+
+        if (camEl && camLink) {
             camEl.src = camUrl;
+            camLink.href = camUrl;
+
         } else {
             console.warn("Element #camera introuvable au moment d'init");
         }
