@@ -2,7 +2,7 @@
 from torch.cuda import is_available
 
 n_map = 2
-n_simulations = 1
+n_simulations = 8
 n_vehicles = 1
 n_stupid_vehicles = 0
 n_actions_steering = 16
