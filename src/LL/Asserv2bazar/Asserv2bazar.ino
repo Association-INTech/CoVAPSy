@@ -89,7 +89,6 @@ float voltage_NiMh = 0;     // variable to store the value read
 
 int out;
 int marche_avant = 1; //on initie la marche avant au début (0 étant la marche arriérer)
-unsigned long marche_arriere_time = 0;
 
 unsigned long dernier_input = millis();
 //direction millieu 1851
@@ -124,10 +123,8 @@ float getMeanSpeed(float dt){
 
 float getSpeed(float dt){  
   int N = count - vieuxCount; //nombre de fronts montant et descendands après chaque loop
-  float V = ((float)N/(float)nb_trous)*distanceUnTour/(dt*1e-3); //16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm 
   vieuxCount=count;
-  vieuxTemps=millis();
-  return V;
+  return ((float)N/(float)nb_trous)*distanceUnTour/(dt*1e-3); //16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm ;
 }
 
 
@@ -180,6 +177,7 @@ void updateSpeed() {
   if (dt <= 0) dt = 0.001f;
 
   vitesse = getMeanSpeed(now - vieuxTemps);
+  vieuxTemps = now;
 
   switch (driveState) {
 
@@ -229,13 +227,14 @@ void updateSpeed() {
     case DRIVE_REV_ARM_3:   // retour neutre
       moteur.writeMicroseconds(1500);
       if (now - driveTimer >= 10) {
-        driveState = DRIVE_REVERSE;   // 🔒 marche arrière ENGAGÉE
+        driveState = DRIVE_REVERSE;   // marche arrière ENGAGÉE
       }
       break;
 
     case DRIVE_REVERSE:
-      out = PID(-Vcons, vitesse, dt, out);
-      moteur.writeMicroseconds(constrain(1500 - out, 500, 1500));
+      float cons = abs(Vcons);
+      out = PID(cons, vitesse, dt, out);
+      moteur.writeMicroseconds(constrain(1430 - out, 500, 1500));
 
       if (Vcons == 0){
         moteur.writeMicroseconds(1500);
@@ -248,13 +247,11 @@ void updateSpeed() {
       break;
   }
 
-  vieuxTemps = now;
+  
 
 
 
   #if 0
-     Serial.print("temps en marche arriere: ");
-     Serial.print(millis()- marche_arriere_time);
      Serial.print(",integrale");
      Serial.print(integral);
      Serial.print(",const:");
@@ -283,9 +280,11 @@ void receiveEvent(int byteCount){
       buffer[i] = Wire.read();
     }
 
-    float* vals = (float*)buffer;
-    Vcons = vals[0];  // reçue en milimetre par secondes
-    dir_recue = vals[1];  //reçue en degré. 
+    float v, d;
+    memcpy(&v, buffer, 4);
+    memcpy(&d, buffer + 4, 4);
+    Vcons = v;        // reçue en milimetre par secondes
+    dir_recue = d;    //reçue en degré.
   } else {
     while (Wire.available()) Wire.read(); // vide le buffer
   }
@@ -338,6 +337,9 @@ void loop() {
     moteur.writeMicroseconds(1500);
     dir = map(0,-dir_max,dir_max,dir_min_pwm,dir_max_pwm);
     direction.writeMicroseconds(dir);
+    driveState = DRIVE_STOP; 
+    integral=0; 
+    out=0;
   }
 }
 
