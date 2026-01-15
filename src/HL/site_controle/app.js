@@ -23,11 +23,24 @@ function drawSpeedChart() {
     ctx.lineTo(w - 10, h - 20);
     ctx.stroke();
 
-    const maxVal = Math.max(
-        ...speedHistory.real,
-        ...speedHistory.demand,
-        1
+    
+
+    const maxAbs = Math.max(
+    ...speedHistory.real.map(Math.abs),
+    ...speedHistory.demand.map(Math.abs),
+    1
     );
+    const yZero = h / 2;
+    const scaleY = (h - 40) / (2 * maxAbs);
+    // ligne y=0
+    ctx.strokeStyle = "#666";
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(40, yZero);
+    ctx.lineTo(w - 10, yZero);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
 
     function drawCurve(data, color) {
         ctx.strokeStyle = color;
@@ -35,7 +48,7 @@ function drawSpeedChart() {
 
         data.forEach((v, i) => {
             const x = 40 + (i / speedHistory.maxPoints) * (w - 60);
-            const y = h - 20 - (v / maxVal) * (h - 40);
+            const y = yZero - v * scaleY;
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         });
