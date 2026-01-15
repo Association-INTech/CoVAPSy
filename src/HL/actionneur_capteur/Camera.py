@@ -132,8 +132,8 @@ class Camera:
     def start_stream(self):
         if self.streaming:
             return
-        import Camera_serv
-        Camera_serv.streaming_enabled = True
+        import src.HL.programme.Camera_serv
+        src.HL.programme.Camera_serv.streaming_enabled = True
 
         self.httpd = StreamServer(("", self.port), StreamHandler)
 
@@ -154,8 +154,8 @@ class Camera:
         if not self.streaming:
             return
 
-        import Camera_serv
-        Camera_serv.streaming_enabled = False
+        import src.HL.programme.Camera_serv
+        src.HL.programme.Camera_serv.streaming_enabled = False
 
         print("[INFO] Shutting down MJPEG server...")
 
