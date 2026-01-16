@@ -159,15 +159,8 @@ class BackendAPI(Program):
         return out
 
     def _camera_stream_url(self) -> str:
-        # On suppose que le stream est servi par un autre service sur la Pi
-        # Si tu veux mettre l’IP dynamique, tu peux la récupérer via ta fonction get_ip()
         ip = getattr(getattr(self.server, "SOCKET_ADRESS", None), "IP", None)
-        # Dans tes constantes tu as SOCKET_ADRESS["IP"], mais côté serveur c'est dans Autotech_constant,
-        # donc plus simple: on lit l'IP du serveur si tu l’as quelque part, sinon on laisse en relatif.
-        # Pour l’instant on fait simple: si server a un attribut ip, on l'utilise sinon 192.168.1.10
         ip = getattr(self.server, "ip", None) or "192.168.1.10"
-        # ton chemin réel est /stream.mjpg d’après ton message, pas /stream
-        # donc on renvoie les deux pour compatibilité:
         return f"http://{ip}:{PORT_STREAMING_CAMERA}/stream.mjpg"
     
     def _lidar(self):
@@ -243,7 +236,6 @@ class BackendAPI(Program):
             if getattr(p, "running", False):
                 return {"status": "already_running", "program_id": prog_id}
 
-            # utilise ta logique centralisée
             self.server.start_process(prog_id)
             return {"status": "ok", "program_id": prog_id}
 
@@ -257,13 +249,13 @@ class BackendAPI(Program):
             if not getattr(p, "running", False):
                 return {"status": "already_stopped", "program_id": prog_id}
 
-            # ta logique: toggle kill si running
+            # toggle kill if running
             self.server.start_process(prog_id)
             return {"status": "ok", "program_id": prog_id}
 
         @self.app.get("/api/stream/camera")
         def camera_stream():
-            # On ne proxifie pas (mauvais plan). On donne juste l'URL.
+            # give the URL.
             return {"url": self._camera_stream_url()}
         
         @self.app.get("/api/lidar")
@@ -295,7 +287,7 @@ class BackendAPI(Program):
                 while True:
                     data = self._get_telemetry()
                     await ws.send_json(data)
-                    await asyncio.sleep(0.25)  # 4 Hz, comme avant
+                    await asyncio.sleep(0.25)  # 4 Hz
             except WebSocketDisconnect:
                 self.logger.info("Telemetry WS client disconnected")
 
@@ -308,7 +300,7 @@ class BackendAPI(Program):
             return
         self.running = True
 
-        # Uvicorn "propre" (permet d'arrêter via should_exit)
+        # Uvicorn
         config = uvicorn.Config(self.app, host=self.host, port=self.port, log_level="info")
         self._uvicorn_server = uvicorn.Server(config)
 
