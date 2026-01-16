@@ -47,13 +47,32 @@ volatile int vieuxCount=0; //stocke l'ancienne valeur de count pour ensuite fair
 volatile byte state=LOW;
 float mesures[3]; // tableau de mesures pour lisser
 
-////I2C
+//I2C
 union floatToBytes {
       byte valueBuffer[4];
       float valueReading;
     } converter;
 
-////Voltage
+//struct pour la fréquence d'éxécution des fonctions
+struct Task {
+  unsigned long period;
+  unsigned long last;
+  void (*run)();
+};
+
+enum DriveState {
+  DRIVE_STOP,
+  DRIVE_FORWARD,
+  DRIVE_REV_ARM_1,  // neutre
+  DRIVE_REV_ARM_2,  // reverse fort
+  DRIVE_REV_ARM_3,  // retour neutre
+  DRIVE_REVERSE
+};
+
+DriveState driveState = DRIVE_STOP;
+unsigned long driveTimer = 0;
+
+//Voltage
 volatile bool dataReceived = false;
 volatile char receivedData[32]; // Buffer to hold received data
 volatile int receivedLength = 0;
@@ -70,9 +89,8 @@ float voltage_NiMh = 0;     // variable to store the value read
 
 int out;
 int marche_avant = 1; //on initie la marche avant au début (0 étant la marche arriérer)
-float marche_arriere_time = 0;
 
-float dernier_input = millis();
+unsigned long dernier_input = millis();
 //direction millieu 1851
 // tout a gaucge 1231
 // tout a droite 2471
@@ -105,21 +123,17 @@ float getMeanSpeed(float dt){
 
 float getSpeed(float dt){  
   int N = count - vieuxCount; //nombre de fronts montant et descendands après chaque loop
-  float V = ((float)N/(float)nb_trous)*distanceUnTour/(dt*1e-3); //16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm 
   vieuxCount=count;
-  vieuxTemps=millis();
-  return V;
+  return ((float)N/(float)nb_trous)*distanceUnTour/(dt*1e-3); //16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm ;
 }
 
 
 void blink(){ //on compte tous les fronts
-  //Serial.print(count);
   count++;
 }
 
 
 float PID(float cons, float mes, float dt,float old_out) {
-
 
   if ( old_out <= 0 && cons > 0){     // pour pouvoir sauter directement dans la plage de pwm ou la roue bouge et une transition plus fluide entre marche arriere et avant 
     integral = 2500;                  // valeur experimentale
@@ -128,27 +142,14 @@ float PID(float cons, float mes, float dt,float old_out) {
     integral = -5000;                 // valeur experimentale
   }
 
-
-  // Adjust the measured speed based on the sign of the desired speed
-  float adjustedMes = (cons < 0) ? -mes : mes;
-
-  // Calculate the error
-  float e = cons - adjustedMes;
-
-  // Proportional term
-  float P = Kp * e;
-
-  // Integral term
-  integral = integral + e * dt;
-  float I = Ki * integral;
-
-  // Derivative term
-  derivee = (e - vieuxEcart) / dt;
+  float adjustedMes = (cons < 0) ? -mes : mes; // Adjust the measured speed based on the sign of the desired speed
+  float e = cons - adjustedMes;                // Calculate the error
+  float P = Kp * e;                            // Proportional term
+  integral = integral + e * dt;                // Integral term
+  float I = Ki * integral;  
+  derivee = (e - vieuxEcart) / dt;             // Derivative term
   vieuxEcart = e;
   float D = Kd * derivee;
-
-  // Garde en mémoir pour passer out à 0 directe lorsque l'on change de sens pour ne pas attendre qu'elle change de sens tout seul (que c'est long mdr
-  
   return P + I + D;
 }
 
@@ -164,114 +165,93 @@ void calculateVoltage(){
   //Serial.println(voltage_NiMh);
 }
 
-/*
-float direction_compensation(float dir_recue, float anciene_dir){
-  if (anciene_dir > )
-}*/
-
-void programme_principal(){
-  calculateVoltage();
-  // Commandes pour debugger
-  #if 0
-  command=Serial.read();
-  switch (command){ //pour regler les parametres
-    case 'a':
-    Vcons+=200;
-    break;
-    case 'z':
-    Vcons-=200;
-    break;
-    case 's':
-    Vcons=-1000;
-    break;
-    case 'd':
-    Vcons=2000;
-    break;
-    case 'q':
-    Vcons=0;
-    break;
-    case 'b':
-    dir+=10;
-    break;
-    case 'n':
-    dir-=100;
-    break;
-    case 'j':
-    dir+=10;
-    break;
-    case 'k':
-    dir-=10;
-    break;
-  }
-  #endif
-  
-
-  // Propulsion de la voiture
-  int deltaT = millis()-vieuxTemps; //temps qui est passé pendant un loop (en millisecondes)
-  vitesse=getMeanSpeed(deltaT); // on recup la vitesse lissée
-  
-
-  if (Vcons == 0){
-    out = 0;
-    moteur.writeMicroseconds(out+1500);
-    /*
-    Serial.print("out:");
-    Serial.print(out);
-    */
-    marche_arriere_time = millis();
-  }
-  else if (Vcons>0){
-
-    out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
-    moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
-    /*
-    Serial.print("out:");
-    Serial.print(constrain(1500 + out,500,2000));
-    */
-    marche_avant = 1; // on est en marche avant
-    
-  } else if ( Vcons<0 && old_Vcons>=0 && marche_avant == 1){ //on vériefie si il faut enclencher la marche arrière
-    out = PID(-8000,vitesse,float(deltaT)/1e3,out);
-    moteur.writeMicroseconds(constrain(1500 + out,500,1500));
-    delay(150);
-    out = PID(0,vitesse,float(deltaT)/1e3,out);
-    moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
-    delay(10);
-    marche_avant = 0; //on est passée en marche arrière
-    marche_arriere_time = millis();
-
-  } else {
-    if (vitesse==0 && Vcons<0 && millis()- marche_arriere_time > 500){ //vérifie si on est bien passée en marche arrière car bug parfois et si non on passe en marche arriere
-
-      
-      out = PID(-8000,vitesse,float(deltaT)/1e3,out);
-      moteur.writeMicroseconds(constrain(1500 + out,500,1500));
-      delay(150);
-      out = PID(0,vitesse,float(deltaT)/1e3,out);
-      moteur.writeMicroseconds(constrain(1500 + out,1500,2000));
-      delay(10);
-    }
-    
-    out = PID(Vcons,vitesse,float(deltaT)/1e3,out);
-    moteur.writeMicroseconds(constrain(1500 + out,500,1500));
-    /*
-    Serial.print("out:");
-    Serial.print(constrain(1500 + out,500,2000));
-    */
-  }
-  
-  old_Vcons = Vcons;
-
-
-  // Direction de la voiture
+void updateDirection(){
+  // Update direction
   dir = map(dir_recue,-dir_max,dir_max,dir_min_pwm,dir_max_pwm); // remape en degré
   direction.writeMicroseconds(dir);
+}
+
+void updateSpeed() {
+  unsigned long now = millis();
+  float dt = (now - vieuxTemps) * 0.001f;
+  if (dt <= 0) dt = 0.001f;
+
+  vitesse = getMeanSpeed(now - vieuxTemps);
+  vieuxTemps = now;
+
+  switch (driveState) {
+
+    case DRIVE_STOP:
+      moteur.writeMicroseconds(1500);
+      integral = 0;
+      out = 0;
+
+      if (Vcons > 0) {
+        driveState = DRIVE_FORWARD;
+      }
+      else if (Vcons < 0) {
+        driveState = DRIVE_REV_ARM_1;
+        driveTimer = now;
+      }
+      break;
+
+    case DRIVE_FORWARD:
+      out = PID(Vcons, vitesse, dt, out);
+      moteur.writeMicroseconds(constrain(1500 + out, 1500, 2000));
+
+      if (Vcons == 0) {
+        driveState = DRIVE_STOP;
+      }
+      else if (Vcons < 0) {
+        driveState = DRIVE_REV_ARM_1;
+        driveTimer = now;
+      }
+      break;
+
+    case DRIVE_REV_ARM_1:   // neutre court
+      moteur.writeMicroseconds(1500);
+      if (now - driveTimer >= 10) {
+        driveState = DRIVE_REV_ARM_2;
+        driveTimer = now;
+      }
+      break;
+
+    case DRIVE_REV_ARM_2:   // reverse fort (armement ESC)
+      moteur.writeMicroseconds(1000);
+      if (now - driveTimer >= 150) {
+        driveState = DRIVE_REV_ARM_3;
+        driveTimer = now;
+      }
+      break;
+
+    case DRIVE_REV_ARM_3:   // retour neutre
+      moteur.writeMicroseconds(1500);
+      if (now - driveTimer >= 10) {
+        driveState = DRIVE_REVERSE;   // marche arrière ENGAGÉE
+      }
+      break;
+
+    case DRIVE_REVERSE:
+      float cons = abs(Vcons);
+      out = PID(cons, vitesse, dt, out);
+      moteur.writeMicroseconds(constrain(1430 - out, 500, 1500));
+
+      if (Vcons == 0){
+        moteur.writeMicroseconds(1500);
+        integral = 0;
+        out = 0;
+      }
+      else if (Vcons > 0) {
+        driveState = DRIVE_FORWARD;
+      }
+      break;
+  }
+
   
 
-  //print debug
-  #if 1
-     Serial.print("temps en marche arriere: ");
-     Serial.print(millis()- marche_arriere_time);
+
+
+  #if 0
      Serial.print(",integrale");
      Serial.print(integral);
      Serial.print(",const:");
@@ -282,16 +262,11 @@ void programme_principal(){
      Serial.print(vitesse);
      Serial.print(",Directino en degré:");
      Serial.print(dir_recue);
-//   Serial.print(", Ki :  ");
-//   Serial.print(Ki);
-//   Serial.print(", Kp: ");
-//   Serial.print(Kp);
-//   Serial.print(", ");
      Serial.print(",out2:");
      Serial.println(out);
   #endif
-  delay(10);
 }
+
 void receiveEvent(int byteCount){
   // Ignorer le premier octet "commande" du Raspberry
   if (Wire.available()) Wire.read(); // skip cmd byte
@@ -305,9 +280,11 @@ void receiveEvent(int byteCount){
       buffer[i] = Wire.read();
     }
 
-    float* vals = (float*)buffer;
-    Vcons = vals[0];  // reçue en milimetre par secondes
-    dir_recue = vals[1];  //reçue en degré. 
+    float v, d;
+    memcpy(&v, buffer, 4);
+    memcpy(&d, buffer + 4, 4);
+    Vcons = v;        // reçue en milimetre par secondes
+    dir_recue = d;    //reçue en degré.
   } else {
     while (Wire.available()) Wire.read(); // vide le buffer
   }
@@ -339,14 +316,30 @@ void setup() {
 }
 
 
+Task tasks[] = {
+  {5,   0, updateDirection}, // 200 Hz
+  {20,  0, updateSpeed},     // 50 Hz
+  {500, 0, calculateVoltage}   // 2 Hz
+};
+
 void loop() {
-  if(millis()-dernier_input < 150){ // on vérifie si on a recue une commande dans les 100 dernière millisecondes sinon on arrete
-    programme_principal();
+  unsigned long now = millis();
+
+  if(now - dernier_input < 150){ // on vérifie si on a recue une commande dans les 100 dernière millisecondes sinon on arrete
+    for (auto &t : tasks) {
+      if (now - t.last >= t.period) {
+        t.last = now;
+        t.run();
+      }
+    }
   }
   else {
     moteur.writeMicroseconds(1500);
     dir = map(0,-dir_max,dir_max,dir_min_pwm,dir_max_pwm);
     direction.writeMicroseconds(dir);
+    driveState = DRIVE_STOP; 
+    integral=0; 
+    out=0;
   }
 }
 
