@@ -3,7 +3,7 @@ name = "Autotech"
 version = "0.1.0"
 description = "Participation de INTech à CoVAPSy"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12,<3.14"
 authors = [
     { name = "Arnaud Costermans", email = "arnaud.costermans@intech-robotics.fr" },
     { name = "Matthias Bienvenu", email = "matthias.bienvenu@intech-robotics.fr" },

@@ -12,6 +12,24 @@ sys.path.insert(0, path)
 
 from config import *
 from vehicle import Driver
+from enum import Enum,auto
+
+def too_close(lidar,dir):
+    # if dir==True: we're near the right wall
+    R=0.83
+    l=len(lidar)
+    straight=lidar[l//2]
+    if dir:
+        nearest=min(lidar[l//2:])
+    else:
+        nearest=min(lidar[:l//2])
+    theta=np.arccos(nearest/straight)
+    L=R*(1-np.sin(theta))
+    return nearest < L
+
+class State(Enum):
+    AI=auto()
+    BACK=auto()
 
 class VehicleDriver(Driver):
     """
@@ -21,6 +39,7 @@ class VehicleDriver(Driver):
 
     def __init__(self):
         super().__init__()
+        self.state=State.AI
 
 
         basicTimeStep = int(self.getBasicTimeStep())
@@ -94,22 +113,34 @@ class VehicleDriver(Driver):
             # green -> 1
             # blue  -> 0
 
-            return np.concatenate([
+            return (
                 sensor_data,
                 lidar_data,
                 camera_data
-            ])
+            )
         except:
             #En cas de non retour lidar
-            return np.concatenate([
+            return (
                 np.array(self.touch_sensor.getValue(), dtype=np.float32),
                 np.zeros(self.lidar.getNumberOfPoints(), dtype=np.float32)
-            ])
+            )
 
     #Fonction step de l"environnement GYM
     def step(self):
-        # sends observation to the supervisor
+        match self.state:
+            case State.AI:
+                self.ai()
+            case State.BACK:
+                self.back()
 
+        return super().step()
+        
+         
+
+    def ai(self):
+        # sends observation to the supervisor
+        self.emitter.send(np.concatenate(self.observe()).tobytes())
+        
         # First to be executed
         
         self.log.info("Starting step")
@@ -136,7 +167,25 @@ class VehicleDriver(Driver):
         self.setSteeringAngle(action_steering)
         self.setCruisingSpeed(action_speed)
 
-        return super().step()
+        if self.touch_sensor.getValue():
+            self.state=State.BACK
+
+    
+    def back(self):
+        #si mur de "dir": braquer à "dir"" et reculer jusqu'à pouvoir réavancer (distance au mur à vérif)
+        lidar,cam=self.observe()[1:]
+        S=sum(cam)
+        dir = S>0
+        if dir:
+            self.setSteeringAngle(0.33)
+            if too_close(lidar,dir):
+                self.setCruisingSpeed(-2)
+            else: self.state=State.AI
+        else:
+            self.setSteeringAngle(-0.33)
+            if too_close(lidar,dir):
+                self.setCruisingSpeed(-2)
+            else: self.state=State.AI
 
     def run(self):
         # this call is just there to make sure at least one step
