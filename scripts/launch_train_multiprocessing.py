@@ -13,7 +13,6 @@ simu_path = __file__.rsplit('/', 2)[0] + '/src/Simulateur'
 if simu_path not in sys.path:
     sys.path.insert(0, simu_path)
 
-from Simulateur.config import LOG_LEVEL
 from config import *
 from TemporalResNetExtractor import TemporalResNetExtractor
 from CNN1DResNetExtractor import CNN1DResNetExtractor
