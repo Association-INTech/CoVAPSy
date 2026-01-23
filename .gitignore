@@ -225,6 +225,5 @@ Debug
 Debug_Wayfinding
 .DS_Store
 .venv
-*.onnx
 checkpoints
 *.wbproj
