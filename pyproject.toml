@@ -14,10 +14,7 @@ authors = [
 ]
 
 dependencies = [
-    "fastapi>=0.128.0",
-    "uvicorn>=0.40.0",
-    "websocket>=0.2.1",
-    "websockets>=16.0",
+
 ]
 
 [project.optional-dependencies]
@@ -68,5 +65,9 @@ rpi = [
     "matplotlib>=3.10.5",
     "opencv-python>=4.12.0.88",
     "scipy>=1.15.3",
+    "websockets>=16.0",
+    "fastapi>=0.128.0",
+    "uvicorn>=0.40.0",
+    "websocket>=0.2.1",
     "websockets>=16.0",
 ]
