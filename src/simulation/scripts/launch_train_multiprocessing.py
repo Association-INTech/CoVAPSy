@@ -51,7 +51,10 @@ if __name__ == "__main__":
     )
 
     save_path = (
-        __file__.rsplit("/", 1)[0] + "/checkpoints/" + ExtractorClass.__name__ + "/"
+        __file__.rsplit("/", 1)[0]
+        + "/tmp/autotech/checkpoints/"
+        + ExtractorClass.__name__
+        + "/"
     )
     os.makedirs(save_path, exist_ok=True)
 
@@ -93,7 +96,10 @@ if __name__ == "__main__":
     #     envs.render()  # Optional: visualize the environment
 
     while True:
-        onnx_utils.export_onnx(model)
+        onnx_utils.export_onnx(
+            model,
+            f"/tmp/autotech/model_{ExtractorClass.__name__}.onnx",
+        )
         onnx_utils.test_onnx(model)
 
         if c.LOG_LEVEL <= DEBUG:
