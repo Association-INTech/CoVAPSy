@@ -1,5 +1,4 @@
 # BackendAPI.py
-from __future__ import annotations
 
 import threading
 import time
@@ -111,9 +110,9 @@ class BackendAPI(Program):
     def _get_telemetry(self) -> Dict[str, Any]:
         ard = self._arduino()
         # On protège tout: si pas initialisé, on renvoie 0
-        voltage_lipo = float(getattr(ard, "voltage_lipo", 0.0) or 0.0) if ard else 0.0
-        voltage_nimh = float(getattr(ard, "voltage_nimh", 0.0) or 0.0) if ard else 0.0
-        current_speed = float(getattr(ard, "current_speed", 0.0) or 0.0) if ard else 0.0
+        voltage_lipo = getattr(ard, "voltage_lipo", 0.0) if ard else 0.0
+        voltage_nimh = getattr(ard, "voltage_nimh", 0.0) if ard else 0.0
+        current_speed = getattr(ard, "current_speed", 0.0) if ard else 0.0
 
         # Programme qui contrôle la voiture actuellement
         last_ctrl = int(getattr(self.server, "last_programme_control", 0) or 0)

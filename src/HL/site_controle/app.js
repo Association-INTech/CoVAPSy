@@ -143,11 +143,17 @@ function drawSteering(directionDeg) {
 
 async function fetchStatus() {
     const res = await fetch(`${API}/api/status`);
+    if (!res.ok) {
+        throw new Error(`API status failed: ${res.status}`);
+    }
     return await res.json();
 }
 
 async function fetchCameraUrl() {
     const res = await fetch(`${API}/api/stream/camera`);
+    if (!res.ok) {
+        throw new Error(`Camera url API failed: ${res.status}`);
+    }
     const data = await res.json();
     return data.url;
 }
@@ -213,6 +219,9 @@ function updatePrograms(programs) {
 async function refreshPrograms() {
     try {
         const res = await fetch("/api/programs");
+        if (!res.ok) {
+        throw new Error(`Programs API failed: ${res.status}`);
+    }
         const programs = await res.json();
         updatePrograms(programs);
     } catch (e) {
@@ -329,6 +338,9 @@ function initTelemetryWS() {
 async function loadProgramsOnce() {
     try {
         const res = await fetch("/api/programs");
+        if (!res.ok) {
+            throw new Error(`Programs API failed: ${res.status}`);
+        }
         const programs = await res.json();
         updatePrograms(programs);
     } catch (e) {
