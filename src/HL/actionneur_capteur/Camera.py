@@ -41,7 +41,7 @@ class JpegCallback(Output):
 
 from src.HL.programme.Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
 from src.HL.programme.programme import Program
-from src.HL.Autotech_constant import PORT_STREAMING_CAMERA, SIZE_CAMERA_X, SIZE_CAMERA_Y, FRAME_RATE, CAMERA_QUALITY, STREAM_PATH, ON_START_CAMERA_STREAM
+from src.HL.Autotech_constant import PORT_STREAMING_CAMERA, SIZE_CAMERA_X, SIZE_CAMERA_Y, FRAME_RATE, CAMERA_QUALITY, STREAM_PATH, CAMERA_STREAM_ON_START
 
 class ProgramStreamCamera(Program):
     def __init__(self,serveur):
@@ -51,7 +51,7 @@ class ProgramStreamCamera(Program):
         self.running = False
         self.controls_car = False
         
-        if ON_START_CAMERA_STREAM:
+        if CAMERA_STREAM_ON_START:
             self.start()
 
     

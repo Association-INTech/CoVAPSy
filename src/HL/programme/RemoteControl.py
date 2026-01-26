@@ -13,8 +13,8 @@ class RemoteControl(Program):
         self.log = logging.getLogger(__name__)
         self.controls_car = True
         self.running = False
-        self.vitesse_d = 0
-        self.direction_d = 0
+        self.target_speed = 0
+        self.direction = 0
     
         #initialisation
         self.public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -29,7 +29,7 @@ class RemoteControl(Program):
         while self.running:
             try:
                 data, ip = sock.recvfrom(1024)
-                self.vitesse_d, self.direction_d = struct.unpack("ff", data)
+                self.target_speed, self.direction = struct.unpack("ff", data)
             except socket.timeout:
                 continue
 

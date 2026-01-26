@@ -63,6 +63,6 @@ Temperature = 0.7 # Temperature parameter for softmax function, used to control 
 LOGGING_LEVEL = logging.DEBUG # can be either NOTSET, DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 #Startup
-ON_START_CAMERA_STREAM = True #If True the camera stream will start at the launch of the car
-ON_START_BACKEND = True #If True the backend will start at the launch of the car
-ON_START_LIDAR_STREAM = True #If True the lidar stream will start at the launch of the car
+CAMERA_STREAM_ON_START = True #If True the camera stream will start at the launch of the car
+BACKEND_ON_START = True #If True the backend will start at the launch of the car
+LIDAR_STREAM_ON_START = True #If True the lidar stream will start at the launch of the car

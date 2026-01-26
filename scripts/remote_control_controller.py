@@ -10,16 +10,16 @@ import struct
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 def envoie_donnee():
-    global vitesse_m, direction_d
+    global vitesse_m, direction
     while True:
-        packet = struct.pack("ff", vitesse_m, direction_d)
+        packet = struct.pack("ff", vitesse_m, direction)
         sock.sendto(packet, ("192.168.1.10", 5556))
         time.sleep(0.05)
 
 ###################################################
 # Paramètres véhicule
 ###################################################
-direction_d = 0
+direction = 0
 vitesse_m = 0
 
 vitesse_max_m_s_soft = 2
@@ -30,9 +30,9 @@ def map_range(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def set_direction_degre(angle_degre):
-    global direction_d
-    direction_d = angle_degre
-    print(direction_d, vitesse_m)
+    global direction
+    direction = angle_degre
+    print(direction, vitesse_m)
 
 def set_vitesse_m_ms(vit):
     global vitesse_m

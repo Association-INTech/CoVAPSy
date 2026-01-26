@@ -21,7 +21,7 @@ from Autotech_constant import (
     LOGGING_LEVEL,
     PORT_STREAMING_CAMERA,
     STREAM_PATH,
-    ON_START_BACKEND,
+    BACKEND_ON_START,
 )
 
 class BackendAPI(Program):
@@ -96,7 +96,7 @@ class BackendAPI(Program):
         self._setup_routes()
 
         time.sleep(1)  # Petit délai pour s'assurer que tout est prêt avant de démarrer
-        if ON_START_BACKEND:
+        if BACKEND_ON_START:
             self.start()
         
 
@@ -113,7 +113,7 @@ class BackendAPI(Program):
         # On protège tout: si pas initialisé, on renvoie 0
         voltage_lipo = float(getattr(ard, "voltage_lipo", 0.0) or 0.0) if ard else 0.0
         voltage_nimh = float(getattr(ard, "voltage_nimh", 0.0) or 0.0) if ard else 0.0
-        vitesse_r = float(getattr(ard, "vitesse_r", 0.0) or 0.0) if ard else 0.0
+        current_speed = float(getattr(ard, "current_speed", 0.0) or 0.0) if ard else 0.0
 
         # Programme qui contrôle la voiture actuellement
         last_ctrl = int(getattr(self.server, "last_programme_control", 0) or 0)
@@ -122,8 +122,8 @@ class BackendAPI(Program):
         if isinstance(programmes, list) and 0 <= last_ctrl < len(programmes):
             prog_name = type(programmes[last_ctrl]).__name__
 
-        vitesse_d = float(getattr(self.server, "vitesse_d", 0.0) or 0.0)
-        direction_d = float(getattr(self.server, "direction_d", 0.0) or 0.0)
+        target_speed = float(getattr(self.server, "target_speed", 0.0) or 0.0)
+        direction = float(getattr(self.server, "direction", 0.0) or 0.0)
 
         return {
             "battery": {
@@ -131,9 +131,9 @@ class BackendAPI(Program):
                 "nimh": voltage_nimh
             },
             "car": {
-                "vitesse_reelle": vitesse_r,
-                "vitesse_demandee": vitesse_d,
-                "direction_demandee": direction_d,
+                "vitesse_reelle": current_speed,
+                "vitesse_demandee": target_speed,
+                "direction_demandee": direction,
                 "programme_controle": prog_name,
                 "programme_id": last_ctrl
             },

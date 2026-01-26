@@ -9,7 +9,7 @@ class I2c_arduino:
     def __init__(self,serveur):
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
-        self.vitesse_r = 0
+        self.current_speed = 0
         self.send_running = True
         self.receive_running = True
         
@@ -32,7 +32,7 @@ class I2c_arduino:
         self.log.info("Thread I2C loop démarré")
         while self.send_running:
             try :
-                data = struct.pack('<ff', float(round(self.serveur.vitesse_d)), float(round(self.serveur.direction_d)))
+                data = struct.pack('<ff', float(round(self.serveur.target_speed)), float(round(self.serveur.direction)))
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(1e-5) # Short delay to prevent overwhelming the bus
             except Exception as e:
@@ -53,7 +53,7 @@ class I2c_arduino:
                 # on enregistre les valeur
                 self.voltage_lipo = list_valeur[0]
                 self.voltage_nimh = list_valeur[1]
-                self.vitesse_r = list_valeur[2]
+                self.current_speed = list_valeur[2]
             else:
                 self.log.warning("I2C: taille inattendue (%d au lieu de %d)", len(data), length)
             time.sleep(I2C_SLEEP_RECEIVED)

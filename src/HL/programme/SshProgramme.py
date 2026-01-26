@@ -11,8 +11,8 @@ class SshProgramme(Program):
         self.running = True
         self.controls_car = True
 
-        self.vitesse_d = 0
-        self.direction_d = 0
+        self.target_speed = 0
+        self.direction = 0
 
         # Cache IP
         self.ip = None
