@@ -47,7 +47,7 @@ function drawSpeedChart() {
         ctx.beginPath();
 
         data.forEach((v, i) => {
-            const x = 40 + (i / speedHistory.maxPoints) * (w - 60);
+            const x = 40 + (i / (data.length - 1)) * (w - 60);
             const y = yZero - v * scaleY;
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
