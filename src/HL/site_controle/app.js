@@ -60,10 +60,13 @@ function drawSpeedChart() {
     drawCurve(speedHistory.real, "#00ff88");   // réel
 
     // légende
+    
     ctx.fillStyle = "#ffaa00";
     ctx.fillText("Consigne", w - 100, 20);
     ctx.fillStyle = "#00ff88";
     ctx.fillText("Réelle", w - 100, 35);
+    ctx.font = "10px monospace";
+    
 }
 
 function drawSteering(directionDeg) {
@@ -228,7 +231,7 @@ async function refreshPrograms() {
         console.error("Failed to refresh programs", e);
     }
 }
-function initLidar() {
+function initLidar(retryDelay = 1000) {
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
 
@@ -237,7 +240,7 @@ function initLidar() {
 
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(proto + "://" + location.host + "/api/lidar/ws");
-
+    try{
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
 
@@ -315,20 +318,28 @@ function initLidar() {
 
         ctx.restore();
     };
+    }catch(e){
+        console.error("Erreur dans LIDAR WS onmessage:", e);
+    }
 
     ws.onclose = () => {
         console.warn("LIDAR WS disconnected");
-    };
+
+        setTimeout(() => {
+            initLidar(Math.min(retryDelay * 2, 8000));
+        }, retryDelay);
 }
 function initTelemetryWS() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(proto + "://" + location.host + "/api/telemetry/ws");
-
-    ws.onmessage = (e) => {
+    try{
+            ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
         updateTelemetry(data);
     };
-
+    }catch(e){
+    console.error("Erreur dans Telemetry WS onmessage:", e);
+}   
     ws.onclose = () => {
         console.warn("Telemetry WS disconnected, retrying...");
         setTimeout(initTelemetryWS, 1000);
