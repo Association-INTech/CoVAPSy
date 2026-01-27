@@ -70,3 +70,14 @@ a:hover > img,
 a:hover > canvas {
     outline: 2px solid #00ff88;
 }
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+}
+
+.logo {
+    height: 50px;
+    width: auto;
+}
