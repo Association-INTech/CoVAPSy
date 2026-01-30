@@ -13,14 +13,8 @@ authors = [
     { name = "Cyril Bampeta", email = "cyril.bampeta@intech-robotics.fr" },
 ]
 
-<<<<<<< HEAD
 # dependencies = [
 # ]
-=======
-dependencies = [
-
-]
->>>>>>> main
 
 # [project.optional-dependencies]
 # docs = [
