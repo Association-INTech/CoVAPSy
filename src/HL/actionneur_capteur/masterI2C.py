@@ -9,7 +9,7 @@ class I2c_arduino:
     def __init__(self,serveur):
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
-        self.vitesse_r = 0
+        self.current_speed = 0
         self.send_running = True
         self.receive_running = True
         
@@ -21,7 +21,7 @@ class I2c_arduino:
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
         self.log.info("I2C: bus ouvert sur /dev/i2c-1")
 
-        time.sleep(0.5)  # Give some time for the bus to settle
+
 
         #initialization of i2c send and received
         threading.Thread(target=self.start_send, daemon=True).start()
@@ -29,11 +29,13 @@ class I2c_arduino:
     
     def start_send(self):
         """Envoie vitesse/direction régulièrement au microcontroleur. (toute les frames actuellement)"""
+        time.sleep(1)  # Give some time for the target_speed and direction to be set
         self.log.info("Thread I2C loop démarré")
         while self.send_running:
             try :
-                data = struct.pack('<ff', float(round(self.serveur.programme[self.serveur.last_programme_control].vitesse_d)), float(round(self.serveur.programme[self.serveur.last_programme_control].direction_d)))
+                data = struct.pack('<ff', float(self.serveur.target_speed), float(self.serveur.direction))
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+                time.sleep(1e-5) # Short delay to prevent overwhelming the bus
             except Exception as e:
                 self.log.error("Erreur I2C write: %s", e, exc_info=True)
                 time.sleep(I2C_SLEEP_ERROR_LOOP)
@@ -52,7 +54,7 @@ class I2c_arduino:
                 # on enregistre les valeur
                 self.voltage_lipo = list_valeur[0]
                 self.voltage_nimh = list_valeur[1]
-                self.vitesse_r = list_valeur[2]
+                self.current_speed = list_valeur[2]
             else:
                 self.log.warning("I2C: taille inattendue (%d au lieu de %d)", len(data), length)
             time.sleep(I2C_SLEEP_RECEIVED)
