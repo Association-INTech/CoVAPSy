@@ -1,5 +1,5 @@
-from src.HL.programme.programme import Program
-from src.HL.programme.scripts.get_ip import check_ssh_connections
+from programs.program import Program
+from programs.utils.ssh import check_ssh_connections
 import socket
 import time
 

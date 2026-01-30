@@ -15,11 +15,9 @@ import asyncio
 from fastapi import WebSocket
 from fastapi.websockets import WebSocketDisconnect
 
-from src.HL.programme.programme import Program
-from Autotech_constant import (
-    LOGGING_LEVEL,
+from programs.program import Program
+from high_level.autotech_constant import (
     PORT_STREAMING_CAMERA,
-    STREAM_PATH,
     BACKEND_ON_START,
 )
 

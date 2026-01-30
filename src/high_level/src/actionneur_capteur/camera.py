@@ -5,7 +5,6 @@ import numpy as np
 import os
 import logging as log
 import threading
-import shutil
 import scipy as sp
 import time
 import logging
@@ -39,9 +38,9 @@ class JpegCallback(Output):
 
 
 
-from src.HL.programme.Camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
-from src.HL.programme.programme import Program
-from src.HL.Autotech_constant import PORT_STREAMING_CAMERA, SIZE_CAMERA_X, SIZE_CAMERA_Y, FRAME_RATE, CAMERA_QUALITY, STREAM_PATH, CAMERA_STREAM_ON_START
+from programs.camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
+from programs.program import Program
+from high_level.autotech_constant import PORT_STREAMING_CAMERA, SIZE_CAMERA_X, SIZE_CAMERA_Y, FRAME_RATE, CAMERA_QUALITY, STREAM_PATH, CAMERA_STREAM_ON_START
 
 class ProgramStreamCamera(Program):
     def __init__(self,serveur):
@@ -136,8 +135,8 @@ class Camera:
     def start_stream(self):
         if self.streaming:
             return
-        import src.HL.programme.Camera_serv
-        src.HL.programme.Camera_serv.streaming_enabled = True
+        import programs.camera_serv        
+        programs.camera_serv.streaming_enabled = True
 
         self.httpd = StreamServer(("", self.port), StreamHandler)
 
@@ -158,9 +157,9 @@ class Camera:
         if not self.streaming:
             return
 
-        import src.HL.programme.Camera_serv
-        src.HL.programme.Camera_serv.streaming_enabled = False
-
+        import programs.camera_serv        
+        programs.camera_serv.streaming_enabled = False
+        
         print("[INFO] Shutting down MJPEG server...")
 
         self.httpd.shutdown()

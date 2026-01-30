@@ -1,7 +1,7 @@
 
-from src.HL.programme.programme import Program
+from programs.program import Program
 import threading
-from ..Autotech_constant import SOCKET_ADRESS
+from high_level.autotech_constant import SOCKET_ADRESS
 import logging
 
 class Initialisation(Program):

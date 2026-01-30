@@ -1,13 +1,6 @@
-import zmq
-context = zmq.Context()
-import cv2
 import time
-import threading
 import smbus
 import logging
-import struct
-import os, signal
-
 
 from luma.core.interface.serial import i2c
 from luma.core.render import canvas
@@ -15,33 +8,24 @@ from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 from gpiozero import LED, Button, Buzzer
 import textwrap
-import socket
 
-from src.HL.programme.scripts.get_ip import check_ssh_connections
-import subprocess
-from src.HL.actionneur_capteur.Lidar import Lidar
-from src.HL.actionneur_capteur.Camera import Camera
-from src.HL.actionneur_capteur.ToF import ToF
-from src.HL.actionneur_capteur.masterI2C import I2c_arduino
-from Autotech_constant import SOCKET_ADRESS, SLAVE_ADDRESS
+from programs.utils.ssh import check_ssh_connections
+from actionneur_capteur.lidar import Lidar
+from actionneur_capteur.camera import Camera
+from actionneur_capteur.tof import ToF
+from actionneur_capteur.masterI2C import I2c_arduino
 
 #différent programme
-from scripts.commande_PS4 import PS4ControllerProgram
-from src.HL.programme.SshProgramme import SshProgramme
-from src.HL.programme.RemoteControl import RemoteControl
-from src.HL.programme.Poweroff import Poweroff
-from src.HL.actionneur_capteur.Camera import ProgramStreamCamera
-from src.HL.programme.module_initialisation import Initialisation
-from src.HL.programme.Car import Ai_Programme
+from programs.ps4_controller_program import PS4ControllerProgram
+from programs.ssh_programme import SshProgramme
+from programs.remote_control import RemoteControl
+from programs.poweroff import Poweroff
+from actionneur_capteur.camera import ProgramStreamCamera
+from programs.initialisation import Initialisation
+from programs.car import Ai_Programme
 from backend import BackendAPI
 
-from Autotech_constant import I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_RECEIVED, I2C_SLEEP_ERROR_LOOP, TEXT_HEIGHT, TEXT_LEFT_OFFSET
-
-
-# on utilise tcp pour les infos des différents informations
-telemetry = context.socket(zmq.REP)
-telemetry.bind("tcp://0.0.0.0:5557")
-
+from high_level.autotech_constant import TEXT_HEIGHT
 
 class Serveur():
 
@@ -64,8 +48,6 @@ class Serveur():
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
         self.log.info("I2C: bus ouvert sur /dev/i2c-1")
 
-        self.length_i2c_received = I2C_NUMBER_DATA_RECEIVED #nombre de donnée à récupéré de l'arduino (voltage lipo, voltage nimh)
-        
         # initialisation des commande de temps
         self.initial_time = time.time()
         self.last_cmd_time = time.time()
@@ -254,29 +236,3 @@ class Serveur():
         while True:
             self.Idle()
 
-#---------------------------------------------------------------------------------------------------
-# main
-#---------------------------------------------------------------------------------------------------
-
-if __name__ == "__main__":
-
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-        handlers=[
-        logging.FileHandler("/home/intech/CoVAPSy/covapsy.log"),
-        logging.StreamHandler()
-    ]
-
-    )
-    log_serveur = logging.getLogger("__main__")
-    log_serveur.setLevel(level=logging.DEBUG)
-
-    log_serveur = logging.getLogger("src.HL")
-    log_serveur.setLevel(level=logging.DEBUG)
-
-    log_lidar = logging.getLogger("src.HL.actionneur_capteur.Lidar")
-    log_lidar.setLevel(level=logging.INFO)
-
-    boot = Serveur()
-    boot.main()

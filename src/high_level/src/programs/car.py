@@ -1,17 +1,13 @@
 import time
 import onnxruntime as ort
-from scipy.special import softmax
 import numpy as np
-from gpiozero import LED, Button
 import logging
-import smbus # type: ignore #ignore the module could not be resolved error because it is a linux only module
-import struct
 from threading import Thread
-from src.HL.programme.programme import Program
+from programs import Program
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
-from ..Autotech_constant import  MAX_ANGLE, CRASH_DIST, MODEL_PATH, SOCKET_ADRESS, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
-from src.HL.programme.scripts.Driver import Driver
+from high_level.autotech_constant import  MAX_ANGLE, CRASH_DIST, MODEL_PATH, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
+from programs.utils.driver import Driver
 
 
 class Car:

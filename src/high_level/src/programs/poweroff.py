@@ -1,6 +1,6 @@
 import subprocess
 import os
-from src.HL.programme.programme import Program
+from programs.program import Program
 import logging
 
 class Poweroff(Program):

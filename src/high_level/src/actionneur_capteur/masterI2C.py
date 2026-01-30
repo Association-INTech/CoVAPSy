@@ -1,7 +1,7 @@
 import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 import time
 import struct
-from Autotech_constant import I2C_SLEEP_RECEIVED, I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_ERROR_LOOP, SLAVE_ADDRESS
+from high_level.autotech_constant import I2C_SLEEP_RECEIVED, I2C_NUMBER_DATA_RECEIVED, I2C_SLEEP_ERROR_LOOP, SLAVE_ADDRESS
 import logging
 import threading
 

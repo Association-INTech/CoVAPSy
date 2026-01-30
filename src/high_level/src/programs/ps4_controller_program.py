@@ -1,9 +1,8 @@
 from pyPS4Controller.controller import Controller
 import time
-import os
 from threading import Thread
-from src.HL.programme.programme import Program
-from src.HL.Autotech_constant import MAX_ANGLE
+from program import Program
+from high_level.autotech_constant import MAX_ANGLE
 import logging
 ###################################################
 #Intialisation du protocole zmq
@@ -13,7 +12,7 @@ def envoie_donnee(Voiture): #si utilisation de la voiture directement
     print("lancement de l'i2c")
     import smbus
     import struct
-    from src.HL.Autotech_constant import SLAVE_ADDRESS
+    from high_level.autotech_constant import SLAVE_ADDRESS
 
     bus = smbus.SMBus(1)
     while True:

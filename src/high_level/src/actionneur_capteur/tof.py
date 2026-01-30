@@ -1,4 +1,3 @@
-import time
 import board
 import busio
 from adafruit_vl53l0x import VL53L0X

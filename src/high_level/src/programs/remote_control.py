@@ -1,10 +1,9 @@
-from src.HL.programme.programme import Program
+from programs.program import Program
 import struct
 import socket
 import threading
-import time
 import logging 
-from src.HL.Autotech_constant import PORT_REMOTE_CONTROL
+from high_level.autotech_constant import PORT_REMOTE_CONTROL
 class RemoteControl(Program):
     """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp
      on peut prendre le controle avec le script remote_controle_controller.py"""
