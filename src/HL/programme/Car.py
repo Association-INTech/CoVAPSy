@@ -19,8 +19,8 @@ class Car:
         self.log = logging.getLogger(__name__)
 
         """Initialize the car's components."""
-        self.vitesse_d = 0  # Speed in millimeters per second
-        self.direction_d = 0  # Steering angle in degrees
+        self.target_speed = 0  # Speed in millimeters per second
+        self.direction = 0  # Steering angle in degrees
         self.serveur = serveur
         self.reverse_count = 0
         def _initialize_ai():
@@ -52,8 +52,8 @@ class Car:
 
 
     def stop(self):
-        self.vitesse_d = 0
-        self.direction_d = 0
+        self.target_speed = 0
+        self.direction = 0
         self.log.info("Arrêt du moteur")
         
 
@@ -65,7 +65,7 @@ class Car:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             while self.tof.get_distance() < REAR_BACKUP_DIST:
                 self.log.info(f"Obstacle arriere détecté {self.tof.get_distance()}")
-                self.vitesse_d = 0
+                self.target_speed = 0
                 time.sleep(0.1)
             return True
         return False
@@ -74,9 +74,9 @@ class Car:
         """Turn the car around."""
         self.log.info("Turning around")
         
-        self.vitesse_d = 0
-        self.direction_d = MAX_ANGLE
-        self.vitesse_d = -2 #blocing call
+        self.target_speed = 0
+        self.direction = MAX_ANGLE
+        self.target_speed = -2 #blocing call
         time.sleep(1.8) # Wait for the car to turn around
         if self.camera.is_running_in_reversed():
             self.turn_around()
@@ -93,7 +93,7 @@ class Car:
         lidar_data_ai= (lidar_data-0.5)*(
             LIDAR_DATA_OFFSET + LIDAR_DATA_AMPLITUDE * np.exp(-1/2*((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
         ) #convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
-        self.direction_d, self.vitesse_d = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
+        self.direction, self.target_speed = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
 
         if self.camera.is_running_in_reversed():
@@ -120,8 +120,8 @@ class Car:
             if color == 1:
                 self.log.info("Obstacle vert détecté")
             angle= -color*MAX_ANGLE
-            self.vitesse_d = -2
-            self.direction_d = angle
+            self.target_speed = -2
+            self.direction = angle
 
 
 
@@ -137,16 +137,16 @@ class Ai_Programme(Program):
         self.controls_car = True
 
     @property
-    def vitesse_d(self):
+    def target_speed(self):
         if self.GR86 == None:
             return 0
-        return self.GR86.vitesse_d
+        return self.GR86.target_speed
     
     @property
-    def direction_d(self):
+    def direction(self):
         if self.GR86 == None:
             return 0
-        return self.GR86.direction_d
+        return self.GR86.direction
 
     def run(self):
         while self.running:

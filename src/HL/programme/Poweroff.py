@@ -14,7 +14,7 @@ class Poweroff(Program):
         pass
 
     def start(self):
-        self.log("Power off started")
+        self.log.info("Power off started")
         subprocess.Popen(
                 "sudo poweroff",
                 shell=True,

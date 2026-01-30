@@ -6,8 +6,8 @@ from typing import Optional
 class Program:
     controls_car:bool # correspond si le programme cotronle la voiture ou non pour savoir si il faut arreter l'ancien programme qui controle la voiture
     running:bool # état de base du programme (au lancement de la voiture)
-    vitesse_d:Optional[float] # target speed
-    direction_d:Optional[float] # target direction
+    target_speed:Optional[float] # target speed
+    direction:Optional[float] # target direction
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
