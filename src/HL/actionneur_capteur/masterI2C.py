@@ -21,7 +21,7 @@ class I2c_arduino:
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
         self.log.info("I2C: bus ouvert sur /dev/i2c-1")
 
-        time.sleep(0.5)  # Give some time for the bus to settle
+
 
         #initialization of i2c send and received
         threading.Thread(target=self.start_send, daemon=True).start()
@@ -29,10 +29,11 @@ class I2c_arduino:
     
     def start_send(self):
         """Envoie vitesse/direction régulièrement au microcontroleur. (toute les frames actuellement)"""
+        time.sleep(1)  # Give some time for the target_speed and direction to be set
         self.log.info("Thread I2C loop démarré")
         while self.send_running:
             try :
-                data = struct.pack('<ff', float(round(self.serveur.target_speed)), float(round(self.serveur.direction)))
+                data = struct.pack('<ff', float(self.serveur.target_speed), float(self.serveur.direction))
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(1e-5) # Short delay to prevent overwhelming the bus
             except Exception as e:
