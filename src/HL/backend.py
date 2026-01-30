@@ -115,14 +115,14 @@ class BackendAPI(Program):
         current_speed = getattr(ard, "current_speed", 0.0) if ard else 0.0
 
         # Programme qui contrôle la voiture actuellement
-        last_ctrl = int(getattr(self.server, "last_programme_control", 0) or 0)
+        last_ctrl = int(getattr(self.server, "last_programme_control", 0))
         programmes = getattr(self.server, "programme", [])
         prog_name = None
         if isinstance(programmes, list) and 0 <= last_ctrl < len(programmes):
             prog_name = type(programmes[last_ctrl]).__name__
 
-        target_speed = float(getattr(self.server, "target_speed", 0.0) or 0.0)
-        direction = float(getattr(self.server, "direction", 0.0) or 0.0)
+        target_speed = float(getattr(self.server, "target_speed", 0.0))
+        direction = float(getattr(self.server, "direction", 0.0))
 
         return {
             "battery": {
