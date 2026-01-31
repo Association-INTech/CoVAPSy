@@ -32,7 +32,7 @@ ws.onmessage = (e) => {
   // grille simple
   // paramètres d’échelle
   const circleStepMM = 100;   // 10 cm
-  const circleCount = 15;
+  const circleCount = 30;     // jusqu’à 3 m
 
   // grille circulaire
   ctx.strokeStyle = "#333";
@@ -56,7 +56,7 @@ ws.onmessage = (e) => {
 
   const fovMin = -135 * Math.PI / 180;
   const fovMax =  135 * Math.PI / 180;
-  const fovRadius = 1500 * scale;
+  const fovRadius = circleCount * 100 * scale;
 
   ctx.beginPath();
   // ligne gauche
