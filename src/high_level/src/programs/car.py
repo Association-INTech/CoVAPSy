@@ -3,11 +3,11 @@ import onnxruntime as ort
 import numpy as np
 import logging
 from threading import Thread
-from programs import Program
+from .program import Program
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import  MAX_ANGLE, CRASH_DIST, MODEL_PATH, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
-from programs.utils.driver import Driver
+from .utils.driver import Driver
 
 
 class Car:

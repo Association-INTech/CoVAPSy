@@ -6,7 +6,7 @@ import numpy as np
 import onnxruntime as ort
 import logging 
 
-from src.HL.Autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Temperature
+from high_level.autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Temperature
 
 
 

@@ -1,5 +1,5 @@
 
-from programs.program import Program
+from .program import Program
 import threading
 from high_level.autotech_constant import SOCKET_ADRESS
 import logging
