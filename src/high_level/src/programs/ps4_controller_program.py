@@ -2,13 +2,11 @@ from pyPS4Controller.controller import Controller
 import time
 from threading import Thread
 from .program import Program
-from high_level.autotech_constant import MAX_ANGLE
+from high_level.autotech_constant import MAX_ANGLE, MAX_CONTROL_SPEED, MIN_CONTROL_SPEED
 import logging
-###################################################
-#Intialisation du protocole zmq
-##################################################
 
-def envoie_donnee(Voiture): #si utilisation de la voiture directement
+
+def envoie_donnee(Voiture): #if __name__ == "__main__":
     print("lancement de l'i2c")
     import smbus
     import struct
@@ -17,7 +15,7 @@ def envoie_donnee(Voiture): #si utilisation de la voiture directement
     bus = smbus.SMBus(1)
     while True:
             try :
-                data = struct.pack('<ff', float(round(Voiture.vitesse_mms)), float(round(Voiture.direction)))
+                data = struct.pack('<ff', float(round(Voiture.speed_mms)), float(round(Voiture.direction)))
                 bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 #time.sleep(0.00005)
             except Exception as e:
@@ -25,13 +23,12 @@ def envoie_donnee(Voiture): #si utilisation de la voiture directement
                 time.sleep(1)
 
 
-#paramètres de la fonction vitesse_m_s, à étalonner
-vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre en métre par seconde
-vitesse_min_m_s_soft = -2 #vitesse arriere que l'on souhaite atteindre en métre
+vitesse_max_m_s_soft = MAX_CONTROL_SPEED #max speed in métre par seconde 
+vitesse_min_m_s_soft = MIN_CONTROL_SPEED #min speed in métre par seconde
 
 MAX_LEFT = -32767 + 3000   # deadzone 3000
 
-# fonction naturel map de arduino pour plus de lisibilité
+# function to map a value from one range to another
 def map_range(x, in_min,in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
@@ -64,7 +61,7 @@ class PS4ControllerProgram(Program):
 
     @property
     def target_speed(self):
-        return self.controller.vitesse_mms
+        return self.controller.speed_mms
     
     @property
     def direction(self):
@@ -75,8 +72,8 @@ class MyController(Controller):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.log = logging.getLogger(__name__)
-        self.vitesse_mms = 0 # vitesse initiale en métre par milliseconde
-        self.direction = 0 # angle initiale des roues en degrés
+        self.speed_mms = 0 # initial speed in meters per millisecondes
+        self.direction = 0 # initial wheel angle in degrees
         self.filtered = 0
         self.alpha = 0.3
         self.running = 0
@@ -97,22 +94,22 @@ class MyController(Controller):
     def on_R2_press(self,value):
         vit = map_range(value,-32252,32767,0,vitesse_max_m_s_soft*1000)
         if (vit < 0):
-            self.vitesse_mms = 0
+            self.speed_mms = 0
         else:
-            self.vitesse_mms = vit
-    def on_R2_release(self): # arrete la voiture lorsque L2 est arrété d'étre préssé. 
-        self.vitesse_mms = 0
+            self.speed_mms = vit
+    def on_R2_release(self): # Stop the car when R2 is released
+        self.speed_mms = 0
     
     
  
     def on_L3_x_at_rest(self):
         self.direction = 0
         
-    def on_R1_press(self): #arret d'urgence
-        self.vitesse_mms = 0
+    def on_R1_press(self): # Emergency stop
+        self.speed_mms = 0
         
     def on_R1_release(self):
-        self.vitesse_mms = 0
+        self.speed_mms = 0
     
 
 
@@ -131,12 +128,12 @@ class MyController(Controller):
         #print("x_r :", value, "degré : ",map_range(value,-32767, 32767, 60, 120))
         vit = map_range(value,-32252,32767,0,vitesse_min_m_s_soft*1000)
         if (vit > 0):
-            self.vitesse_mms = 0
+            self.speed_mms = 0
         else:
-            self.vitesse_mms = vit
+            self.speed_mms = vit
     
-    def on_L2_release(self): #arrete la voiture lorsque L2 est arrété d'étre préssé. 
-        self.vitesse_mms = 0
+    def on_L2_release(self): # Stop the car when L2 is released 
+        self.speed_mms = 0
     
     def on_L3_up(self,value):
         pass

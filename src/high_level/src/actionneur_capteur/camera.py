@@ -321,7 +321,7 @@ if __name__ == "__main__":
 
     camera = Camera()
 
-    print("Attente frame...")
+    print("Waiting frame...")
     while camera.get_last_image() is None:
         time.sleep(0.05)
 
@@ -329,7 +329,7 @@ if __name__ == "__main__":
     matrix = camera.camera_matrix()
     print("camera_matrix OK")
 
-    input("Appuyer pour lancer le stream...")
+    input("Press to start the stream...")
     camera.toggle_stream()
 
     while True:

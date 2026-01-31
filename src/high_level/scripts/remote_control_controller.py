@@ -9,21 +9,21 @@ import struct
 ###################################################
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-def envoie_donnee():
-    global vitesse_m, direction
+def send_data():
+    global target_speed, direction
     while True:
-        packet = struct.pack("ff", vitesse_m, direction)
+        packet = struct.pack("ff", target_speed, direction)
         sock.sendto(packet, ("192.168.1.10", 5556))
         time.sleep(0.05)
 
 ###################################################
-# Paramètres véhicule
+# Vehicule control variables
 ###################################################
 direction = 0
-vitesse_m = 0
+target_speed = 0
 
-vitesse_max_m_s_soft = 2
-vitesse_min_m_s_soft = -2
+max_target_speed = 2
+min_target_speed = -2
 angle_degre_max = 18
 
 def map_range(x, in_min, in_max, out_min, out_max):
@@ -32,11 +32,11 @@ def map_range(x, in_min, in_max, out_min, out_max):
 def set_direction_degre(angle_degre):
     global direction
     direction = angle_degre
-    print(direction, vitesse_m)
+    print(direction, target_speed)
 
-def set_vitesse_m_ms(vit):
-    global vitesse_m
-    vitesse_m = vit
+def set_target_speed(vit):
+    global target_speed
+    target_speed = vit
 
 
 if __name__ == "__main__":
@@ -49,17 +49,17 @@ if __name__ == "__main__":
     pygame.joystick.init()
 
     if pygame.joystick.get_count() == 0:
-        print("Aucune manette détectée")
+        print("no joystick detected")
         exit(1)
 
     joy = pygame.joystick.Joystick(0)
     joy.init()
-    print("Manette détectée:", joy.get_name())
+    print("joystick detected:", joy.get_name())
 
     ###################################################
     # Boucle principale
     ###################################################
-    Thread(target=envoie_donnee, daemon=True).start()
+    Thread(target=send_data, daemon=True).start()
 
     try:
         while True:
@@ -87,17 +87,17 @@ if __name__ == "__main__":
 
             # Avant
             if accel > 0.05:
-                vit = accel * vitesse_max_m_s_soft * 1000
-                set_vitesse_m_ms(round(vit))
+                vit = accel * max_target_speed * 1000
+                set_target_speed(round(vit))
 
             # Arrière
             elif brake > 0.05:
-                vit = brake * vitesse_min_m_s_soft * 1000
-                set_vitesse_m_ms(round(vit))
+                vit = brake * min_target_speed * 1000
+                set_target_speed(round(vit))
             else :
-                set_vitesse_m_ms(0)
+                set_target_speed(0)
             time.sleep(0.01)
 
     except KeyboardInterrupt:
-        print("Fin du programme.")
+        print("End of program.")
         pygame.quit()

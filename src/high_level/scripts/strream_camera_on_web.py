@@ -82,7 +82,7 @@ class StreamingServer(socketserver.ThreadingMixIn, server.HTTPServer):
     daemon_threads = True
 
 
-if __name__ = "__name__":
+if __name__ == "__name__":
     # Create Picamera2 instance and configure it
     picam2 = Picamera2()
     picam2.configure(picam2.create_video_configuration(main={"size": (640, 480)}))

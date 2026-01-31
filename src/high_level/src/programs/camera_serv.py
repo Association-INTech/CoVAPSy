@@ -5,7 +5,7 @@ from http import server
 import socketserver
 from threading import Condition
 
-from high_level.autotech_constant import STREAM_PATH  # si tu veux un path configurable
+from high_level.autotech_constant import STREAM_PATH
 
 streaming_enabled = True
 

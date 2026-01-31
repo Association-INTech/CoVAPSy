@@ -13,13 +13,13 @@ class I2c_arduino:
         self.send_running = True
         self.receive_running = True
         
-        #voltage des lipos
+        #battery info
         self.voltage_lipo = 0
         self.voltage_nimh = 0
 
-        #initialisation du bus i2c
+        #initialisation of i2c bus
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
-        self.log.info("I2C: bus ouvert sur /dev/i2c-1")
+        self.log.info("I2C: bus opened on /dev/i2c-1")
 
 
 
@@ -28,9 +28,9 @@ class I2c_arduino:
         threading.Thread(target=self.start_received, daemon=True).start()
     
     def start_send(self):
-        """Envoie vitesse/direction régulièrement au microcontroleur. (toute les frames actuellement)"""
+        """send speed and direction to the microcontroller regularly."""
         time.sleep(1)  # Give some time for the target_speed and direction to be set
-        self.log.info("Thread I2C loop démarré")
+        self.log.info("Thread I2C loop started")
         while self.send_running:
             try :
                 data = struct.pack('<ff', float(self.serveur.target_speed), float(self.serveur.direction))
@@ -41,20 +41,20 @@ class I2c_arduino:
                 time.sleep(I2C_SLEEP_ERROR_LOOP)
 
     def start_received(self):
-        """récupére les informations de l'arduino"""
-        self.log.info("Thread I2C receive démarré")
+        """rreceived data from the microcontroller regularly."""
+        self.log.info("Thread I2C receive started")
         length = I2C_NUMBER_DATA_RECEIVED * 4 
         while self.receive_running:
             data = self.bus.read_i2c_block_data(SLAVE_ADDRESS, 0, length)
             # Convert the byte data to a float
             if len(data) >= length:
                 float_values = struct.unpack('f' * I2C_NUMBER_DATA_RECEIVED, bytes(data[:length]))
-                list_valeur = list(float_values)
+                list_values = list(float_values)
 
                 # on enregistre les valeur
-                self.voltage_lipo = list_valeur[0]
-                self.voltage_nimh = list_valeur[1]
-                self.current_speed = list_valeur[2]
+                self.voltage_lipo = list_values[0]
+                self.voltage_nimh = list_values[1]
+                self.current_speed = list_values[2]
             else:
-                self.log.warning("I2C: taille inattendue (%d au lieu de %d)", len(data), length)
+                self.log.warning("I2C: unexpected size (%d but %d excepted)", len(data), length)
             time.sleep(I2C_SLEEP_RECEIVED)

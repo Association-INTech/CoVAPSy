@@ -15,7 +15,7 @@ from actionneur_capteur.camera import Camera
 from actionneur_capteur.tof import ToF
 from actionneur_capteur.masterI2C import I2c_arduino
 
-#différent programme
+#programs import
 from programs.ps4_controller_program import PS4ControllerProgram
 from programs.ssh_programme import SshProgramme
 from programs.remote_control import RemoteControl
@@ -31,36 +31,36 @@ class Serveur():
 
     def __init__(self):
         self.log = logging.getLogger(__name__)
-        #initialisation des différents module qui tourne tout le temps
-        self.log.info("Initialisation du serveur")
+        #initialisation of different modules
+        self.log.info("Server initialization")
 
-        # initialisation des boutons et de l'i2c
+        # initialisation of GPIO buttons, LEDs, buzzer
         self.bp_next = Button("GPIO5", bounce_time=0.1)
         self.bp_entre = Button("GPIO6", bounce_time=0.1)
 
         self.led1 = LED("GPIO17")
         self.led2 = LED("GPIO27")
         self.buzzer = Buzzer("GPIO26")
-        self.log.info("GPIO: boutons, LEDs, buzzer initialisés")
+        self.log.info("GPIO: boutons, LEDs, buzzer initialized")
         
         self.serial = i2c(port=1, address=0x3C)
         self.device = ssd1306(self.serial)
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
-        self.log.info("I2C: bus ouvert sur /dev/i2c-1")
+        self.log.info("I2C: bus open on /dev/i2c-1")
 
-        # initialisation des commande de temps
+        # initialisation of time command
         self.initial_time = time.time()
         self.last_cmd_time = time.time()
 
-        #donnée des process
+        #data of the car
         self.process_output = ""
-        self.last_programme_control = 0
+        self.last_program_control = 0
         self.process = None
         self.temp = None
 
         self.initialisation_module = Initialisation(self,Camera,Lidar,ToF, I2c_arduino)
         
-        self.programme = [SshProgramme(),
+        self.programs = [SshProgramme(),
                          self.initialisation_module, 
                          Ai_Programme(self), 
                          PS4ControllerProgram(), 
@@ -68,7 +68,7 @@ class Serveur():
                          ProgramStreamCamera(self), 
                          BackendAPI(self, host="0.0.0.0", port=8001, site_dir="/home/intech/CoVAPSy/src/high_level/src/site_controle"),
                          Poweroff()]
-        self.log.debug("Programmes chargés: %s", [type(p).__name__ for p in self.programme])
+        self.log.debug("Programs ready: %s", [type(p).__name__ for p in self.programs])
 
         # donnée de l'écran
         self.Screen = 0
@@ -94,34 +94,34 @@ class Serveur():
     
     @property
     def target_speed(self):
-        return self.programme[self.last_programme_control].target_speed
+        return self.programs[self.last_program_control].target_speed
     
     @property
     def direction(self):
-        return self.programme[self.last_programme_control].direction
+        return self.programs[self.last_program_control].direction
         
     #-----------------------------------------------------------------------------------------------------
-    # affichage de l'écrans
+    # Screen display functions
     #-----------------------------------------------------------------------------------------------------
-    def affichage_oled(self,selected): #test non utilisé
+    def affichage_oled(self,selected): #test not use
         im = Image.new("1", (128, 64), "black")
         draw = ImageDraw.Draw(im)
         font = ImageFont.load_default()
 
-        for num, i in enumerate(range(max(selected - self.scroll_offset, 0), min(len(self.programme), selected + self.scroll_offset))):
+        for num, i in enumerate(range(max(selected - self.scroll_offset, 0), min(len(self.programs), selected + self.scroll_offset))):
             y = num * TEXT_HEIGHT
 
             if i == selected:
                 draw.rectangle((0, y, 127, y + TEXT_HEIGHT), fill="white")
-                draw.text((3, y), self.programme[i]["name"], fill="black", font=font)
+                draw.text((3, y), self.programs[i]["name"], fill="black", font=font)
             else:
-                draw.text((3, y), self.programme[i]["name"], fill="white", font=font)
+                draw.text((3, y), self.programs[i]["name"], fill="white", font=font)
 
         with canvas(self.device) as display:
             display.bitmap((0, 0), im, fill="white")
 
     def make_voltage_im(self):
-        """crée l'image de la derniére ligne qui affiche le voltage des deux batterie de la pi en temps réel"""
+        """cCreate an image showing the battery voltages to be pasted on the main display"""
         if self.arduino_I2C is not None:
             received = [self.arduino_I2C.voltage_lipo , self.arduino_I2C.voltage_nimh]
         else:
@@ -137,7 +137,7 @@ class Serveur():
         return im
 
     def display_combined_im(self,text):
-        """ fonction qui écris sur l'écran le texte qu'on lui fourni (et remet par dessus toujours le voltage des batteries)"""
+        """ function to display text with battery voltages on the oled screen"""
         im = Image.new("1", (128, 64), "black")
         draw = ImageDraw.Draw(im)
         font = ImageFont.load_default()
@@ -155,8 +155,8 @@ class Serveur():
 
     def Idle(self):
         """
-        gére l'affichage de l'écrans en fonction des fonction en cour ou choisie.
-        le changement d'écran est géré par les fonction des boutons juste en dessous
+        Manages the screen display based on the current or chosen function.
+        Screen changes are managed by the button functions just below.
         """           
         if check_ssh_connections():
             self.led1.on()
@@ -164,18 +164,18 @@ class Serveur():
         if not check_ssh_connections():
             self.led1.off()
         
-        if (self.Screen < len(self.programme)):
-            text = self.programme[self.Screen].display()
+        if (self.Screen < len(self.programs)):
+            text = self.programs[self.Screen].display()
         self.display_combined_im(text)
 
     def bouton_next(self):
-        """ passe à l'écrans suivant (juste visuelle)"""
+        """ go to next screen on oled display """
         self.Screen+=1
-        if self.Screen>=len(self.programme):
+        if self.Screen>=len(self.programs):
             self.Screen=0
 
     def bouton_entre(self,num=None):
-        """séléctionne le programme afficher à l'acrans et le lance"""
+        """take action on the current screen on display and start the program """
         if num!=None:
             self.Screen = num
         self.State=self.Screen
@@ -187,40 +187,40 @@ class Serveur():
     #---------------------------------------------------------------------------------------------------
 
         
-    def start_process(self,num_programme):
-        """lance le porgramme référencé avec son numéro:
-        si il sagit d'un programme qui controle la voiture il kill lancient programme qui controlé,
-        sinon le programme est lancé ou tué celon si il était déjà lancé ou tué avant"""
-        self.log.info("Action utilisateur: programme %d (%s)",
-            num_programme,
-            type(self.programme[num_programme]).__name__)
-        if self.programme[num_programme].running:
-            self.programme[num_programme].kill()
-            if self.programme[num_programme].controls_car:
-                self.last_programme_control = 0
+    def start_process(self,number_program):
+        """Starts the program referenced by its number:
+        if it is a program that controls the car, it kills the old program that was controlling,
+        otherwise the program is started or stopped depending on whether it was already running or stopped before"""
+        self.log.info("User action: program %d (%s)",
+            number_program,
+            type(self.programs[number_program]).__name__)
+        if self.programs[number_program].running:
+            self.programs[number_program].kill()
+            if self.programs[number_program].controls_car:
+                self.last_program_control = 0
                 self.log.warning(
-                "Changement de contrôle voiture: %s -> %s",
-                    type(self.programme[num_programme]).__name__,
-                    type(self.programme[self.last_programme_control]).__name__
+                "Car control changed: %s -> %s",
+                    type(self.programs[number_program]).__name__,
+                    type(self.programs[self.last_program_control]).__name__
                 )
                 
             
-            self.log.info("Arrêt du programme %s",
-            type(self.programme[num_programme]).__name__)
+            self.log.info("Program %s stopped",
+            type(self.programs[number_program]).__name__)
             
-        elif self.programme[num_programme].controls_car:
-            self.programme[self.last_programme_control].kill()
-            self.programme[num_programme].start()
+        elif self.programs[number_program].controls_car:
+            self.programs[self.last_program_control].kill()
+            self.programs[number_program].start()
             self.log.warning(
-                "Changement de contrôle voiture: %s -> %s",
-                    type(self.programme[self.last_programme_control]).__name__,
-                    type(self.programme[num_programme]).__name__
+                "Car control changed: %s -> %s",
+                    type(self.programs[self.last_program_control]).__name__,
+                    type(self.programs[number_program]).__name__
                 )
-            self.last_programme_control = num_programme
+            self.last_program_control = number_program
 
         
         else:
-            self.programme[num_programme].start()
+            self.programs[number_program].start()
             
 
     #---------------------------------------------------------------------------------------------------
@@ -231,7 +231,7 @@ class Serveur():
         self.bp_next.when_pressed = self.bouton_next
         self.bp_entre.when_pressed = self.bouton_entre
 
-        self.log.info("Serveur démarré, entrée dans la boucle principale")
+        self.log.info("Server main loop started")
 
         while True:
             self.Idle()

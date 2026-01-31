@@ -2,10 +2,10 @@ from high_level.autotech_constant import LOGGING_LEVEL
 import logging
 from typing import Optional
 
-""" classe type pour tout les programme """
+""" Base class for all programs """
 class Program:
-    controls_car:bool # correspond si le programme cotronle la voiture ou non pour savoir si il faut arreter l'ancien programme qui controle la voiture
-    running:bool # état de base du programme (au lancement de la voiture)
+    controls_car:bool # whether the program controls the car or not to know if we need to stop the old program that controls the car
+    running:bool # base state of the program (on car startup)
     target_speed:Optional[float] # target speed
     direction:Optional[float] # target direction
 

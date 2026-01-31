@@ -4,9 +4,10 @@ import socket
 import threading
 import logging 
 from high_level.autotech_constant import PORT_REMOTE_CONTROL
+
 class RemoteControl(Program):
-    """ ce programme permet de prendre le control de la voiture à distance en utilsant des packet udp
-     on peut prendre le controle avec le script remote_controle_controller.py"""
+    """ This program allows remote control of the car using UDP packets.
+     You can take control with the script remote_control_controller.py"""
     def __init__(self):
         super().__init__()
         self.log = logging.getLogger(__name__)
@@ -15,14 +16,14 @@ class RemoteControl(Program):
         self.target_speed = 0
         self.direction = 0
     
-        #initialisation
+        # Initialization
         self.public = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.public.bind(("0.0.0.0", PORT_REMOTE_CONTROL))
 
-        self.log.info("Initialisation de Remote control fini")
+        self.log.info("Remote control initialization finished")
 
     def car_controle(self,sock):
-        """lance le controle depuis le pc."""
+        """Starts control from the PC."""
         sock.settimeout(0.1)
 
         while self.running:
@@ -37,5 +38,5 @@ class RemoteControl(Program):
         threading.Thread(target=self.car_controle, args=(self.public,), daemon=True).start()
     
     def kill(self):
-        """fait sortir le thread de sa boucle"""
+        """Exits the thread from its loop"""
         self.running = False

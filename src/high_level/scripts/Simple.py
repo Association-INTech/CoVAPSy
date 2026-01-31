@@ -1,4 +1,4 @@
-from HL.Lidar import Lidar
+from high_level import Lidar
 
 import time
 from rpi_hardware_pwm import HardwarePWM
@@ -6,99 +6,112 @@ from rpi_hardware_pwm import HardwarePWM
 IP = '192.168.0.10'
 PORT = 10940
 
-#paramètres de la fonction vitesse_m_s
-direction_prop = 1 # -1 pour les variateurs inversés ou un petit rapport correspond à une marche avant
-pwm_stop_prop = 7.53
-point_mort_prop = 0.5
-delta_pwm_max_prop = 1.1 #pwm à laquelle on atteint la vitesse maximale
+# parameters for speed_m_s function
+drive_direction = 1  # -1 for inverted ESCs or if a small ratio corresponds to forward motion
+pwm_stop_drive = 7.53
+dead_zone_drive = 0.5
+delta_pwm_max_drive = 1.1  # PWM value at which maximum speed is reached
 
-vitesse_max_m_s_hard = 8 #vitesse que peut atteindre la voiture
-vitesse_max_m_s_soft = 2 #vitesse maximale que l'on souhaite atteindre
+max_speed_m_s_hard = 8   # physical maximum speed of the car
+max_speed_m_s_soft = 2   # desired maximum speed
 
 
-#paramètres de la fonction set_direction_degre
-direction = 1 #1 pour angle_pwm_min a gauche, -1 pour angle_pwm_min à droite
-angle_pwm_min = 6.91 #min
-angle_pwm_max = 10.7   #max
-angle_pwm_centre= 8.805
+# parameters for set_steering_degree function
+steering_direction = 1  # 1 for min PWM angle to the left, -1 for min PWM angle to the right
+steering_pwm_min = 6.91
+steering_pwm_max = 10.7
+steering_pwm_center = 8.805
 
-angle_degre_max = +18 #vers la gauche
-angle_degre=0
+max_steering_angle_deg = +18  # to the left
+steering_angle_deg = 0
 
-pwm_prop = HardwarePWM(pwm_channel=0, hz=50, chip=2) #use chip 2 on pi 5 in accordance with the documentation
-pwm_prop.start(pwm_stop_prop)
+pwm_drive = HardwarePWM(pwm_channel=0, hz=50, chip=2)  # chip 2 on Pi 5 per documentation
+pwm_drive.start(pwm_stop_drive)
 
-def set_vitesse_m_s(vitesse_m_s):
-    if vitesse_m_s > vitesse_max_m_s_soft :
-        vitesse_m_s = vitesse_max_m_s_soft
-    elif vitesse_m_s < -vitesse_max_m_s_hard :
-        vitesse_m_s = -vitesse_max_m_s_hard
-    if vitesse_m_s == 0 :
-        pwm_prop.change_duty_cycle(pwm_stop_prop)
-    elif vitesse_m_s > 0 :
-        vitesse = vitesse_m_s * (delta_pwm_max_prop)/vitesse_max_m_s_hard
-        pwm_prop.change_duty_cycle(pwm_stop_prop + direction_prop*(point_mort_prop + vitesse ))
-    elif vitesse_m_s < 0 :
-        vitesse = vitesse_m_s * (delta_pwm_max_prop)/vitesse_max_m_s_hard
-        pwm_prop.change_duty_cycle(pwm_stop_prop - direction_prop*(point_mort_prop - vitesse ))
-        
-def recule():
-    set_vitesse_m_s(-vitesse_max_m_s_hard)
+def set_speed_m_s(speed_m_s):
+    if speed_m_s > max_speed_m_s_soft:
+        speed_m_s = max_speed_m_s_soft
+    elif speed_m_s < -max_speed_m_s_hard:
+        speed_m_s = -max_speed_m_s_hard
+
+    if speed_m_s == 0:
+        pwm_drive.change_duty_cycle(pwm_stop_drive)
+    elif speed_m_s > 0:
+        speed = speed_m_s * delta_pwm_max_drive / max_speed_m_s_hard
+        pwm_drive.change_duty_cycle(
+            pwm_stop_drive + drive_direction * (dead_zone_drive + speed)
+        )
+    elif speed_m_s < 0:
+        speed = speed_m_s * delta_pwm_max_drive / max_speed_m_s_hard
+        pwm_drive.change_duty_cycle(
+            pwm_stop_drive - drive_direction * (dead_zone_drive - speed)
+        )
+
+def reverse():
+    set_speed_m_s(-max_speed_m_s_hard)
     time.sleep(0.2)
-    set_vitesse_m_s(0)
+    set_speed_m_s(0)
     time.sleep(0.2)
-    set_vitesse_m_s(-1)
-    
-pwm_dir = HardwarePWM(pwm_channel=1,hz=50,chip=2) #use chip 2 on pi 5 in accordance with the documentation 
-pwm_dir.start(angle_pwm_centre)
+    set_speed_m_s(-1)
 
-def set_direction_degre(angle_degre) :
-    global angle_pwm_min
-    global angle_pwm_max
-    global angle_pwm_centre
-    angle_pwm = angle_pwm_centre + direction * (angle_pwm_max - angle_pwm_min) * angle_degre /(2 * angle_degre_max )
-    if angle_pwm > angle_pwm_max : 
-        angle_pwm = angle_pwm_max
-    if angle_pwm < angle_pwm_min :
-        angle_pwm = angle_pwm_min
-    pwm_dir.change_duty_cycle(angle_pwm)
-    
-#connexion et démarrage du lidar
-lidar = Lidar(IP, PORT) 
+pwm_steering = HardwarePWM(pwm_channel=1, hz=50, chip=2)  # chip 2 on Pi 5 per documentation
+pwm_steering.start(steering_pwm_center)
+
+def set_steering_degree(angle_deg):
+    global steering_pwm_min
+    global steering_pwm_max
+    global steering_pwm_center
+
+    steering_pwm = (
+        steering_pwm_center
+        + steering_direction
+        * (steering_pwm_max - steering_pwm_min)
+        * angle_deg
+        / (2 * max_steering_angle_deg)
+    )
+
+    if steering_pwm > steering_pwm_max:
+        steering_pwm = steering_pwm_max
+    if steering_pwm < steering_pwm_min:
+        steering_pwm = steering_pwm_min
+
+    pwm_steering.change_duty_cycle(steering_pwm)
+
+# lidar connection and startup
+lidar = Lidar(IP, PORT)
 lidar.stop()
 lidar.startContinuous(0, 1080)
 
+lidar_table_mm = [0] * 360  # create a table of 360 zeros
 
-tableau_lidar_mm = [0]*360 #création d'un tableau de 360 zéros
+time.sleep(1)  # lidar startup time
 
-time.sleep(1) #temps de démarrage du lidar
-
-try : 
-    while True :
-        for angle in range(len(tableau_lidar_mm)) :
-            # translation of the angle from the lidar to the angle of the table
+try:
+    while True:
+        for angle in range(len(lidar_table_mm)):
+            # translation of lidar angle to table angle
             if angle > 135 and angle < 225:
-                tableau_lidar_mm[angle] = float('nan')
+                lidar_table_mm[angle] = float('nan')
             else:
-                tableau_lidar_mm[angle] = lidar.rDistance[540 + (-angle * 4)]
-        #l'angle de la direction est la différence entre les mesures  
-        #des rayons du lidar à -60 et +60°  
-        
-        angle_degre = 0.02*(tableau_lidar_mm[60]-tableau_lidar_mm[-60])
-        print(tableau_lidar_mm[60], tableau_lidar_mm[-60], angle_degre)
-        set_direction_degre(angle_degre)
-        vitesse_m_s = 0.05
-        set_vitesse_m_s(vitesse_m_s)    
+                lidar_table_mm[angle] = lidar.rDistance[540 + (-angle * 4)]
+
+        # steering angle is the difference between lidar rays
+        # measured at -60 and +60 degrees
+        steering_angle_deg = 0.02 * (lidar_table_mm[60] - lidar_table_mm[-60])
+        print(lidar_table_mm[60], lidar_table_mm[-60], steering_angle_deg)
+
+        set_steering_degree(steering_angle_deg)
+        speed_m_s = 0.05
+        set_speed_m_s(speed_m_s)
+
         time.sleep(0.1)
         ##############################################
-except KeyboardInterrupt: #récupération du CTRL+C
-    vitesse_m_s = 0
-    set_vitesse_m_s(vitesse_m_s)
-    print("fin des acquisitions")
+except KeyboardInterrupt:  # catch CTRL+C
+    speed_m_s = 0
+    set_speed_m_s(speed_m_s)
+    print("end of acquisitions")
 
-#arrêt et déconnexion du lidar et des moteurs
+# stop and disconnect lidar and motors
 lidar.stop()
-pwm_dir.stop()
-pwm_prop.start(pwm_stop_prop)
-
-
+pwm_steering.stop()
+pwm_drive.start(pwm_stop_drive)

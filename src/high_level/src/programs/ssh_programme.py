@@ -4,7 +4,7 @@ import socket
 import time
 
 class SshProgramme(Program):
-    """Montre le menu SSH de la voiture et force vitesse/direction à 0"""
+    """Give information about SSH connections and IP address and if the car is in standby mode (when this program is running)"""
 
     def __init__(self):
         super().__init__()

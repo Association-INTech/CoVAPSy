@@ -1,4 +1,4 @@
-const API = ""; // même origine (FastAPI)
+const API = ""; // same origin (FastAPI)
 const speedHistory = {
     real: [],
     demand: [],
@@ -15,7 +15,7 @@ function drawSpeedChart() {
 
     ctx.clearRect(0, 0, w, h);
 
-    // axes
+    // axes (drawing axes)
     ctx.strokeStyle = "#444";
     ctx.beginPath();
     ctx.moveTo(40, 10);
@@ -32,7 +32,7 @@ function drawSpeedChart() {
     );
     const yZero = h / 2;
     const scaleY = (h - 40) / (2 * maxAbs);
-    // ligne y=0
+    // y=0 line
     ctx.strokeStyle = "#666";
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
@@ -56,15 +56,15 @@ function drawSpeedChart() {
         ctx.stroke();
     }
 
-    drawCurve(speedHistory.demand, "#ffaa00"); // consigne
-    drawCurve(speedHistory.real, "#00ff88");   // réel
+    drawCurve(speedHistory.demand, "#ffaa00"); // target
+    drawCurve(speedHistory.real, "#00ff88");   // actual
 
-    // légende
+    // legend
     
     ctx.fillStyle = "#ffaa00";
-    ctx.fillText("Consigne", w - 100, 20);
+    ctx.fillText("Target", w - 100, 20);
     ctx.fillStyle = "#00ff88";
-    ctx.fillText("Réelle", w - 100, 35);
+    ctx.fillText("Actual", w - 100, 35);
     ctx.font = "10px monospace";
     
 }
@@ -83,7 +83,7 @@ function drawSteering(directionDeg) {
     const centerY = h * 0.85;
     const radius = h * 0.65;
 
-    /* -------- Rapporteur (-18° à +18°) -------- */
+    /* -------- Protractor (-18° to +18°) -------- */
     ctx.strokeStyle = "#444";
     ctx.lineWidth = 1;
 
@@ -99,7 +99,7 @@ function drawSteering(directionDeg) {
     );
     ctx.stroke();
 
-    /* -------- Graduations -------- */
+    /* -------- Graduations (Marks) -------- */
     for (let d = -18; d <= 18; d += 6) {
         const a = (d - 90) * Math.PI / 180;
 
@@ -123,7 +123,7 @@ function drawSteering(directionDeg) {
         );
     }
 
-    /* -------- Tige (direction demandée) -------- */
+    /* -------- Rod (target direction) -------- */
     const angleRad = (directionDeg - 90) * Math.PI / 180;
 
     ctx.strokeStyle = "#00ff88";
@@ -136,7 +136,7 @@ function drawSteering(directionDeg) {
     );
     ctx.stroke();
 
-    /* -------- Centre -------- */
+    /* -------- Center -------- */
     ctx.fillStyle = "#00ff88";
     ctx.beginPath();
     ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
@@ -176,17 +176,17 @@ function updateTelemetry(t) {
     document.getElementById("lipo").textContent = t.battery.lipo.toFixed(2);
     document.getElementById("nimh").textContent = t.battery.nimh.toFixed(2);
     document.getElementById("vitesse").textContent =
-        t.car.vitesse_reelle.toFixed(2);
+        t.car.current_speed.toFixed(2);
 
     document.getElementById("target_speed").textContent =
-        t.car.vitesse_demandee.toFixed(2);
+        t.car.target_speed.toFixed(2);
 
     document.getElementById("direction").textContent =
-        t.car.direction_demandee.toFixed(2);
+        t.car.direction.toFixed(2);
     document.getElementById("active_program").textContent =
-        t.car.programme_controle ?? "Aucun";
-    speedHistory.real.push(t.car.vitesse_reelle);
-    speedHistory.demand.push(t.car.vitesse_demandee);
+        t.car.car_control ?? "None";
+    speedHistory.real.push(t.car.current_speed);
+    speedHistory.demand.push(t.car.target_speed);
 
     if (speedHistory.real.length > speedHistory.maxPoints) {
         speedHistory.real.shift();
@@ -194,7 +194,7 @@ function updateTelemetry(t) {
     }
 
     drawSpeedChart();
-    drawSteering(t.car.direction_demandee);
+    drawSteering(t.car.direction);
 
 }
 
@@ -249,7 +249,7 @@ function initLidar(retryDelay = 1000) {
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
 
-        /* ---------- Grille ---------- */
+        /* ---------- Grid ---------- */
         const circleStepMM = 100; // 10 cm
         const circleCount = 15;
 
@@ -263,13 +263,13 @@ function initLidar(retryDelay = 1000) {
             ctx.stroke();
 
             if (i % (circleCount / 3) === 0){
-            // label distance
+            // distance label
             ctx.fillStyle = "#777";
             ctx.font = "10px monospace";
             ctx.fillText(`${i * 10} cm`, r + 2, 0);
             }
         }
-        // FOV du lidar (270°)
+        // Lidar FOV (270°)
         ctx.strokeStyle = "#444";
         ctx.lineWidth = 1;
 
@@ -278,7 +278,7 @@ function initLidar(retryDelay = 1000) {
         const fovRadius = 1500 * scale;
 
         ctx.beginPath();
-        // ligne gauche
+        // left line
         ctx.moveTo(0, 0);
         ctx.lineTo(
         Math.sin(fovMin) * fovRadius,
@@ -286,7 +286,7 @@ function initLidar(retryDelay = 1000) {
         );
         ctx.stroke();
 
-        // ligne droite
+        // right line
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(
@@ -294,7 +294,7 @@ function initLidar(retryDelay = 1000) {
         -Math.cos(fovMax) * fovRadius
         );
         ctx.stroke();
-        /* ---------- Axes ---------- */
+        /* ---------- Axes (Axis) ---------- */
         ctx.strokeStyle = "#555";
         ctx.beginPath();
         ctx.moveTo(-canvas.width / 2, 0);
@@ -306,7 +306,7 @@ function initLidar(retryDelay = 1000) {
         ctx.lineTo(0, canvas.height / 2);
         ctx.stroke();
 
-        /* ---------- Points LIDAR ---------- */
+        /* ---------- LIDAR Points ---------- */
         ctx.fillStyle = "#00ff88";
         for (let i = 0; i < data.x.length; i++) {
             ctx.fillRect(
@@ -319,7 +319,7 @@ function initLidar(retryDelay = 1000) {
         ctx.restore();
     };
     }catch(e){
-        console.error("Erreur dans LIDAR WS onmessage:", e);
+        console.error("Error in LIDAR WS onmessage:", e);
     }
 
     ws.onclose = () => {
@@ -339,7 +339,7 @@ function initTelemetryWS() {
         updateTelemetry(data);
     };
     }catch(e){
-    console.error("Erreur dans Telemetry WS onmessage:", e);
+    console.error("Error in Telemetry WS onmessage:", e);
 }   
     ws.onclose = () => {
         console.warn("Telemetry WS disconnected, retrying...");
@@ -372,14 +372,14 @@ async function init() {
             camLink.href = camUrl;
 
         } else {
-            console.warn("Element #camera introuvable au moment d'init");
+            console.warn("Element #camera not found at initialization");
         }
 
         initLidar();
         initTelemetryWS();
         loadProgramsOnce();
     } catch (e) {
-        console.error("Erreur dans init:", e);
+        console.error("Error in init:", e);
     }
 }
 

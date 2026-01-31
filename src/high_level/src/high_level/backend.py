@@ -23,7 +23,7 @@ from high_level.autotech_constant import (
 
 class BackendAPI(Program):
     """
-    Programme backend web de contrôle.
+    Programme backend web for control.
     - Respecte Program: start/kill/running/controls_car
     - Expose une API REST:
         GET  /api/status
@@ -49,7 +49,7 @@ class BackendAPI(Program):
         self.server = server
         self.controls_car = False
         self.running = False
-        self.lidar_yaw = 0  # rotation fixe pour que "devant" = haut écran
+        self.lidar_yaw = 0  # for lidar coordinate correction
 
 
         self.host = host
@@ -59,7 +59,7 @@ class BackendAPI(Program):
 
         self.app = FastAPI(title="CoVAPSy Remote Control API", version="1.0.0")
 
-        # CORS: pratique si ton frontend est sur un autre port / autre machine
+        # CORS
         if cors_allow_origins is None:
             cors_allow_origins = ["*"]
         self.app.add_middleware(
@@ -70,15 +70,12 @@ class BackendAPI(Program):
             allow_headers=["*"],
         )
 
-        # Frontend statique (optionnel)
-        # - si site_dir contient un index.html, il sera servi à "/"
         if site_dir:
             self.app.mount("/static", StaticFiles(directory=site_dir), name="static")
 
             @self.app.get("/", response_class=HTMLResponse)
             def index():
-                # Le frontend peut être /static/index.html ou /static/controle.html selon ton choix
-                # Ici on renvoie juste une page qui redirige vers /static/
+                # the frontend is served at /static/index.html
                 return """
                 <html>
                   <head><meta charset="utf-8"><title>CoVAPSy</title></head>
@@ -92,27 +89,26 @@ class BackendAPI(Program):
 
         self._setup_routes()
 
-        time.sleep(1)  # Petit délai pour s'assurer que tout est prêt avant de démarrer
+        time.sleep(1)  # litle delay to ensure server is ready
         if BACKEND_ON_START:
             self.start()
         
 
 
     # ----------------------------
-    # Helpers: lecture état voiture
+    # Helpers: reading data from server
     # ----------------------------
     def _arduino(self):
-        # server.arduino_I2C est une property dans ton Serveur
+        # server.arduino_I2C is a property returning the I2C Arduino instance
         return getattr(self.server, "arduino_I2C", None)
 
     def _get_telemetry(self) -> Dict[str, Any]:
         ard = self._arduino()
-        # On protège tout: si pas initialisé, on renvoie 0
         voltage_lipo = getattr(ard, "voltage_lipo", 0.0) if ard else 0.0
         voltage_nimh = getattr(ard, "voltage_nimh", 0.0) if ard else 0.0
         current_speed = getattr(ard, "current_speed", 0.0) if ard else 0.0
 
-        # Programme qui contrôle la voiture actuellement
+        # Programm which currently controls the car
         last_ctrl = int(getattr(self.server, "last_programme_control", 0))
         programmes = getattr(self.server, "programme", [])
         prog_name = None
@@ -128,11 +124,11 @@ class BackendAPI(Program):
                 "nimh": voltage_nimh
             },
             "car": {
-                "vitesse_reelle": current_speed,
-                "vitesse_demandee": target_speed,
-                "direction_demandee": direction,
-                "programme_controle": prog_name,
-                "programme_id": last_ctrl
+                "current_speed": current_speed,
+                "target_speed": target_speed,
+                "direction": direction,
+                "car_control": prog_name,
+                "program_id": last_ctrl
             },
             "timestamp": time.time(),
         }
@@ -171,7 +167,7 @@ class BackendAPI(Program):
         r = np.asarray(lidar.rDistance)
         n = r.shape[0]
 
-        # angles du lidar (repère capteur)
+        # lidar angle values
         theta_lidar = np.linspace(
             -3*np.pi/4,   # -135°
             +3*np.pi/4,   # +135°
@@ -179,11 +175,11 @@ class BackendAPI(Program):
             endpoint=True
         )
 
-        # correction d’orientation
+        # orientation correction 
         theta_world = theta_lidar + self.lidar_yaw
 
         # projection
-        # Repère monde: +Y = devant le lidar
+        # cartésien coordonates
         x = -np.sin(theta_world) * r
         y = np.cos(theta_world) * r
 
