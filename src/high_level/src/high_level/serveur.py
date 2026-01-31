@@ -23,7 +23,7 @@ from programs.poweroff import Poweroff
 from actionneur_capteur.camera import ProgramStreamCamera
 from programs.initialisation import Initialisation
 from programs.car import Ai_Programme
-from backend import BackendAPI
+from .backend import BackendAPI
 
 from high_level.autotech_constant import TEXT_HEIGHT
 
@@ -66,7 +66,7 @@ class Serveur():
                          PS4ControllerProgram(), 
                          RemoteControl(), 
                          ProgramStreamCamera(self), 
-                         BackendAPI(self, host="0.0.0.0", port=8001, site_dir="/home/intech/CoVAPSy/src/HL/site_controle"),
+                         BackendAPI(self, host="0.0.0.0", port=8001, site_dir="/home/intech/CoVAPSy/src/high_level/src/site_controle"),
                          Poweroff()]
         self.log.debug("Programmes chargés: %s", [type(p).__name__ for p in self.programme])
 

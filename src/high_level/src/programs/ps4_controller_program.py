@@ -1,7 +1,7 @@
 from pyPS4Controller.controller import Controller
 import time
 from threading import Thread
-from program import Program
+from .program import Program
 from high_level.autotech_constant import MAX_ANGLE
 import logging
 ###################################################
