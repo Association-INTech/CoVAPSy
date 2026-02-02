@@ -154,7 +154,7 @@ class BackendAPI(Program):
     def _camera_stream_url(self) -> str:
         ip = getattr(getattr(self.server, "SOCKET_ADRESS", None), "IP", None)
         ip = getattr(self.server, "ip", None) or "192.168.1.10"
-        return f"http://{ip}:{PORT_STREAMING_CAMERA}/stream.mjpg"
+        return f"http://{ip}:{PORT_STREAMING_CAMERA}/cam/"
     
     def _lidar(self):
         return getattr(self.server, "lidar", None)

@@ -10,7 +10,7 @@ import logging
 
 import aiohttp
 import asyncio
-from aiortc import RTCPeerConnection, RTCSessionDescription
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCConfiguration, RTCIceServer
 from programs.program import Program
 
 
@@ -25,17 +25,6 @@ COLOUR_KEY = {
 }
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
-
-class JpegCallback(Output):
-    def __init__(self, parent_cam):
-        super().__init__()
-        self.parent = parent_cam
-
-    def outputframe(self, frame, keyframe=True):
-        # frame = bytes JPEG
-        self.parent._on_new_frame(frame)
-
-
 
 """
 class ProgramStreamCamera(Program):
@@ -77,16 +66,19 @@ class Camera:
     Camera = client WebRTC (WHEP) vers MediaMTX.
     MediaMTX ouvre la PiCam (source: rpiCamera). Python ne fait que consommer.
     """
-    def __init__(self, whep_url: str = "http://192.168.1.10:8889/cam/whep"):
+    def __init__(self, whep_url: str = "http://127.0.0.1:8889/cam/whep"):
         self.log = logging.getLogger(__name__)
         self.whep_url = whep_url
-
+        self.debug_counter = 0
         self.last_frame = None
         self._lock = threading.Lock()
 
         self._stop_flag = threading.Event()
+        self._frame_queue = asyncio.Queue(maxsize=2)
         self._thread = threading.Thread(target=self._thread_main, daemon=True)
         self._thread.start()
+        
+
 
     # --------- thread -> event loop asyncio ---------
     def _thread_main(self):
@@ -103,27 +95,64 @@ class Camera:
             # petit backoff avant de retenter
             await asyncio.sleep(0.5)
 
+    async def _processing_loop(self):
+        while not self._stop_flag.is_set():
+            frame = await self._frame_queue.get()
+            # Décodage H264 -> numpy (HORS WebRTC)
+            img_bgr = frame.to_ndarray(format="bgr24")
+            img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+            # optionnel mais recommandé (stabilité algo)
+            img_rgb = cv2.resize(img_rgb, (320, 240))
+
+            with self._lock:
+                self.last_frame = img_rgb
+
+
     async def _run_once(self, url: str):
-        pc = RTCPeerConnection()
+        config = RTCConfiguration(
+            iceServers=[]
+        )
+
+        pc = RTCPeerConnection(configuration=config)
         pc.addTransceiver("video", direction="recvonly")
 
         frame_received = asyncio.Event()
+
+        @pc.on("connectionstatechange")
+        async def on_state():
+            if pc.connectionState in ("failed", "disconnected", "closed"):
+                self.log.warning("WebRTC state: %s", pc.connectionState)
+                await pc.close()
 
         @pc.on("track")
         async def on_track(track):
             if track.kind != "video":
                 return
-
+            
             self.log.info("WHEP: receiving video track")
             frame_received.set()
 
-            while not self._stop_flag.is_set():
-                frame = await track.recv()
-                img_bgr = frame.to_ndarray(format="bgr24")
-                img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+            processing_task = asyncio.create_task(self._processing_loop())
+            
+            try:
+                while not self._stop_flag.is_set():
+                    frame = await track.recv()
 
-                with self._lock:
-                    self.last_frame = img_rgb
+                    # ne JAMAIS bloquer ici
+                    if self._frame_queue.full():
+                        try:
+                            self._frame_queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            pass
+
+                    await self._frame_queue.put(frame)
+
+            except Exception as e:
+                self.log.warning("WebRTC track ended: %s", e)
+            processing_task.cancel()
+
+
 
         # --- offer/answer WHEP ---
         offer = await pc.createOffer()
@@ -168,9 +197,6 @@ class Camera:
     # ----------------------------------------------------------
     # Interface publique
     # ----------------------------------------------------------
-    def get_last_image(self):
-        return self.last_frame
-
     
     def camera_matrix(self, vector_size=128, image=None):
         """
