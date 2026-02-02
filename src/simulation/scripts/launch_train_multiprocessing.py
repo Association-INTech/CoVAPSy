@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     save_path = (
         __file__.rsplit("/", 1)[0]
-        + "/tmp/autotech/checkpoints/"
+        + "~/.cache/autotech/checkpoints/"
         + ExtractorClass.__name__
         + "/"
     )
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     while True:
         onnx_utils.export_onnx(
             model,
-            f"/tmp/autotech/model_{ExtractorClass.__name__}.onnx",
+            f"~/.cache/autotech/model_{ExtractorClass.__name__}.onnx",
         )
         onnx_utils.test_onnx(model)
 
