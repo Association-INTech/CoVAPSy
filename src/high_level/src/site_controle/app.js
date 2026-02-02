@@ -366,6 +366,17 @@ async function init() {
         const camUrl = await fetchCameraUrl();
         const camEl = document.getElementById("camera");
         const camLink = document.getElementById("camera-link");
+        const video = document.getElementById("camera");
+        const url = "http://192.168.1.10:8889/cam/";
+
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.loadSource(url);
+            hls.attachMedia(video);
+        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            video.src = url;
+        }
+
 
         if (camEl && camLink) {
             camEl.src = camUrl;
