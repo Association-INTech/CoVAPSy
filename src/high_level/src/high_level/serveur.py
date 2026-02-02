@@ -20,7 +20,7 @@ from programs.ps4_controller_program import PS4ControllerProgram
 from programs.ssh_programme import SshProgramme
 from programs.remote_control import RemoteControl
 from programs.poweroff import Poweroff
-from actionneur_capteur.camera import ProgramStreamCamera
+#from actionneur_capteur.camera import ProgramStreamCamera
 from programs.initialisation import Initialisation
 from programs.car import Ai_Programme
 from .backend import BackendAPI
@@ -65,7 +65,7 @@ class Serveur():
                          Ai_Programme(self), 
                          PS4ControllerProgram(), 
                          RemoteControl(), 
-                         ProgramStreamCamera(self), 
+                         #ProgramStreamCamera(self), 
                          BackendAPI(self, host="0.0.0.0", port=8001, site_dir="/home/intech/CoVAPSy/src/high_level/src/site_controle"),
                          Poweroff()]
         self.log.debug("Programs ready: %s", [type(p).__name__ for p in self.programs])

@@ -39,6 +39,8 @@ dependencies = [
     "websockets>=16.0",
     "fastapi>=0.128.0",
     "uvicorn>=0.40.0",
+    "aiortc>=1.14.0",
+    "aiohttp>=3.13.3",
 ]
 
 
