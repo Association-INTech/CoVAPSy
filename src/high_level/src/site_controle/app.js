@@ -231,10 +231,11 @@ async function refreshPrograms() {
         console.error("Failed to refresh programs", e);
     }
 }
-function decodeBase64ToUint16Array(base64String) {
-  const binaryString = atob(base64String);
-  const bytes = Uint8Array.from(binaryString, c => c.charCodeAt(0));
-  return new Uint16Array(bytes.buffer);
+function decodeBase64ToInt16Array(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Int16Array(bytes.buffer);
 }
 
 function initLidar(retryDelay = 1000) {

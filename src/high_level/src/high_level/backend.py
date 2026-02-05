@@ -186,8 +186,8 @@ class BackendAPI(Program):
 
 
         return {
-            "x": base64.b64encode(x.clip(0, 2**16-1).astype(np.uint16)),
-            "y": base64.b64encode(y.clip(0, 2**16-1).astype(np.uint16)),
+            "x": base64.b64encode(x.tobytes()).decode("ascii"),
+            "y": base64.b64encode(y.tobytes()).decode("ascii"),
             "unit": "mm",
             "timestamp": time.time(),
         }
