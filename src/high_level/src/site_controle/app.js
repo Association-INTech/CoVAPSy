@@ -233,6 +233,9 @@ async function refreshPrograms() {
 }
 function decodeBase64ToInt16Array(b64) {
   const bin = atob(b64);
+  if (bin.length % 2 !== 0) {
+    console.warn("Odd byte length:", bin.length);
+  }
   const bytes = new Uint8Array(bin.length);
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new Int16Array(bytes.buffer);
@@ -250,9 +253,10 @@ function initLidar(retryDelay = 1000) {
     try{
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
-        const x = decodeBase64ToUint16Array(data.x);
-        const y = decodeBase64ToUint16Array(data.y);
-
+        const x = decodeBase64ToInt16Array(data.x);
+        const y = decodeBase64ToInt16Array(data.y);
+        console.log(`Received LIDAR data i will affiche it in the console for now x:${x.length} points, y:${y.length} points`);
+        console.log("First 10 points:", Array.from(x), Array.from(y));
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
