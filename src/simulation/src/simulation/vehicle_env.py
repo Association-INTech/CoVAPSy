@@ -91,7 +91,6 @@ class VehicleEnv(gym.Env):
                     "--mode=fast",
                     "--minimize",
                     "--batch",
-                    "--stdout",
                 ]
             )
 
