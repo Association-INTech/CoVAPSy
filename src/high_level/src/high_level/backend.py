@@ -3,6 +3,7 @@
 import threading
 import time
 import logging
+import base64
 from typing import Any, Dict, Optional, List
 
 import uvicorn
@@ -185,8 +186,8 @@ class BackendAPI(Program):
 
 
         return {
-            "x": x.tolist(),
-            "y": y.tolist(),
+            "x": base64.b64encode(x.clip(0, 2**16-1).astype(np.uint16)),
+            "y": base64.b64encode(y.clip(0, 2**16-1).astype(np.uint16)),
             "unit": "mm",
             "timestamp": time.time(),
         }

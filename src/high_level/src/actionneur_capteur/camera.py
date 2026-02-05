@@ -66,7 +66,7 @@ class Camera:
     Camera = client WebRTC (WHEP) vers MediaMTX.
     MediaMTX ouvre la PiCam (source: rpiCamera). Python ne fait que consommer.
     """
-    def __init__(self, whep_url: str = "http://127.0.0.1:8889/cam/whep"):
+    def __init__(self, whep_url: str = "http://192.168.0.20:8889/cam/whep"):
         self.log = logging.getLogger(__name__)
         self.whep_url = whep_url
         self.debug_counter = 0
@@ -108,6 +108,22 @@ class Camera:
             with self._lock:
                 self.last_frame = img_rgb
 
+    async def _wait_ice_complete(self, pc: RTCPeerConnection, timeout=2.0):
+        if pc.iceGatheringState == "complete":
+            return
+
+        ev = asyncio.Event()
+
+        @pc.on("icegatheringstatechange")
+        def _on_ice():
+            if pc.iceGatheringState == "complete":
+                ev.set()
+
+        try:
+            await asyncio.wait_for(ev.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.log.warning("ICE gathering not complete after timeout")
+            pass
 
     async def _run_once(self, url: str):
         config = RTCConfiguration(
@@ -157,6 +173,8 @@ class Camera:
         # --- offer/answer WHEP ---
         offer = await pc.createOffer()
         await pc.setLocalDescription(offer)
+
+        await self._wait_ice_complete(pc, timeout=3.0)
 
         async with aiohttp.ClientSession() as session:
             async with session.post(

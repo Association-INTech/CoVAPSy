@@ -231,6 +231,12 @@ async function refreshPrograms() {
         console.error("Failed to refresh programs", e);
     }
 }
+function decodeBase64ToUint16Array(base64String) {
+  const binaryString = atob(base64String);
+  const bytes = Uint8Array.from(binaryString, c => c.charCodeAt(0));
+  return new Uint16Array(bytes.buffer);
+}
+
 function initLidar(retryDelay = 1000) {
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
@@ -243,6 +249,8 @@ function initLidar(retryDelay = 1000) {
     try{
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
+        const x = decodeBase64ToUint16Array(data.x);
+        const y = decodeBase64ToUint16Array(data.y);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -308,10 +316,10 @@ function initLidar(retryDelay = 1000) {
 
         /* ---------- LIDAR Points ---------- */
         ctx.fillStyle = "#00ff88";
-        for (let i = 0; i < data.x.length; i++) {
+        for (let i = 0; i < x.length; i++) {
             ctx.fillRect(
-                data.x[i] * scale,
-               -data.y[i] * scale,
+                x[i] * scale,
+               -y[i] * scale,
                 2, 2
             );
         }
