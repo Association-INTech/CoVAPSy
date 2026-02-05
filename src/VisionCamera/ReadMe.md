@@ -1,1 +1,0 @@
-Un approche de la vision non fini par [Markousi](https://github.com/Markousi). Se refer plutot a [Camera.py](../HL/Camera.py)

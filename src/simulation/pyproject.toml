@@ -3,9 +3,6 @@ name = "simulation"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "matthiasbienvenu", email = "matthias.bienvenu@telecom-sudparis.eu" }
-]
 requires-python = ">=3.12, <3.14"
 dependencies = [
     "gymnasium>=1.2.3",
