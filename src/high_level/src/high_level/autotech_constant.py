@@ -66,3 +66,6 @@ LOGGING_LEVEL = logging.DEBUG # can be either NOTSET, DEBUG, INFO, WARNING, ERRO
 CAMERA_STREAM_ON_START = True #If True the camera stream will start at the launch of the car
 BACKEND_ON_START = True #If True the backend will start at the launch of the car
 LIDAR_STREAM_ON_START = True #If True the lidar stream will start at the launch of the car
+
+#Backend
+SITE_DIR_BACKEND = "/home/intech/CoVAPSy/src/high_level/src/site_controle" # the directory where the backend will look for the site to serve

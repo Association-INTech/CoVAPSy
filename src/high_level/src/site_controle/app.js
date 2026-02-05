@@ -364,18 +364,17 @@ async function loadProgramsOnce() {
 async function init() {
     try {
         const camUrl = await fetchCameraUrl();
-        const camEl = document.getElementById("camera");
-        const camLink = document.getElementById("camera-link");
-        const video = document.getElementById("camera");
-        const url = "http://192.168.1.10:8889/cam/";
+        const camEl = document.getElementById("camera_frame");
+        const camLink = document.getElementById("camera");
+        // const url = "http://10.255.28.97:8889/cam/";
 
-        if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(video);
-        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = url;
-        }
+        // if (Hls.isSupported()) {
+        //     const hls = new Hls();
+        //     hls.loadSource(url);
+        //     hls.attachMedia(video);
+        // } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        //     video.src = url;
+        // }
 
 
         if (camEl && camLink) {

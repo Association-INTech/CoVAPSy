@@ -2,17 +2,20 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>LIDAR</title>
   <style>
     canvas { background: #111; }
   </style>
 </head>
 <body>
 
-<canvas id="lidar" width="1000" height="1000"></canvas>
+<canvas id="lidar"></canvas>
 
 <script>
 const canvas = document.getElementById("lidar");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
 const ctx = canvas.getContext("2d");
 const scale = 0.15; // mm → pixels
 
