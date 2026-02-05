@@ -181,8 +181,8 @@ class BackendAPI(Program):
 
         # projection
         # cartésien coordonates
-        x = -np.sin(theta_world) * r
-        y = np.cos(theta_world) * r
+        x = (-np.sin(theta_world) * r).astype(np.int16)
+        y = ( np.cos(theta_world) * r).astype(np.int16)
 
 
         return {
