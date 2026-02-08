@@ -3,14 +3,14 @@ import logging
 import numpy as np
 from controller import Supervisor
 
+from simulation import config as c
+from utils.simulation_rank import get_simulation_rank
+
 # I cannot use relative imports because the file is directly launched by webots
 from webots.controllers.controller_world_supervisor import (
     CheckpointManager,
     checkpoints,
 )
-
-from simulation import config as c
-from utils.simulation_rank import get_simulation_rank
 
 supervisor = Supervisor()
 

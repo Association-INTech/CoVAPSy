@@ -26,16 +26,11 @@ if __name__ == "__main__":
         ]
     )
 
-    ExtractorClass = CNN1DResNetExtractor
-
     policy_kwargs: Dict[str, Any] = dict(
-        features_extractor_class=ExtractorClass,
-        features_extractor_kwargs=dict(
-            context_size=c.context_size,
-            lidar_horizontal_resolution=c.lidar_horizontal_resolution,
-            camera_horizontal_resolution=c.camera_horizontal_resolution,
-            device=c.device,
-        ),
+        features_extractor_class=c.ExtractorClass,
+        # features_extractor_kwargs=dict(
+        #     device=c.device,
+        # ),
         activation_fn=nn.ReLU,
         net_arch=[512, 512, 512],
     )
@@ -52,7 +47,7 @@ if __name__ == "__main__":
     )
 
     save_path = (
-        Path("~/.cache/autotech/checkpoints").expanduser() / ExtractorClass.__name__
+        Path("~/.cache/autotech/checkpoints").expanduser() / c.ExtractorClass.__name__
     )
 
     save_path.mkdir(parents=True, exist_ok=True)
@@ -81,28 +76,21 @@ if __name__ == "__main__":
     print(f"{model.batch_size=}")
     print(f"{model.device=}")
 
-    # obs = envs.reset()
-    # while True:
-    #     action, _states = model.predict(obs, deterministic=True)  # Use deterministic=True for evaluation
-    #     obs, reward, done, info = envs.step(action)
-    #     envs.render()  # Optional: visualize the environment
-
     while True:
         onnx_utils.export_onnx(
             model,
             os.path.expanduser(
-                f"~/.cache/autotech/model_{ExtractorClass.__name__}.onnx"
+                f"~/.cache/autotech/model_{c.ExtractorClass.__name__}.onnx"
             ),
         )
         onnx_utils.test_onnx(model)
 
         if c.LOG_LEVEL <= DEBUG:
-            # only used in debug mode
             from utils import PlotModelIO
 
             model.learn(
                 total_timesteps=500_000,
-                progress_bar=True,
+                progress_bar=False,
                 callback=PlotModelIO(),
             )
         else:
