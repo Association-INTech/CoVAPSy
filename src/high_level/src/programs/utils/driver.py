@@ -19,7 +19,7 @@ class Driver:
         self.ai_session = None
         self.context = None
 
-        if self.log.getLogger().isEnabledFor(self.log.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
             self.steering_bars = self.ax[0].bar(range(16), np.zeros(16), color='blue')
             self.steering_avg = [
@@ -96,7 +96,7 @@ class Driver:
         vect_dir = softmax(vect_dir)  # distribution de probabilité
         vect_prop = softmax(vect_prop)
 
-        if self.log.getLogger().isEnabledFor(log.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
             self.lidar_img.set_array(np.log(1 + self.context[0]))
             self.camera_img.set_array(self.context[1])

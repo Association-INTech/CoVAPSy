@@ -4,7 +4,7 @@ import numpy as np
 import logging
 from threading import Thread
 from .program import Program
-
+import logging
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import  MAX_ANGLE, CRASH_DIST, MODEL_PATH, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
 from .utils.driver import Driver
@@ -81,7 +81,7 @@ class Car:
 
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
-        if self.camera is None or self.lidar is None or self.tof is None:
+        if self.camera is None or self.lidar is None :
             self.log.debug("Capteurs pas encore prêts")
             print("Capteurs pas encore prêts")
             return
@@ -99,6 +99,7 @@ class Car:
         if self.reverse_count > 2:
             self.turn_around()
             self.reverse_count = 0
+            """
         if self.has_Crashed():
             print("Obstacle détecté")
             color= self.camera.is_green_or_red(lidar_data)
@@ -117,7 +118,7 @@ class Car:
                 self.log.info("Obstacle vert détecté")
             angle= -color*MAX_ANGLE
             self.target_speed = -2
-            self.direction = angle
+            self.direction = angle"""
 
 
 
@@ -125,6 +126,7 @@ class Car:
 class Ai_Programme(Program):
     def __init__(self, serveur):
         super().__init__()
+        print("iuviuvbiuvbiuvyuvyuvbuiovyuvbuiovyuvbiucvyuboiuvuiybyuviounbyuvbuiobuv")
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
         self.driver = None
@@ -156,7 +158,7 @@ class Ai_Programme(Program):
         if self.running:
             return
 
-        if self.serveur.camera is None or self.serveur.lidar is None or self.serveur.tof is None:
+        if self.serveur.camera is None or self.serveur.lidar is None:
             print("Capteurs non initialisés")
             return
 
