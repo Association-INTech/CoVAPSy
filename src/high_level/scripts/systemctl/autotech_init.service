@@ -1,0 +1,14 @@
+[Unit]
+Description=Initialisation de la voiture
+After=network.target
+
+[Service]
+Type=simple
+User=intech
+WorkingDirectory=/home/intech/CoVAPSy/src/high_level
+ExecStart=/home/intech/.local/bin/uv run scripts/launch_serveur.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

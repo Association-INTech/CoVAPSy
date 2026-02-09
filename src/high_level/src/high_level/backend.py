@@ -23,8 +23,8 @@ from high_level.autotech_constant import (
 
 class BackendAPI(Program):
     """
-    Programme backend web for control.
-    - Respecte Program: start/kill/running/controls_car
+    backend web for control and debug.
+    - Respect Program: start/kill/running/controls_car
     - Expose une API REST:
         GET  /api/status
         GET  /api/programs
@@ -32,7 +32,7 @@ class BackendAPI(Program):
         POST /api/programs/{id}/start
         POST /api/programs/{id}/kill
         GET  /api/stream/camera
-    - Sert un frontend statique (optionnel) via / (index.html)
+    - Give a static frontend  by index.html
     """
 
     def __init__(
@@ -109,11 +109,11 @@ class BackendAPI(Program):
         current_speed = getattr(ard, "current_speed", 0.0) if ard else 0.0
 
         # Programm which currently controls the car
-        last_ctrl = int(getattr(self.server, "last_programme_control", 0))
-        programmes = getattr(self.server, "programme", [])
+        last_ctrl = int(getattr(self.server, "last_program_control", 0))
+        programs = getattr(self.server, "programs", [])
         prog_name = None
-        if isinstance(programmes, list) and 0 <= last_ctrl < len(programmes):
-            prog_name = type(programmes[last_ctrl]).__name__
+        if isinstance(programs, list) and 0 <= last_ctrl < len(programs):
+            prog_name = type(programs[last_ctrl]).__name__
 
         target_speed = float(getattr(self.server, "target_speed", 0.0))
         direction = float(getattr(self.server, "direction", 0.0))
@@ -134,12 +134,12 @@ class BackendAPI(Program):
         }
 
     def _list_programs(self) -> List[Dict[str, Any]]:
-        programmes = getattr(self.server, "programme", [])
+        programs = getattr(self.server, "programs", [])
         out: List[Dict[str, Any]] = []
-        if not isinstance(programmes, list):
+        if not isinstance(programs, list):
             return out
 
-        for i, p in enumerate(programmes):
+        for i, p in enumerate(programs):
             out.append(
                 {
                     "id": i,
@@ -211,8 +211,8 @@ class BackendAPI(Program):
 
         @self.app.post("/api/programs/{prog_id}/toggle")
         def toggle_program(prog_id: int):
-            programmes = getattr(self.server, "programme", [])
-            if not isinstance(programmes, list) or not (0 <= prog_id < len(programmes)):
+            programs = getattr(self.server, "programs", [])
+            if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
 
             self.server.start_process(prog_id)
@@ -221,11 +221,11 @@ class BackendAPI(Program):
 
         @self.app.post("/api/programs/{prog_id}/start")
         def start_program(prog_id: int):
-            programmes = getattr(self.server, "programme", [])
-            if not isinstance(programmes, list) or not (0 <= prog_id < len(programmes)):
+            programs = getattr(self.server, "programs", [])
+            if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
 
-            p = programmes[prog_id]
+            p = programs[prog_id]
             if getattr(p, "running", False):
                 return {"status": "already_running", "program_id": prog_id}
 
@@ -234,11 +234,11 @@ class BackendAPI(Program):
 
         @self.app.post("/api/programs/{prog_id}/kill")
         def kill_program(prog_id: int):
-            programmes = getattr(self.server, "programme", [])
-            if not isinstance(programmes, list) or not (0 <= prog_id < len(programmes)):
+            programs = getattr(self.server, "programs", [])
+            if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
 
-            p = programmes[prog_id]
+            p = programs[prog_id]
             if not getattr(p, "running", False):
                 return {"status": "already_stopped", "program_id": prog_id}
 
