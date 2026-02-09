@@ -93,7 +93,7 @@ class Car:
                                                          #,self.camera.camera_matrix()
                                                          ) #l'ai prend des distance en mètre et non en mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
-
+        """
         if self.camera.is_running_in_reversed():
             self.reverse_count += 1
         else:
@@ -101,7 +101,7 @@ class Car:
         if self.reverse_count > 2:
             self.turn_around()
             self.reverse_count = 0
-            """
+
         if self.has_Crashed():
             print("Obstacle détecté")
             color= self.camera.is_green_or_red(lidar_data)

@@ -3,8 +3,8 @@ import numpy as np
 import logging
 
 # Car control
-MAX_IA_SPEED = 1000 # maximum speed for ia
-MIN_IA_SPEED = -2 # minimum speed for ia
+MAX_IA_SPEED = 1000 # maximum speed for ia in centimeter per second
+MIN_IA_SPEED = -500 # minimum speed for ia in centimeter per second
 MAX_CONTROL_SPEED = 2 # maximum speed for controling devices
 MIN_CONTROL_SPEED = -2 # minimum speed for controlig devices
 MAX_ANGLE = 18 # angle between the two extrem position
