@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import onnxruntime as ort
 import torch
@@ -9,26 +11,28 @@ from simulation import config as c
 
 def get_torch_model(sb_model):
     return nn.Sequential(
-        sb_model.policy.features_extractor.net,
+        sb_model.policy.features_extractor,
         sb_model.policy.mlp_extractor.policy_net,
         sb_model.policy.action_net,
     ).to("cpu")
 
 
 def export_onnx(sb_model: OnPolicyAlgorithm, path: str):
-    sb_model.policy.eval()
     device = sb_model.policy.device
     torch_model = get_torch_model(sb_model)
-    x = torch.randn(1, 2, c.context_size, c.lidar_horizontal_resolution)
+    torch_model.eval()
+
+    example_input = torch.randn(1, 2, c.context_size, c.lidar_horizontal_resolution)
 
     with torch.no_grad():
         torch.onnx.export(
             torch_model,
-            x,  # type: ignore
+            (example_input,),
             path,
             input_names=["input"],
+            dynamo=True,
             output_names=["output"],
-            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+            dynamic_shapes={"input": {0: "batch_size"}},
         )
 
     torch_model.to(device)
@@ -40,7 +44,7 @@ def run_onnx_model(session: ort.InferenceSession, x: np.ndarray):
     return session.run(None, {"input": x})[0]
 
 
-def test_onnx(model):
+def test_onnx(model: OnPolicyAlgorithm):
     device = model.policy.device
     model.policy.eval()
     true_model = get_torch_model(model)
@@ -49,7 +53,10 @@ def test_onnx(model):
     x = torch.randn(1000, 2, c.context_size, c.lidar_horizontal_resolution)
 
     try:
-        session = ort.InferenceSession("model.onnx")
+        class_name = model.policy.features_extractor.__class__.__name__
+        model_path = os.path.expanduser(f"~/.cache/autotech/model_{class_name}.onnx")
+
+        session = ort.InferenceSession(model_path)
     except Exception as e:
         print(f"Error loading ONNX model: {e}")
         return

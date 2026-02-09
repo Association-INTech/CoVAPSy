@@ -3,6 +3,12 @@ from .program import Program
 import threading
 from high_level.autotech_constant import SOCKET_ADRESS
 import logging
+from enum import Enum
+
+class ProgramState(Enum):
+    INITIALIZATION = 1
+    RUNNING = 2
+    STOPPED = 3
 
 class Initialisation(Program):
     def __init__(self,server, camera, lidar, tof, I2C):
@@ -13,9 +19,9 @@ class Initialisation(Program):
         self.lidar = None
         self.tof = None
         self.arduino_I2C_init = 0
-        self.camera_init = 0
-        self.lidar_init = 0
-        self.tof_init = 0
+        self.camera_init = ProgramState.INITIALIZATION
+        self.lidar_init =  ProgramState.INITIALIZATION
+        self.tof_init =  ProgramState.INITIALIZATION
 
         threading.Thread(target=self.init_camera, args=(camera,), daemon=True).start()
         threading.Thread(target=self.init_lidar, args=(lidar,), daemon=True).start()
@@ -25,20 +31,20 @@ class Initialisation(Program):
     def init_I2C_arduino(self,I2C,server):
         try:
             self.arduino_I2C = I2C(server)
-            self.arduino_I2C_init = 1
+            self.arduino_I2C_init = ProgramState.RUNNING
             self.log.info("I2C Arduino initialized successfully")
         except Exception as e:
-            self.arduino_I2C_init = 2
+            self.arduino_I2C_init = ProgramState.STOPPED
             self.log.error("I2C Arduino init error : " + str(e))
     
 
     def init_camera(self,camera):
         try:
             self.camera = camera()
-            self.camera_init = 1
+            self.camera_init = ProgramState.RUNNING
             self.log.info("Camera initialized successfully")
         except Exception as e:
-            self.camera_init = 2
+            self.camera_init = ProgramState.STOPPED
             self.log.error("Camera init error : " + str(e))
     
     def init_lidar(self,lidar):
@@ -47,52 +53,41 @@ class Initialisation(Program):
             self.lidar.stop()
             self.lidar.startContinuous(0, 1080)
             self.log.info("Lidar initialized successfully")
-            self.lidar_init = 1
+            self.lidar_init = ProgramState.RUNNING
         except Exception as e:
-            self.lidar_init = 2
+            self.lidar_init = ProgramState.STOPPED
             self.log.error("Lidar init error : " + str(e))
 
     def init_tof(self,tof):
         try:
             self.tof = tof()
-            self.tof_init = 1
+            self.tof_init = ProgramState.RUNNING
             self.log.info("Camera initialized successfully")
         except Exception as e:
-            self.tof_init = 2
+            self.tof_init = ProgramState.STOPPED
             self.log.error("Tof init error : " + str(e))
 
     def display(self):
 
-        text = "\ncamera: "
-        if self.camera_init == 0:
-            text += "(en cour)"
-        elif self.camera_init == 1:
-            text += "ready."
-        elif self.camera_init == 2:
-            text += "error"
-
-        text+= "\n lidar: "
-        if self.lidar_init == 0:
-            text += "(en cour)"
-        elif self.lidar_init == 1:
-            text += "ready."
-        elif self.lidar_init == 2:
-            text += "error"
-
-        text+= "\n tof:"
-        if self.tof_init == 0:
-            text += "(en cour)"
-        elif self.tof_init == 1:
-            text += "ready."
-        elif self.tof_init == 2:
-            text += "error"
-
-        text+= "\n Arduino:"
-        if self.arduino_I2C_init == 0:
-            text += "(en cour)"
-        elif self.arduino_I2C_init == 1:
-            text += "ready."
-        elif self.arduino_I2C_init == 2:
-            text += "error"
+        def state_to_text(state):
+            match  state:
+                case ProgramState.INITIALIZATION:
+                    return "(en cour)"
+                case ProgramState.RUNNING:
+                    return "ready."
+                case ProgramState.STOPPED:
+                    return "error"
+            
+            return "unknown"
         
+
+        text = "\ncamera: "
+        text += state_to_text(self.camera_init)
+        text+= "\n lidar: "
+        text += state_to_text(self.lidar_init)
+        text+= "\n tof:"
+        text += state_to_text(self.tof_init)
+        text+= "\n Arduino:"
+        text += state_to_text(self.arduino_I2C_init)
+
         return text

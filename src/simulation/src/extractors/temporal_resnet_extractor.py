@@ -4,6 +4,60 @@ from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
+class TemporalResNetExtractor(BaseFeaturesExtractor):
+    context_size = 128
+    lidar_horizontal_resolution = 128
+    camera_horizontal_resolution = 128
+    n_sensors = 1
+
+    # just an alias to avoid confusion because
+    # the lidar and camera have the same resolution
+    horizontal_resolution = 128
+
+    def __init__(
+        self,
+        space: spaces.Box,
+        device: str = "cpu",
+    ):
+        net = nn.Sequential(
+            # shape = [batch_size, 2, 128, 128]
+            Compressor(device),
+            # shape = [batch_size, 64, 32, 32]
+            ResidualBlock(64, 64, device=device),
+            ResidualBlock(64, 64, device=device),
+            # shape = [batch_size, 64, 32, 32]
+            ResidualBlock(64, 128, downsample=True, device=device),
+            ResidualBlock(128, 128, device=device),
+            # shape = [batch_size, 128, 16, 16]
+            ResidualBlock(128, 256, downsample=True, device=device),
+            ResidualBlock(256, 256, device=device),
+            # shape = [batch_size, 256, 8, 8]
+            ResidualBlock(256, 512, downsample=True, device=device),
+            ResidualBlock(512, 512, device=device),
+            # shape = [batch_size, 512, 4, 4]
+            nn.AvgPool2d(4),
+            # shape = [batch_size, 512, 1, 1]
+            nn.Flatten(),
+            # shape = [batch_size, 512]
+        )
+
+        # Compute shape by doing one forward pass
+        with torch.no_grad():
+            n_flatten = net(
+                torch.zeros(
+                    [1, 2, self.context_size, self.horizontal_resolution], device=device
+                )
+            ).shape[1]
+
+        super().__init__(space, n_flatten)
+
+        # we cannot assign this directly to self.net before calling the super constructor
+        self.net = net
+
+    def forward(self, observations: torch.Tensor) -> torch.Tensor:
+        return self.net(observations)
+
+
 class Compressor(nn.Module):
     def __init__(self, device: str = "cpu"):
         super().__init__()
@@ -81,62 +135,3 @@ class ResidualBlock(nn.Module):
         y += self.downsample(x)
 
         return y
-
-
-class TemporalResNetExtractor(BaseFeaturesExtractor):
-    def __init__(
-        self,
-        space: spaces.Box,
-        context_size: int,
-        lidar_horizontal_resolution: int,
-        camera_horizontal_resolution: int,
-        device: str = "cpu",
-    ):
-        if (
-            context_size,
-            lidar_horizontal_resolution,
-            camera_horizontal_resolution,
-        ) != 3 * (128,):
-            raise ValueError("context_size must be 128 for TemporalResNetExtractor")
-
-        self.lidar_horizontal_resolution = lidar_horizontal_resolution
-        self.camera_horizontal_resolution = camera_horizontal_resolution
-
-        net = nn.Sequential(
-            Compressor(device),
-            # shape = [batch_size, 64, 32, 32]
-            ResidualBlock(64, 64, device=device),
-            ResidualBlock(64, 64, device=device),
-            # shape = [batch_size, 64, 32, 32]
-            ResidualBlock(64, 128, downsample=True, device=device),
-            ResidualBlock(128, 128, device=device),
-            # shape = [batch_size, 128, 16, 16]
-            ResidualBlock(128, 256, downsample=True, device=device),
-            ResidualBlock(256, 256, device=device),
-            # shape = [batch_size, 256, 8, 8]
-            ResidualBlock(256, 512, downsample=True, device=device),
-            ResidualBlock(512, 512, device=device),
-            # shape = [batch_size, 512, 4, 4]
-            nn.AvgPool2d(4),
-            # shape = [batch_size, 512, 1, 1]
-            nn.Flatten(),
-            # shape = [batch_size, 256]
-        )
-
-        # Compute shape by doing one forward pass
-        with torch.no_grad():
-            n_flatten = net(
-                torch.zeros(
-                    [1, 2, context_size, lidar_horizontal_resolution], device=device
-                )
-            ).shape[1]
-        print("n_flatten: ", n_flatten)
-        super().__init__(space, n_flatten)
-
-        # we cannot assign this directly to self.net before calling the super constructor
-        self.net = net
-
-    def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        extracted = self.net(observations)
-
-        return extracted

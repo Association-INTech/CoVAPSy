@@ -1,5 +1,6 @@
 import os
 from logging import DEBUG
+from pathlib import Path
 from typing import Any, Dict
 
 import torch.nn as nn
@@ -25,16 +26,11 @@ if __name__ == "__main__":
         ]
     )
 
-    ExtractorClass = CNN1DResNetExtractor
-
     policy_kwargs: Dict[str, Any] = dict(
-        features_extractor_class=ExtractorClass,
-        features_extractor_kwargs=dict(
-            context_size=c.context_size,
-            lidar_horizontal_resolution=c.lidar_horizontal_resolution,
-            camera_horizontal_resolution=c.camera_horizontal_resolution,
-            device=c.device,
-        ),
+        features_extractor_class=c.ExtractorClass,
+        # features_extractor_kwargs=dict(
+        #     device=c.device,
+        # ),
         activation_fn=nn.ReLU,
         net_arch=[512, 512, 512],
     )
@@ -51,34 +47,27 @@ if __name__ == "__main__":
     )
 
     save_path = (
-        __file__.rsplit("/", 1)[0]
-        + "~/.cache/autotech/checkpoints/"
-        + ExtractorClass.__name__
-        + "/"
+        Path("~/.cache/autotech/checkpoints").expanduser() / c.ExtractorClass.__name__
     )
-    os.makedirs(save_path, exist_ok=True)
 
-    print(save_path)
-    print(os.listdir(save_path))
+    save_path.mkdir(parents=True, exist_ok=True)
 
-    valid_files = [x for x in os.listdir(save_path) if x.rstrip(".zip").isnumeric()]
+    valid_files = [x for x in save_path.iterdir() if x.name.rstrip(".zip").isnumeric()]
 
     if valid_files:
-        model_name = max(valid_files, key=lambda x: int(x.rstrip(".zip")))
-        print(f"Loading model {save_path + model_name}")
-        model = PPO.load(
-            save_path + model_name, envs, **ppo_args, policy_kwargs=policy_kwargs
-        )
-        i = int(model_name.rstrip(".zip")) + 1
-        print(f"----- Model found, loading {model_name} -----")
+        model_path = max(valid_files, key=lambda x: int(x.name.rstrip(".zip")))
+        print(f"Loading model {model_path.name}")
+        model = PPO.load(model_path, envs, **ppo_args, policy_kwargs=policy_kwargs)
+        i = int(model_path.name.rstrip(".zip")) + 1
+        print(f"Model found, loading {model_path}")
 
     else:
         model = PPO("MlpPolicy", envs, **ppo_args, policy_kwargs=policy_kwargs)
 
         i = 0
-        print("----- Model not found, creating a new one -----")
+        print("Model not found, creating a new one")
 
-    print("MODEL HAS HYPER PARAMETERS:")
+    print("model hyper parameters:")
     print(f"{model.learning_rate=}")
     print(f"{model.gamma=}")
     print(f"{model.verbose=}")
@@ -87,28 +76,21 @@ if __name__ == "__main__":
     print(f"{model.batch_size=}")
     print(f"{model.device=}")
 
-    print("SERVER : finished executing")
-
-    # obs = envs.reset()
-    # while True:
-    #     action, _states = model.predict(obs, deterministic=True)  # Use deterministic=True for evaluation
-    #     obs, reward, done, info = envs.step(action)
-    #     envs.render()  # Optional: visualize the environment
-
     while True:
         onnx_utils.export_onnx(
             model,
-            f"~/.cache/autotech/model_{ExtractorClass.__name__}.onnx",
+            os.path.expanduser(
+                f"~/.cache/autotech/model_{c.ExtractorClass.__name__}.onnx"
+            ),
         )
         onnx_utils.test_onnx(model)
 
         if c.LOG_LEVEL <= DEBUG:
-            # only used in debug mode
             from utils import PlotModelIO
 
             model.learn(
                 total_timesteps=500_000,
-                progress_bar=True,
+                progress_bar=False,
                 callback=PlotModelIO(),
             )
         else:
@@ -116,6 +98,6 @@ if __name__ == "__main__":
 
         print("iteration over")
         # TODO: we could just use a callback to save checkpoints or export the model to onnx
-        model.save(save_path + str(i))
+        model.save(save_path / str(i))
 
         i += 1

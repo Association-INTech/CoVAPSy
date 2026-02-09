@@ -3,19 +3,22 @@ import logging
 
 from torch.cuda import is_available
 
+from extractors import CNN1DExtractor, CNN1DResNetExtractor, TemporalResNetExtractor
+
 n_map = 2
-n_simulations = 2
+n_simulations = 1
 n_vehicles = 2
 n_stupid_vehicles = 0
 n_actions_steering = 16
 n_actions_speed = 16
-n_sensors = 1
 lidar_max_range = 12.0
 device = "cuda" if is_available() else "cpu"
 
-context_size = 1
-lidar_horizontal_resolution = 1024  # DON'T CHANGE THIS VALUE PLS
-camera_horizontal_resolution = 1024  # DON'T CHANGE THIS VALUE PLS
+ExtractorClass = TemporalResNetExtractor
+context_size = ExtractorClass.context_size
+lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
+camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
+n_sensors = ExtractorClass.n_sensors
 
 LOG_LEVEL = logging.INFO
 FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
