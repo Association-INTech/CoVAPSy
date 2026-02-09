@@ -1,9 +1,10 @@
 import time
+
 from luma.core.interface.serial import i2c
 from luma.core.render import canvas
 from luma.oled.device import ssd1306
+from PIL import Image, ImageFont, ImageSequence
 
-from PIL import Image, ImageDraw, ImageFont, ImageSequence
 # import smbus #type: ignore #ignore the module could not be resolved error because it is a linux only module
 # bus = smbus.SMBus(1) # Create a new I2C bus
 

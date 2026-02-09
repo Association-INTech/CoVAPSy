@@ -1,38 +1,45 @@
-import time
-import onnxruntime as ort
-import numpy as np
 import logging
+import time
 from threading import Thread
-from .program import Program
+
+import numpy as np
+import onnxruntime as ort
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
-from high_level.autotech_constant import  MAX_ANGLE, CRASH_DIST, MODEL_PATH, REAR_BACKUP_DIST,  LIDAR_DATA_SIGMA, LIDAR_DATA_AMPLITUDE, LIDAR_DATA_OFFSET
+from high_level.autotech_constant import (
+    CRASH_DIST,
+    LIDAR_DATA_AMPLITUDE,
+    LIDAR_DATA_OFFSET,
+    LIDAR_DATA_SIGMA,
+    MAX_ANGLE,
+    MODEL_PATH,
+    REAR_BACKUP_DIST,
+)
+
+from .program import Program
 from .utils.driver import Driver
 
 
 class Car:
-    def __init__(self,driving_strategy, serveur):
+    def __init__(self, driving_strategy, serveur):
         self.log = logging.getLogger(__name__)
-
-        """Initialize the car's components."""
         self.target_speed = 0  # Speed in millimeters per second
         self.direction = 0  # Steering angle in degrees
         self.serveur = serveur
         self.reverse_count = 0
-        def _initialize_ai():
-            """Initialize the AI session."""
-            try:
-                self.ai_session = ort.InferenceSession(MODEL_PATH)
-                self.log.info("AI session initialized successfully")
-            except Exception as e:
-                self.log.error(f"Error initializing AI session: {e}")
-                raise
+
         # Initialize AI session
-        _initialize_ai()
-        
+        try:
+            self.ai_session = ort.InferenceSession(MODEL_PATH)
+            self.log.info("AI session initialized successfully")
+        except Exception as e:
+            self.log.error(f"Error initializing AI session: {e}")
+            raise
+
         self.driving = driving_strategy
 
         self.log.info("Car initialization complete")
+
     # accès dynamique aux capteurs
     @property
     def camera(self):
@@ -46,16 +53,16 @@ class Car:
     def tof(self):
         return self.serveur.tof
 
-
     def stop(self):
         self.target_speed = 0
         self.direction = 0
         self.log.info("Arrêt du moteur")
-        
 
     def has_Crashed(self):
-        
-        small_distances = [d for d in self.lidar.rDistance[200:880] if 0 < d < CRASH_DIST] # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
+
+        small_distances = [
+            d for d in self.lidar.rDistance[200:880] if 0 < d < CRASH_DIST
+        ]  # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
         self.log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
@@ -69,15 +76,13 @@ class Car:
     def turn_around(self):
         """Turn the car around."""
         self.log.info("Turning around")
-        
+
         self.target_speed = 0
         self.direction = MAX_ANGLE
-        self.target_speed = -2 #blocing call
-        time.sleep(1.8) # Wait for the car to turn around
+        self.target_speed = -2  # blocing call
+        time.sleep(1.8)  # Wait for the car to turn around
         if self.camera.is_running_in_reversed():
             self.turn_around()
-
-
 
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
@@ -85,11 +90,18 @@ class Car:
             self.log.debug("Capteurs pas encore prêts")
             print("Capteurs pas encore prêts")
             return
-        lidar_data = (self.lidar.rDistance[:1080]/1000)
-        lidar_data_ai= (lidar_data-0.5)*(
-            LIDAR_DATA_OFFSET + LIDAR_DATA_AMPLITUDE * np.exp(-1/2*((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
-        ) #convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
-        self.direction, self.target_speed = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
+        lidar_data = self.lidar.rDistance[:1080] / 1000
+        lidar_data_ai = (
+            (lidar_data - 0.5)
+            * (
+                LIDAR_DATA_OFFSET
+                + LIDAR_DATA_AMPLITUDE
+                * np.exp(-1 / 2 * ((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
+            )
+        )  # convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
+        self.direction, self.target_speed = self.driving(
+            lidar_data_ai
+        )  # l'ai prend des distance en mètre et non en mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
 
         if self.camera.is_running_in_reversed():
@@ -101,25 +113,27 @@ class Car:
             self.reverse_count = 0
         if self.has_Crashed():
             print("Obstacle détecté")
-            color= self.camera.is_green_or_red(lidar_data)
+            color = self.camera.is_green_or_red(lidar_data)
             if color == 0:
-                small_distances = [d for d in self.lidar.rDistance if 0 < d < CRASH_DIST]
+                small_distances = [
+                    d for d in self.lidar.rDistance if 0 < d < CRASH_DIST
+                ]
                 if len(small_distances) == 0:
                     self.log.info("Aucun obstacle détecté")
                     return
                 min_index = np.argmin(small_distances)
-                direction = MAX_ANGLE if min_index < 540 else -MAX_ANGLE #540 is the middle of the lidar
-                color = direction/direction
+                direction = (
+                    MAX_ANGLE if min_index < 540 else -MAX_ANGLE
+                )  # 540 is the middle of the lidar
+                color = direction / direction
                 self.log.info("Obstacle détecté, Lidar Fallback")
             if color == -1:
                 self.log.info("Obstacle rouge détecté")
             if color == 1:
                 self.log.info("Obstacle vert détecté")
-            angle= -color*MAX_ANGLE
+            angle = -color * MAX_ANGLE
             self.target_speed = -2
             self.direction = angle
-
-
 
 
 class Ai_Programme(Program):
@@ -134,29 +148,34 @@ class Ai_Programme(Program):
 
     @property
     def target_speed(self):
-        if self.GR86 == None:
+        if self.GR86 is None:
             return 0
         return self.GR86.target_speed
-    
+
     @property
     def direction(self):
-        if self.GR86 == None:
+        if self.GR86 is None:
             return 0
         return self.GR86.direction
 
     def run(self):
         while self.running:
             try:
-                self.GR86.main()
+                if self.GR86 is not None:
+                    self.GR86.main()
             except Exception as e:
                 self.log.error(f"Erreur IA: {e}")
                 self.running = False
-    
+
     def start(self):
         if self.running:
             return
 
-        if self.serveur.camera is None or self.serveur.lidar is None or self.serveur.tof is None:
+        if (
+            self.serveur.camera is None
+            or self.serveur.lidar is None
+            or self.serveur.tof is None
+        ):
             print("Capteurs non initialisés")
             return
 
@@ -173,10 +192,11 @@ class Ai_Programme(Program):
         self.running = True
         Thread(target=self.run, daemon=True).start()
 
-    
     def stop(self):
         self.running = False
-        self.GR86.stop()
+        if self.GR86 is not None:
+            self.GR86.stop()
+
 
 """
 if __name__ == '__main__': # non fonctionnelle

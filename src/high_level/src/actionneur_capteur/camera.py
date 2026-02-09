@@ -1,79 +1,80 @@
-import cv2
-from picamera2 import Picamera2 # type: ignore
-from PIL import Image
-import numpy as np
-import os
-import logging as log
-import threading
-import scipy as sp
-import time
 import logging
+import logging as log
+import os
+import threading
+import time
+from threading import Thread
 
+import cv2
+import numpy as np
+import scipy as sp
+from cv2.typing import MatLike
 from picamera2 import Picamera2
 from picamera2.encoders import JpegEncoder
-from picamera2.outputs import FileOutput
+from picamera2.outputs import FileOutput, Output
+from PIL import Image
+
+from high_level.autotech_constant import (
+    CAMERA_QUALITY,
+    CAMERA_STREAM_ON_START,
+    FRAME_RATE,
+    PORT_STREAMING_CAMERA,
+    SIZE_CAMERA_X,
+    SIZE_CAMERA_Y,
+    STREAM_PATH,
+)
+from programs.camera_serv import StreamHandler, StreamOutput, StreamServer, frame_buffer
+from programs.program import Program
+
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
 DEBUG_DIR = "Debug"  # Directory for debug images
 DEBUG_DIR_wayfinding = "Debug_Wayfinding"  # Directory for wayfinding debug images
-COLOUR_KEY = {
-    "green": 1,
-    "red": -1,
-    "none": 0
-}
+COLOUR_KEY = {"green": 1, "red": -1, "none": 0}
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
 
-from picamera2.outputs import Output
 
 class JpegCallback(Output):
     def __init__(self, parent_cam):
         super().__init__()
         self.parent = parent_cam
 
-    def outputframe(self, frame, keyframe=True):
+    def outputframe(
+        self, frame, keyframe=True, timestamp=None, packet=None, audio=False
+    ):
         # frame = bytes JPEG
         self.parent._on_new_frame(frame)
 
 
-
-
-from programs.camera_serv import StreamServer, StreamHandler, StreamOutput, frame_buffer
-from programs.program import Program
-from high_level.autotech_constant import PORT_STREAMING_CAMERA, SIZE_CAMERA_X, SIZE_CAMERA_Y, FRAME_RATE, CAMERA_QUALITY, STREAM_PATH, CAMERA_STREAM_ON_START
-
 class ProgramStreamCamera(Program):
-    def __init__(self,serveur):
+    def __init__(self, serveur):
         super().__init__()
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
         self.running = False
         self.controls_car = False
-        
+
         if CAMERA_STREAM_ON_START:
             self.start()
 
-    
     @property
     def camera(self):
         # accès dynamique
         return self.serveur.camera
 
-    
     def start(self):
         cam = self.camera
         if cam is None:
             self.log.error("Camera not initialized yet")
             return
-        
+
         self.running = True
         self.camera.start_stream()
-    
+
     def kill(self):
         self.running = False
         self.camera.stop_stream()
-
-
 
 
 class Camera:
@@ -82,17 +83,15 @@ class Camera:
         self.port = port
 
         self.streaming = False
-        self.stream_thread = None
-        self.picam2 = None
+        self.stream_thread: Thread
+        self.picam2: Picamera2
 
-        self.last_frame = None
+        self.last_frame: MatLike
         self.debug_counter = 0
         self.image_no = 0
 
-
         # Démarrage en mode "acquisition locale sans stream"
         self._start_local_capture()
-
 
     # ----------------------------------------------------------
     # Capture locale (sans MJPEG server)
@@ -100,23 +99,23 @@ class Camera:
     def _start_local_capture(self):
         self.picam2 = Picamera2()
         config = self.picam2.create_video_configuration(
-            main={"size": self.size},     # plus large, moins zoomé
-            controls={"FrameRate": FRAME_RATE}       # FPS stable
+            main={"size": self.size},  # plus large, moins zoomé
+            controls={"FrameRate": FRAME_RATE},  # FPS stable
         )
 
         self.picam2.configure(config)
         self.output = StreamOutput()
 
         # Qualité JPEG custom
-        self.picam2.start_recording(JpegEncoder(q=CAMERA_QUALITY), FileOutput(self.output))
+        self.picam2.start_recording(
+            JpegEncoder(q=CAMERA_QUALITY), FileOutput(self.output)
+        )
 
         # thread lecture last_frame
         self.capture_thread = threading.Thread(
-            target=self._update_last_frame_loop,
-            daemon=True
+            target=self._update_last_frame_loop, daemon=True
         )
         self.capture_thread.start()
-
 
     def _update_last_frame_loop(self):
         """Récupère en continu la dernière frame JPEG."""
@@ -128,14 +127,14 @@ class Camera:
                     self.last_frame = cv2.cvtColor(np_frame, cv2.COLOR_BGR2RGB)
             time.sleep(0.01)
 
-
     # ----------------------------------------------------------
     # Contrôle streaming MJPEG
     # ----------------------------------------------------------
     def start_stream(self):
         if self.streaming:
             return
-        import programs.camera_serv        
+        import programs.camera_serv
+
         programs.camera_serv.streaming_enabled = True
 
         self.httpd = StreamServer(("", self.port), StreamHandler)
@@ -151,26 +150,23 @@ class Camera:
         self.stream_thread.start()
         self.streaming = True
 
-
-
     def stop_stream(self):
         if not self.streaming:
             return
 
-        import programs.camera_serv        
+        import programs.camera_serv
+
         programs.camera_serv.streaming_enabled = False
-        
+
         print("[INFO] Shutting down MJPEG server...")
 
         self.httpd.shutdown()
         self.httpd.server_close()
-        self.stream_thread.join()
+        if self.stream_thread is not None:
+            self.stream_thread.join()
 
         self.streaming = False
         print("[INFO] Stream stopped.")
-
-
-
 
     def toggle_stream(self):
         if self.streaming:
@@ -180,14 +176,12 @@ class Camera:
             print("[INFO] Starting stream")
             self.start_stream()
 
-
     # ----------------------------------------------------------
     # Interface publique
     # ----------------------------------------------------------
     def get_last_image(self):
         return self.last_frame
 
-    
     def camera_matrix(self, vector_size=128, image=None):
         """
         Create a matrix of -1, 0, and 1 for a line in the image. The matrix size is 128.
@@ -199,7 +193,13 @@ class Camera:
             raise ValueError("Vector size cannot be greater than image width")
 
         # Slice the middle 5% of the image height
-        sliced_image = image[height // 2 - height // 40 + Y_OFFSET: height // 2 + height // 40 + Y_OFFSET, :, :]
+        sliced_image = image[
+            height // 2 - height // 40 + Y_OFFSET : height // 2
+            + height // 40
+            + Y_OFFSET,
+            :,
+            :,
+        ]
 
         # Ensure the width of the sliced image is divisible by vector_size
         adjusted_width = (width // vector_size) * vector_size
@@ -210,25 +210,40 @@ class Camera:
         bucket_size = adjusted_width // vector_size
 
         # Calculate red and green intensities for all segments at once
-        reshaped_red = sliced_image[:, :, 0].reshape(sliced_image.shape[0], vector_size, bucket_size)
-        reshaped_green = sliced_image[:, :, 1].reshape(sliced_image.shape[0], vector_size, bucket_size)
+        reshaped_red = sliced_image[:, :, 0].reshape(
+            sliced_image.shape[0], vector_size, bucket_size
+        )
+        reshaped_green = sliced_image[:, :, 1].reshape(
+            sliced_image.shape[0], vector_size, bucket_size
+        )
         red_intensities = np.mean(reshaped_red, axis=(0, 2))
         green_intensities = np.mean(reshaped_green, axis=(0, 2))
 
         # Determine the color for each segment
-        output_matrix[red_intensities > green_intensities + COLOR_THRESHOLD] = COLOUR_KEY["red"]
-        output_matrix[green_intensities > red_intensities + COLOR_THRESHOLD] = COLOUR_KEY["green"]
-        output_matrix[np.abs(red_intensities - green_intensities) <= COLOR_THRESHOLD] = COLOUR_KEY["none"]
+        output_matrix[red_intensities > green_intensities + COLOR_THRESHOLD] = (
+            COLOUR_KEY["red"]
+        )
+        output_matrix[green_intensities > red_intensities + COLOR_THRESHOLD] = (
+            COLOUR_KEY["green"]
+        )
+        output_matrix[
+            np.abs(red_intensities - green_intensities) <= COLOR_THRESHOLD
+        ] = COLOUR_KEY["none"]
 
         # Recreate the image from the matrix
         if log.getLogger().isEnabledFor(log.DEBUG):
-            path= os.path.join(DEBUG_DIR, f"debug_combined_image{self.debug_counter}.jpg")
-            self.recreate_image_from_matrix(sliced_image, output_matrix, adjusted_width, vector_size).save(path)
-            
+            path = os.path.join(
+                DEBUG_DIR, f"debug_combined_image{self.debug_counter}.jpg"
+            )
+            self.recreate_image_from_matrix(
+                sliced_image, output_matrix, adjusted_width, vector_size
+            ).save(path)
 
         return output_matrix
-    
-    def recreate_image_from_matrix(self, image, matrix, adjusted_width, vector_size=128):
+
+    def recreate_image_from_matrix(
+        self, image, matrix, adjusted_width, vector_size=128
+    ):
         """
         Recreate an image from the matrix of -1, 0, and 1 and append it to the bottom of the sliced image.
         """
@@ -260,27 +275,36 @@ class Camera:
         combined_image = np.vstack((image, recreated_image_resized))
         self.debug_counter += 1
         return Image.fromarray(combined_image).convert("RGB")
-        
-    def is_green_or_red(self,lidar):
+
+    def is_green_or_red(self, lidar):
         """
         Check if the car is facing a green or red wall by analyzing the bottom half of the image.
         """
         image = self.get_last_image()
         height, _, _ = image.shape
-        bottom_half = image[height // 2:, :, :]  # Slice the bottom half of the image
-        lidar= np.max(sp.ndimage.zoom(lidar[595:855], image.shape[1]/len(lidar[595:855]),mode="nearest")[None,:],0) # Resize lidar data to match the image size
+        bottom_half = image[height // 2 :, :, :]  # Slice the bottom half of the image
+        lidar = np.max(
+            sp.ndimage.zoom(
+                lidar[595:855], image.shape[1] / len(lidar[595:855]), mode="nearest"
+            )[None, :],
+            0,
+        )  # Resize lidar data to match the image size
         print((lidar < 0.5).sum())
         print(f"min lidar: {lidar.min()}, max lidar: {lidar.max()}")
-        red_intensity = np.mean(bottom_half[:, :, 0]*(lidar < 0.5))  # Red channel in RGB
-        green_intensity = np.mean(bottom_half[:, :, 1]*(lidar < 0.5))  # Green channel in RGB
+        red_intensity = np.mean(
+            bottom_half[:, :, 0] * (lidar < 0.5)
+        )  # Red channel in RGB
+        green_intensity = np.mean(
+            bottom_half[:, :, 1] * (lidar < 0.5)
+        )  # Green channel in RGB
 
         if green_intensity > red_intensity + COLOR_THRESHOLD:
             return COLOUR_KEY["green"]
         elif red_intensity > green_intensity + COLOR_THRESHOLD:
             return COLOUR_KEY["red"]
         return COLOUR_KEY["none"]
-    
-    def is_running_in_reversed(self, image = None, LEFT_IS_GREEN=True):
+
+    def is_running_in_reversed(self, image=None, LEFT_IS_GREEN=True):
         """
         Check if the car is running in reverse.
         If the car is in reverse, green will be on the right side of the image and red on the left.
@@ -292,29 +316,51 @@ class Camera:
             # If there are no green or no red pixels, return False
             return False
         green_indices = (matrix == COLOUR_KEY["green"]) * np.arange(1, len(matrix) + 1)
-        average_green_index = np.mean(green_indices[green_indices > 0])  # Average index of green
+        average_green_index = np.mean(
+            green_indices[green_indices > 0]
+        )  # Average index of green
 
         red_indices = (matrix == COLOUR_KEY["red"]) * np.arange(1, len(matrix) + 1)
-        average_red_index = np.mean(red_indices[red_indices > 0])  # Average index of redcolor is red
-        
+        average_red_index = np.mean(
+            red_indices[red_indices > 0]
+        )  # Average index of redcolor is red
+
         if LEFT_IS_GREEN and average_red_index > average_green_index:
             if log.getLogger().isEnabledFor(log.DEBUG):
                 log.debug(f"green: {average_green_index}, red: {average_red_index}")
-                vector_size = 128   
+                vector_size = 128
                 self.debug_counter += 1
                 height, width, _ = image.shape
-                sliced_image = image[height // 2 - height // 40 + Y_OFFSET: height // 2 + height // 40 + Y_OFFSET, :, :]
+                sliced_image = image[
+                    height // 2 - height // 40 + Y_OFFSET : height // 2
+                    + height // 40
+                    + Y_OFFSET,
+                    :,
+                    :,
+                ]
 
                 # Ensure the width of the sliced image is divisible by vector_size
                 adjusted_width = (width // vector_size) * vector_size
                 sliced_image = sliced_image[:, :adjusted_width, :]
-                debug_slice_image=self.recreate_image_from_matrix(sliced_image, matrix, adjusted_width, vector_size)
-                
-                debug_slice_image.save(os.path.join(DEBUG_DIR_wayfinding, f"wrong_direction_{self.debug_counter}_slice.jpg"))
-                Image.fromarray(image).convert("RGB").save(os.path.join(DEBUG_DIR_wayfinding, f"wrong_direction{self.debug_counter}.jpg"))
+                debug_slice_image = self.recreate_image_from_matrix(
+                    sliced_image, matrix, adjusted_width, vector_size
+                )
+
+                debug_slice_image.save(
+                    os.path.join(
+                        DEBUG_DIR_wayfinding,
+                        f"wrong_direction_{self.debug_counter}_slice.jpg",
+                    )
+                )
+                Image.fromarray(image).convert("RGB").save(
+                    os.path.join(
+                        DEBUG_DIR_wayfinding, f"wrong_direction{self.debug_counter}.jpg"
+                    )
+                )
             return True
         elif not LEFT_IS_GREEN and average_green_index > average_red_index:
             return True
+
 
 if __name__ == "__main__":
     log.basicConfig(level=log.DEBUG)

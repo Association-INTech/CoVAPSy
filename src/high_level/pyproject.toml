@@ -9,7 +9,7 @@ requires-python = ">=3.12, <3.14"
 dependencies = [
     # Note: picamera2 causes UV to auto-include rpi extras even when not requested
     # This is likely a UV bug. Add back when needed:
-    # "picamera2>=0.3.0",
+    "picamera2>=0.3.0",
     # AI Inference
     "onnxruntime>=1.8.0",
     # Raspberry Pi specific hardware control
