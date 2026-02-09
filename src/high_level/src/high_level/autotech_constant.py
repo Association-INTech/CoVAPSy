@@ -3,7 +3,7 @@ import numpy as np
 import logging
 
 # Car control
-MAX_IA_SPEED = 2 # maximum speed for ia
+MAX_IA_SPEED = 1000 # maximum speed for ia
 MIN_IA_SPEED = -2 # minimum speed for ia
 MAX_CONTROL_SPEED = 2 # maximum speed for controling devices
 MIN_CONTROL_SPEED = -2 # minimum speed for controlig devices
@@ -20,7 +20,7 @@ SLAVE_ADDRESS = 0x08 # Adresse of the arduino i2c port
 PORT_REMOTE_CONTROL = 5556 # Port to send data for remote control on <IP>:PORT_REMOTE_CONTROL
 
 #Camera
-PORT_STREAMING_CAMERA = 8889 # adresse where to see the stream of the camera if activate is <IP>:PORT_STREAMIN_CAMERA/STREAM_PATH.jpeg
+PORT_STREAMING_CAMERA = 8889 # adresse where to see the stream of the camera if activate is <IP>:PORT_STREAMIN_CAMERA/STREAM_PATH/cam
 STREAM_PATH = "map"
 SIZE_CAMERA_X = 1280
 SIZE_CAMERA_Y = 720
@@ -44,7 +44,7 @@ TEXT_LEFT_OFFSET = 3 # Offset from the left of the screen to ensure no cuttoff
 
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = "/home/intech/CoVAPSy/src/high_level/model/model_CNN1DExtractor.onnx"  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
+MODEL_PATH = "/home/intech/CoVAPSy/src/high_level/models/model.onnx"  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
 
 
 SOCKET_ADRESS = {
@@ -53,7 +53,7 @@ SOCKET_ADRESS = {
 }
 
 ANGLE_LOOKUP = np.linspace(-MAX_ANGLE, MAX_ANGLE, 16)
-SPEED_LOOKUP = np.linspace(MIN_IA_SPEED, MAX_IA_SPEED, 16)
+SPEED_LOOKUP = np.linspace(0, MAX_IA_SPEED, 16)
 
 Temperature = 0.7 # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
 # the higher the temperature the more unprobalbe actions become probable, the lower the temperature the more probable actions become probable.

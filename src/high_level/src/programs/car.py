@@ -89,7 +89,9 @@ class Car:
         lidar_data_ai= (lidar_data-0.5)*(
             LIDAR_DATA_OFFSET + LIDAR_DATA_AMPLITUDE * np.exp(-1/2*((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
         ) #convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
-        self.direction, self.target_speed = self.driving(lidar_data_ai) #l'ai prend des distance en mètre et non en mm
+        self.direction, self.target_speed = self.driving(lidar_data_ai
+                                                         #,self.camera.camera_matrix()
+                                                         ) #l'ai prend des distance en mètre et non en mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
 
         if self.camera.is_running_in_reversed():
@@ -126,7 +128,6 @@ class Car:
 class Ai_Programme(Program):
     def __init__(self, serveur):
         super().__init__()
-        print("iuviuvbiuvbiuvyuvyuvbuiovyuvbuiovyuvbiucvyuboiuvuiybyuviounbyuvbuiobuv")
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
         self.driver = None
@@ -153,6 +154,7 @@ class Ai_Programme(Program):
             except Exception as e:
                 self.log.error(f"Erreur IA: {e}")
                 self.running = False
+                raise
     
     def start(self):
         if self.running:
@@ -165,7 +167,7 @@ class Ai_Programme(Program):
         try:
             self.driver = Driver(128, 128)
             self.driver.load_model()
-            self.GR86 = Car(self.driver, self.serveur)
+            self.GR86 = Car(self.driver.ai, self.serveur)
         except Exception as e:
             self.log.error(f"Impossible de démarrer l'IA: {e}")
             self.driver = None

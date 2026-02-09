@@ -84,6 +84,7 @@ class Driver:
             128/len(camera_data)
         )
 
+        print("data shape:", lidar_data.shape, camera_data.shape)
         self.context = np.concatenate([
             self.context[:, 1:],
             [lidar_data[None], camera_data[None]]
@@ -134,14 +135,14 @@ class Driver:
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
         vect = self.ai_session.run(None, {'input': lidar_data[None]})[0][0]
 
-        vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
+        vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 
+        
         vect_dir = softmax(vect_dir/Temperature)  # distribution de probabilité
         vect_prop = softmax(vect_prop)
-
+        
         angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
         vitesse = sum(SPEED_LOOKUP*vect_prop)
-
         return angle, vitesse
 
 
