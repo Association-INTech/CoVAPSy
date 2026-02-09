@@ -20,8 +20,8 @@ SLAVE_ADDRESS = 0x08 # Adresse of the arduino i2c port
 PORT_REMOTE_CONTROL = 5556 # Port to send data for remote control on <IP>:PORT_REMOTE_CONTROL
 
 #Camera
-PORT_STREAMING_CAMERA = 8000 # adresse where to see the stream of the camera if activate is <IP>:PORT_STREAMIN_CAMERA/STREAM_PATH.jpeg
-STREAM_PATH = "stream"
+PORT_STREAMING_CAMERA = 8889 # adresse where to see the stream of the camera if activate is <IP>:PORT_STREAMIN_CAMERA/STREAM_PATH.jpeg
+STREAM_PATH = "map"
 SIZE_CAMERA_X = 1280
 SIZE_CAMERA_Y = 720
 FRAME_RATE = 30 # frame rate of the camera
@@ -66,3 +66,6 @@ LOGGING_LEVEL = logging.DEBUG # can be either NOTSET, DEBUG, INFO, WARNING, ERRO
 CAMERA_STREAM_ON_START = True #If True the camera stream will start at the launch of the car
 BACKEND_ON_START = True #If True the backend will start at the launch of the car
 LIDAR_STREAM_ON_START = True #If True the lidar stream will start at the launch of the car
+
+#Backend
+SITE_DIR_BACKEND = "/home/intech/CoVAPSy/src/high_level/src/site_controle" # the directory where the backend will look for the site to serve

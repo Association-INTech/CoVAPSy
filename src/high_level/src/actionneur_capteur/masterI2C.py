@@ -41,7 +41,7 @@ class I2c_arduino:
                 time.sleep(I2C_SLEEP_ERROR_LOOP)
 
     def start_received(self):
-        """rreceived data from the microcontroller regularly."""
+        """received data from the microcontroller regularly."""
         self.log.info("Thread I2C receive started")
         length = I2C_NUMBER_DATA_RECEIVED * 4 
         while self.receive_running:

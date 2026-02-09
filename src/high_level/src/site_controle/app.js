@@ -231,6 +231,13 @@ async function refreshPrograms() {
         console.error("Failed to refresh programs", e);
     }
 }
+function decodeBase64ToInt16Array(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Int16Array(bytes.buffer);
+}
+
 function initLidar(retryDelay = 1000) {
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
@@ -243,7 +250,8 @@ function initLidar(retryDelay = 1000) {
     try{
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
-
+        const x = decodeBase64ToInt16Array(data.x);
+        const y = decodeBase64ToInt16Array(data.y);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
@@ -308,10 +316,10 @@ function initLidar(retryDelay = 1000) {
 
         /* ---------- LIDAR Points ---------- */
         ctx.fillStyle = "#00ff88";
-        for (let i = 0; i < data.x.length; i++) {
+        for (let i = 0; i < x.length; i++) {
             ctx.fillRect(
-                data.x[i] * scale,
-               -data.y[i] * scale,
+                x[i] * scale,
+               -y[i] * scale,
                 2, 2
             );
         }
@@ -364,8 +372,18 @@ async function loadProgramsOnce() {
 async function init() {
     try {
         const camUrl = await fetchCameraUrl();
-        const camEl = document.getElementById("camera");
-        const camLink = document.getElementById("camera-link");
+        const camEl = document.getElementById("camera_frame");
+        const camLink = document.getElementById("camera");
+        // const url = "http://10.255.28.97:8889/cam/";
+
+        // if (Hls.isSupported()) {
+        //     const hls = new Hls();
+        //     hls.loadSource(url);
+        //     hls.attachMedia(video);
+        // } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        //     video.src = url;
+        // }
+
 
         if (camEl && camLink) {
             camEl.src = camUrl;

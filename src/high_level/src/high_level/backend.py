@@ -3,6 +3,7 @@
 import threading
 import time
 import logging
+import base64
 from typing import Any, Dict, Optional, List
 
 import uvicorn
@@ -154,7 +155,7 @@ class BackendAPI(Program):
     def _camera_stream_url(self) -> str:
         ip = getattr(getattr(self.server, "SOCKET_ADRESS", None), "IP", None)
         ip = getattr(self.server, "ip", None) or "192.168.1.10"
-        return f"http://{ip}:{PORT_STREAMING_CAMERA}/stream.mjpg"
+        return f"http://{ip}:{PORT_STREAMING_CAMERA}/cam/"
     
     def _lidar(self):
         return getattr(self.server, "lidar", None)
@@ -180,13 +181,14 @@ class BackendAPI(Program):
 
         # projection
         # cartésien coordonates
-        x = -np.sin(theta_world) * r
-        y = np.cos(theta_world) * r
+        x = (-np.sin(theta_world) * r).astype(np.int16)
+        y = ( np.cos(theta_world) * r).astype(np.int16)
 
 
         return {
-            "x": x.tolist(),
-            "y": y.tolist(),
+            "x": base64.b64encode(x.tobytes()).decode("ascii"),
+            "y": base64.b64encode(y.tobytes()).decode("ascii"),
+            "dtype": "int16",
             "unit": "mm",
             "timestamp": time.time(),
         }
