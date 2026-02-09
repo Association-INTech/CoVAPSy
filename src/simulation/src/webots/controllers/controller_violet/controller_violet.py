@@ -6,8 +6,11 @@
 # juillet 2023
 
 
+from typing import cast
+
 import numpy as np
-from controller import Lidar
+from controller import Camera, Lidar
+from controller.touch_sensor import TouchSensor
 from vehicle import Driver
 
 driver = Driver()
@@ -19,10 +22,10 @@ lidar = Lidar("Hokuyo")
 lidar.enable(sensorTime)
 lidar.enablePointCloud()
 
-camera = driver.getDevice("RASPI_Camera_V2")
+camera = cast(Camera, driver.getDevice("RASPI_Camera_V2"))
 camera.enable(sensorTime)
 
-touch_sensor = driver.getDevice("touch_sensor")
+touch_sensor = cast(TouchSensor, driver.getDevice("touch_sensor"))
 touch_sensor.enable(sensorTime)
 
 # vitesse en km/h

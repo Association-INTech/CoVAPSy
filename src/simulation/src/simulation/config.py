@@ -3,7 +3,11 @@ import logging
 
 from torch.cuda import is_available
 
-from extractors import CNN1DExtractor, CNN1DResNetExtractor, TemporalResNetExtractor
+from extractors import (  # noqa: F401
+    CNN1DExtractor,
+    CNN1DResNetExtractor,
+    TemporalResNetExtractor,
+)
 
 n_map = 2
 n_simulations = 1

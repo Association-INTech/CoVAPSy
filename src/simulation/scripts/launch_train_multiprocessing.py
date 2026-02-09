@@ -7,7 +7,11 @@ import torch.nn as nn
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 
-from extractors import CNN1DResNetExtractor, TemporalResNetExtractor
+from extractors import (  # noqa: F401
+    CNN1DExtractor,
+    CNN1DResNetExtractor,
+    TemporalResNetExtractor,
+)
 from simulation import VehicleEnv
 from simulation import config as c
 from utils import onnx_utils
