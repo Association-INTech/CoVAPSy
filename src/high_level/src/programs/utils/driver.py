@@ -64,16 +64,17 @@ class Driver:
     def omniscent(self, lidar_data, camera_data):
         return self.ai_update_lidar_camera(lidar_data, camera_data)
 
-    def ai(self, lidar_data):
+    def ai(self, lidar_data, camera_data): #take the camera data for uniformity with the omniscent driver but we dont use it in this driver
         return self.ai_update_lidar(lidar_data)
 
-    def simple_minded(self, lidar_data):
+    def simple_minded(self, lidar_data,camera_data): #take the camera data for uniformity with the omniscent driver but we dont use it in this driver
         return self.farthest_distants(lidar_data)
 
     def ai_update_lidar_camera(self, lidar_data, camera_data):
         if not self._loaded:
             raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
-        self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+        
+        #self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
 
         lidar_data = sp.ndimage.zoom(
             np.array(lidar_data, dtype=np.float32),
@@ -83,8 +84,6 @@ class Driver:
             np.array(camera_data, dtype=np.float32),
             128/len(camera_data)
         )
-
-        print("data shape:", lidar_data.shape, camera_data.shape)
         self.context = np.concatenate([
             self.context[:, 1:],
             [lidar_data[None], camera_data[None]]
@@ -118,10 +117,10 @@ class Driver:
             plt.draw()
             plt.pause(1e-8)
 
-
+        """
         print(" ".join([f"{x:.1f}" for x in vect_dir]))
         print(" ".join([f"{x:.1f}" for x in vect_prop]), flush=True)
-
+        """
         angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
         vitesse = sum(SPEED_LOOKUP*vect_prop)
