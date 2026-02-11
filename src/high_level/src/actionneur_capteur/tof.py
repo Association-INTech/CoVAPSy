@@ -1,6 +1,6 @@
 import board
 import busio
-from adafruit_vl53l0x import VL53L0X
+from adafruit_vl53l1x import VL53L1X
 import logging
 
 class ToF:
@@ -11,9 +11,9 @@ class ToF:
     def __init__(self):
         self.log = logging.getLogger(__name__)
         i2c = busio.I2C(board.SCL, board.SDA)
-        self.vl53 = VL53L0X(i2c)
+        self.vl53 = VL53L1X(i2c)
         
-    def get_distance(self):
+    def get_tof_distance(self):
         """
         Get the distance from the rear ToF sensor.
         """
