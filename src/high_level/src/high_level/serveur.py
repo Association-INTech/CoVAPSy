@@ -102,7 +102,7 @@ class Serveur():
     
     @property
     def tof_distance(self):
-        return self.tof.get_tof_distance()
+        return self.tof.distance
         
     #-----------------------------------------------------------------------------------------------------
     # Screen display functions

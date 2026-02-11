@@ -252,6 +252,8 @@ function initLidar(retryDelay = 1000) {
         const data = JSON.parse(e.data);
         const x = decodeBase64ToInt16Array(data.x);
         const y = decodeBase64ToInt16Array(data.y);
+        const tof = decodeBase64ToInt16Array(data.tof);
+
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
@@ -323,6 +325,11 @@ function initLidar(retryDelay = 1000) {
                 2, 2
             );
         }
+        // Draw ToF point on lidar pov
+        ctx.fillStyle = "#ff0000";
+        const tofX = 0;
+        const tofY = -tof[0] * scale * 100; // assuming tof[0] is the distance in mm
+        ctx.fillRect(tofX - 3, tofY - 3, 6, 6);
 
         ctx.restore();
     };

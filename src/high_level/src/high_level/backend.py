@@ -188,6 +188,7 @@ class BackendAPI(Program):
         return {
             "x": base64.b64encode(x.tobytes()).decode("ascii"),
             "y": base64.b64encode(y.tobytes()).decode("ascii"),
+            "tof": base64.b64encode(str(self.server.tof_distance).encode()).decode("ascii"),
             "dtype": "int16",
             "unit": "mm",
             "timestamp": time.time(),
