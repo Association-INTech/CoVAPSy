@@ -38,6 +38,7 @@ dependencies = [
     "aiortc>=1.14.0",
     "aiohttp>=3.13.3",
     "zmq>=0.0.0",
+    "adafruit-circuitpython-vl53l1x>=1.2.7",
 ]
 
 
