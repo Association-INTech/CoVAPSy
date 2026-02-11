@@ -49,7 +49,7 @@ ws.onmessage = (e) => {
   const data = JSON.parse(e.data);
   const x = decodeBase64ToInt16Array(data.x);
   const y = decodeBase64ToInt16Array(data.y);
-
+  const tof = data.tof; // assuming tof is sent as an integer in cm
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // origine au centre
@@ -112,6 +112,12 @@ ws.onmessage = (e) => {
       2, 2
     );
   }
+  ctx.fillStyle = "#ff0000";
+        const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
+        ctx.beginPath();
+        ctx.arc(0, tofY, 5, 0, Math.PI );
+        ctx.fill();
+        ctx.restore();
 
   ctx.restore();
 };

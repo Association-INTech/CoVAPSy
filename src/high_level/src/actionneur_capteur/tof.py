@@ -21,10 +21,15 @@ class ToF:
         """
         Get the distance from the rear ToF sensor.
         """
+        self.vl53.stop_ranging()  # Ensure sensor is stopped before starting
+        time.sleep(0.1)  # Short delay to ensure sensor is ready
+        self.vl53.start_ranging()
         while True:
             try:
-                self.distance = self.vl53.range
-                time.sleep(0.01)  # Adjust the sleep time as needed
+                if self.vl53.data_ready:
+                    self.distance = self.vl53.distance if self.vl53.distance is not None else 0 # en cm
+                    self.vl53.clear_interrupt()
+                time.sleep(0.05)
             except Exception as e:
                 self.log.error(f"Error reading rear ToF sensor: {e}")
                 return None

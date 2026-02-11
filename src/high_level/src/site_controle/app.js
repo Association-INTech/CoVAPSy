@@ -23,7 +23,7 @@ function drawSpeedChart() {
     ctx.lineTo(w - 10, h - 20);
     ctx.stroke();
 
-    
+
 
     const maxAbs = Math.max(
     ...speedHistory.real.map(Math.abs),
@@ -60,13 +60,13 @@ function drawSpeedChart() {
     drawCurve(speedHistory.real, "#00ff88");   // actual
 
     // legend
-    
+
     ctx.fillStyle = "#ffaa00";
     ctx.fillText("Target", w - 100, 20);
     ctx.fillStyle = "#00ff88";
     ctx.fillText("Actual", w - 100, 35);
     ctx.font = "10px monospace";
-    
+
 }
 
 function drawSteering(directionDeg) {
@@ -252,7 +252,7 @@ function initLidar(retryDelay = 1000) {
         const data = JSON.parse(e.data);
         const x = decodeBase64ToInt16Array(data.x);
         const y = decodeBase64ToInt16Array(data.y);
-        const tof = decodeBase64ToInt16Array(data.tof);
+        const tof = data.tof;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -327,10 +327,10 @@ function initLidar(retryDelay = 1000) {
         }
         // Draw ToF point on lidar pov
         ctx.fillStyle = "#ff0000";
-        const tofX = 0;
-        const tofY = -tof[0] * scale * 100; // assuming tof[0] is the distance in mm
-        ctx.fillRect(tofX - 3, tofY - 3, 6, 6);
-
+        const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
+        ctx.beginPath();
+        ctx.arc(0, tofY, 5, 0, Math.PI );
+        ctx.fill();
         ctx.restore();
     };
     }catch(e){
@@ -355,7 +355,7 @@ function initTelemetryWS() {
     };
     }catch(e){
     console.error("Error in Telemetry WS onmessage:", e);
-}   
+}
     ws.onclose = () => {
         console.warn("Telemetry WS disconnected, retrying...");
         setTimeout(initTelemetryWS, 1000);
@@ -409,4 +409,3 @@ async function init() {
 }
 
 window.addEventListener("DOMContentLoaded", init);
- 
