@@ -100,9 +100,6 @@ class Serveur():
     def direction(self):
         return self.programs[self.last_program_control].direction
     
-    @property
-    def tof_distance(self):
-        return self.tof.distance
         
     #-----------------------------------------------------------------------------------------------------
     # Screen display functions
