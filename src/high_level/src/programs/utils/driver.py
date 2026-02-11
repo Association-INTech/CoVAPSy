@@ -49,11 +49,11 @@ class Driver:
             )
             self.ax[3].set_title('Camera Image')
 
-    def load_model(self):
+    def load_model(self, model):
         if self._loaded:
             return
         self.log.info("Chargement du modèle IA...")
-        self.ai_session = ort.InferenceSession(MODEL_PATH)
+        self.ai_session = ort.InferenceSession(MODEL_PATH+"/"+model)
         self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32 )
         self._loaded = True
         self.log.info("Modèle IA chargé")    

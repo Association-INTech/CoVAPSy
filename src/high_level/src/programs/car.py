@@ -1,3 +1,4 @@
+import os
 import time
 import onnxruntime as ort
 import numpy as np
@@ -11,7 +12,7 @@ from .utils.driver import Driver
 
 
 class Car:
-    def __init__(self,driving_strategy, serveur):
+    def __init__(self,driving_strategy, serveur, model):
         self.log = logging.getLogger(__name__)
 
         """Initialize the car's components."""
@@ -22,7 +23,7 @@ class Car:
         def _initialize_ai():
             """Initialize the AI session."""
             try:
-                self.ai_session = ort.InferenceSession(MODEL_PATH)
+                self.ai_session = ort.InferenceSession(os.path.join(MODEL_PATH, model))
                 self.log.info("AI session initialized successfully")
             except Exception as e:
                 self.log.error(f"Error initializing AI session: {e}")
@@ -134,6 +135,13 @@ class Ai_Programme(Program):
         self.GR86 = None
         self.running = False
         self.controls_car = True
+        self.models = None
+        try:
+            self.fetch_name_models()
+        except Exception as e:
+            self.log.error(f"Erreur lors de la récupération des modèles: {e}")
+        self.nb_models = len(self.models)
+        self.id_model = self.nb_models #start with the last model which is the fallback for not running
 
     @property
     def target_speed(self):
@@ -156,32 +164,64 @@ class Ai_Programme(Program):
                 self.running = False
                 raise
     
-    def start(self):
+    def initializeai(self,model):
+        self.driver = Driver(128, 128)
+        self.driver.load_model(model)
+
+        self.GR86 = Car(self.driver.ai, self.serveur)
+        #self.GR86 = Car(self.driver.omniscent, self.serveur)
+        #self.GR86 = Car(self.driver.simple_minded, self.serveur)
+
+    def start(self,model=None):
         if self.running:
             return
 
         if self.serveur.camera is None or self.serveur.lidar is None:
             print("Capteurs non initialisés")
             return
+        if model is not None:
+            self.initializeai(model)
+        else:
+            try:
+                self.id_model = (self.id_model + 1) % (self.nb_models+1) #+1 because we have 1 fallback for not running
+                if self.nb_models == self.nb_models: #if we have no model, we stay in the not running state
+                    self.log.info("state of not running")
+                    self.driver = None
+                    self.GR86 = None
+                    self.running = False
+                    return
+                
+                model = self.models[self.id_model]
+                self.initializeai(model)
 
-        try:
-            self.driver = Driver(128, 128)
-            self.driver.load_model()
-            self.GR86 = Car(self.driver.ai, self.serveur)
-        except Exception as e:
-            self.log.error(f"Impossible de démarrer l'IA: {e}")
-            self.driver = None
-            self.GR86 = None
-            return
-
+            except Exception as e:
+                self.log.error(f"Impossible de démarrer l'IA: {e}")
+                self.driver = None
+                self.GR86 = None
+                return
+        
         self.running = True
         Thread(target=self.run, daemon=True).start()
 
+    def fetch_name_models(self):
+        self.models = os.listdir(MODEL_PATH)
+        self.models = [model for model in self.models if model.endswith(".onnx")]
     
     def stop(self):
         self.running = False
         self.GR86.stop()
+    
+    def display(self):
+        text = self.__class__.__name__
+        if self.running:
+            text+= "*"
 
+        for model in self.models:
+            if model == self.models[self.id_model]:
+                text += f"\n-> {model}"
+            else:
+                text += f"\n   {model}"
+        return text
 """
 if __name__ == '__main__': # non fonctionnelle
     Format= '%(asctime)s:%(name)s:%(levelname)s:%(message)s'
