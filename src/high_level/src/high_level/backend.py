@@ -1,5 +1,6 @@
 # BackendAPI.py
 
+import os
 import threading
 import time
 import logging
@@ -7,7 +8,7 @@ import base64
 from typing import Any, Dict, Optional, List
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +19,7 @@ from fastapi.websockets import WebSocketDisconnect
 
 from programs.program import Program
 from high_level.autotech_constant import (
+    MODEL_PATH,
     PORT_STREAMING_CAMERA,
     BACKEND_ON_START,
 )
@@ -133,7 +135,11 @@ class BackendAPI(Program):
             },
             "timestamp": time.time(),
         }
-
+    def _fetch_name_models(self):
+        models = os.listdir(MODEL_PATH)
+        models = [model for model in models if model.endswith(".onnx")]
+        return models
+    
     def _list_programs(self) -> List[Dict[str, Any]]:
         programs = getattr(self.server, "programs", [])
         out: List[Dict[str, Any]] = []
@@ -206,8 +212,30 @@ class BackendAPI(Program):
                 "backend": {"running": self.running, "host": self.host, "port": self.port},
                 "telemetry": self._get_telemetry(),
                 "programs": self._list_programs(),
+                "models": self._fetch_name_models(),
             }
 
+        @self.app.post("/api/ai/start")
+        async def start_ai_with_model(req: Request):
+            body = await req.json()
+            model = body.get("model")
+
+            if not model:
+                raise HTTPException(status_code=400, detail="Model name required")
+
+            programs = getattr(self.server, "programs", [])
+
+            ai_prog = next(
+                (p for p in programs if type(p).__name__ == "Ai_Programme"),
+                None
+            )
+
+            if ai_prog is None:
+                raise HTTPException(status_code=404, detail="AI program not found")
+
+            ai_prog.start(model_give=model)
+
+            return {"status": "ok", "model": model}
         @self.app.get("/api/programs")
         def programs():
             return self._list_programs()

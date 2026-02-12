@@ -219,6 +219,49 @@ function updatePrograms(programs) {
         tbody.appendChild(tr);
     }
 }
+async function loadModels() {
+    try {
+        const res = await fetch("/api/status");
+        if (!res.ok) throw new Error("Failed to load models");
+
+        const data = await res.json();
+        const models = data.models;
+
+        const select = document.getElementById("model_select");
+        select.innerHTML = "";
+
+        for (const m of models) {
+            const option = document.createElement("option");
+            option.value = m;
+            option.textContent = m;
+            select.appendChild(option);
+        }
+
+    } catch (e) {
+        console.error("Failed to load models", e);
+    }
+}
+
+async function startSelectedModel() {
+    const select = document.getElementById("model_select");
+    const model = select.value;
+
+    try {
+        const res = await fetch("/api/ai/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model })
+        });
+
+        if (!res.ok) throw new Error("Failed to start AI");
+
+        console.log("AI started with model:", model);
+
+    } catch (e) {
+        console.error("Start model failed", e);
+    }
+}
+
 async function refreshPrograms() {
     try {
         const res = await fetch("/api/programs");
@@ -326,7 +369,7 @@ function initLidar(retryDelay = 1000) {
             );
         }
         // Draw ToF point on lidar pov
-        ctx.fillStyle = "#ff0000";
+        ctx.fillStyle = "#00eaff";
         const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
         ctx.beginPath();
         ctx.arc(0, tofY, 5, 0, Math.PI );
@@ -381,6 +424,7 @@ async function init() {
         const camUrl = await fetchCameraUrl();
         const camEl = document.getElementById("camera_frame");
         const camLink = document.getElementById("camera");
+        loadModels();
         // const url = "http://10.255.28.97:8889/cam/";
 
         // if (Hls.isSupported()) {
