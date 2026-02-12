@@ -1,13 +1,20 @@
+import logging
 import math
-from matplotlib import pyplot as plt
-import scipy as sp
-from scipy.special import softmax
+from typing import cast
+
 import numpy as np
 import onnxruntime as ort
-import logging 
+import scipy as sp
+from matplotlib import pyplot as plt
+from onnxruntime import InferenceSession
+from scipy.special import softmax
 
-from high_level.autotech_constant import SPEED_LOOKUP, ANGLE_LOOKUP, MODEL_PATH, Temperature
-
+from high_level.autotech_constant import (
+    ANGLE_LOOKUP,
+    MODEL_PATH,
+    SPEED_LOOKUP,
+    Temperature,
+)
 
 
 class Driver:
@@ -16,81 +23,94 @@ class Driver:
         self.context_size = context_size
         self.horizontal_size = horizontal_size
         self._loaded = False
-        self.ai_session = None
-        self.context = None
+        self.ai_session: InferenceSession
+        self.context: np.ndarray
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
-            self.steering_bars = self.ax[0].bar(range(16), np.zeros(16), color='blue')
+            self.steering_bars = self.ax[0].bar(range(16), np.zeros(16), color="blue")
             self.steering_avg = [
-                self.ax[0].plot([0, 0], [0,  1], color=(i/3, 1 - i/3, 0), label='Average')[0]
+                self.ax[0].plot(
+                    [0, 0], [0, 1], color=(i / 3, 1 - i / 3, 0), label="Average"
+                )[0]
                 for i in range(4)
             ]
-            self.ax[0].set_ylim(0, 1) # Probabilities range from 0 to 1
-            self.ax[0].set_title('Steering Action Probabilities')
+            self.ax[0].set_ylim(0, 1)  # Probabilities range from 0 to 1
+            self.ax[0].set_title("Steering Action Probabilities")
 
             # Speed bars
-            self.speed_bars = self.ax[1].bar(range(16), np.zeros(16), color='blue')
-            self.speed_avg = self.ax[1].plot([0, 0], [0,  1], color='red', label='Average')[0]
+            self.speed_bars = self.ax[1].bar(range(16), np.zeros(16), color="blue")
+            self.speed_avg = self.ax[1].plot(
+                [0, 0], [0, 1], color="red", label="Average"
+            )[0]
             self.ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
-            self.ax[1].set_title('Speed Action Probabilities')
+            self.ax[1].set_title("Speed Action Probabilities")
 
             # LiDAR img
             self.lidar_img = self.ax[2].imshow(
-                np.zeros((128, 128)),
-                cmap='gray', vmin=0, vmax=np.log(31)
+                np.zeros((128, 128)), cmap="gray", vmin=0, vmax=np.log(31)
             )
-            self.ax[2].set_title('LiDAR Image')
+            self.ax[2].set_title("LiDAR Image")
 
             # Camera img
             self.camera_img = self.ax[3].imshow(
-                np.zeros((128, 128, 3)),
-                cmap='RdYlGn', vmin=-1, vmax=1
+                np.zeros((128, 128, 3)), cmap="RdYlGn", vmin=-1, vmax=1
             )
-            self.ax[3].set_title('Camera Image')
+            self.ax[3].set_title("Camera Image")
 
     def load_model(self, model):
         if self._loaded:
             return
         self.log.info("Chargement du modèle IA...")
-        self.ai_session = ort.InferenceSession(MODEL_PATH+"/"+model)
-        self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32 )
+        self.ai_session = ort.InferenceSession(MODEL_PATH + "/" + model)
+        self.context = np.zeros(
+            [2, self.context_size, self.horizontal_size], dtype=np.float32
+        )
         self._loaded = True
-        self.log.info("Modèle IA chargé")    
+        self.log.info("Modèle IA chargé")
 
     def reset(self):
-        self.context = np.zeros([2, self.context_size, self.horizontal_size], dtype=np.float32)
+        self.context = np.zeros(
+            [2, self.context_size, self.horizontal_size], dtype=np.float32
+        )
 
     def omniscent(self, lidar_data, camera_data):
         return self.ai_update_lidar_camera(lidar_data, camera_data)
 
-    def ai(self, lidar_data, camera_data): #take the camera data for uniformity with the omniscent driver but we dont use it in this driver
+    def ai(
+        self, lidar_data, camera_data
+    ):  # take the camera data for uniformity with the omniscent driver but we dont use it in this driver
         return self.ai_update_lidar(lidar_data)
 
-    def simple_minded(self, lidar_data,camera_data): #take the camera data for uniformity with the omniscent driver but we dont use it in this driver
+    def simple_minded(
+        self, lidar_data, camera_data
+    ):  # take the camera data for uniformity with the omniscent driver but we dont use it in this driver
         return self.farthest_distants(lidar_data)
 
     def ai_update_lidar_camera(self, lidar_data, camera_data):
         if not self._loaded:
             raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
-        
-        #self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
 
-        lidar_data = sp.ndimage.zoom(
-            np.array(lidar_data, dtype=np.float32),
-            128/len(lidar_data)
-        ) / 1000 * 0.8
-        camera_data = sp.ndimage.zoom(
-            np.array(camera_data, dtype=np.float32),
-            128/len(camera_data)
+        # self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+
+        lidar_data = (
+            sp.ndimage.zoom(
+                np.array(lidar_data, dtype=np.float32), 128 / len(lidar_data)
+            )
+            / 1000
+            * 0.8
         )
-        self.context = np.concatenate([
-            self.context[:, 1:],
-            [lidar_data[None], camera_data[None]]
-        ], axis=1)
+        camera_data = sp.ndimage.zoom(
+            np.array(camera_data, dtype=np.float32), 128 / len(camera_data)
+        )
+        self.context = np.concatenate(
+            [self.context[:, 1:], [lidar_data[None], camera_data[None]]], axis=1
+        )
 
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
-        vect = self.ai_session.run(None, {'input': self.context[None]})[0][0]
+        vect = cast(
+            np.ndarray, self.ai_session.run(None, {"input": self.context[None]})[0]
+        )[0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
         vect_dir = softmax(vect_dir)  # distribution de probabilité
@@ -121,9 +141,9 @@ class Driver:
         print(" ".join([f"{x:.1f}" for x in vect_dir]))
         print(" ".join([f"{x:.1f}" for x in vect_prop]), flush=True)
         """
-        angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
+        angle = sum(ANGLE_LOOKUP * vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
-        vitesse = sum(SPEED_LOOKUP*vect_prop)
+        vitesse = sum(SPEED_LOOKUP * vect_prop)
 
         return angle, vitesse
 
@@ -132,40 +152,42 @@ class Driver:
             raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
         lidar_data = np.array(lidar_data, dtype=np.float32) * 1.6
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
-        vect = self.ai_session.run(None, {'input': lidar_data[None]})[0][0]
+        vect = cast(
+            np.ndarray, self.ai_session.run(None, {"input": lidar_data[None]})[0]
+        )[0]
 
-        vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 
-        
-        vect_dir = softmax(vect_dir/Temperature)  # distribution de probabilité
+        vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in
+
+        vect_dir = softmax(vect_dir / Temperature)  # distribution de probabilité
         vect_prop = softmax(vect_prop)
-        
-        angle = sum(ANGLE_LOOKUP*vect_dir)  # moyenne pondérée des angles
+
+        angle = sum(ANGLE_LOOKUP * vect_dir)  # moyenne pondérée des angles
         # moyenne pondérée des vitesses
-        vitesse = sum(SPEED_LOOKUP*vect_prop)
+        vitesse = sum(SPEED_LOOKUP * vect_prop)
         return angle, vitesse
-
-
 
     def farthest_distants(self, lidar_data):
         # Initialize variables
-        lidar_data_mm = [0] * 360  # Assuming 360 degrees for the lidar data
+        lidar_data_mm = [0.0] * 360  # Assuming 360 degrees for the lidar data
         filter_size = 15
         max_value = 0
         max_index = 0
-        closest_distance = float('inf')
+        closest_distance = float("inf")
         average_distance = 0
         valid_distance_count = 0
 
         # Translate lidar angles to table angles
         for angle in range(len(lidar_data_mm)):
             if 135 < angle < 225:
-                lidar_data_mm[angle] = float('nan')
+                lidar_data_mm[angle] = float("nan")
             else:
                 lidar_data_mm[angle] = lidar_data[540 + (-angle * 4)]
 
         # Find the maximum value in the lidar data
         for i in range(-45, 45):
-            sum_values = sum(lidar_data_mm[n] for n in range(i - filter_size, i + filter_size))
+            sum_values = sum(
+                lidar_data_mm[n] for n in range(i - filter_size, i + filter_size)
+            )
             if sum_values > max_value:
                 max_value = sum_values
                 max_index = i
@@ -179,7 +201,9 @@ class Driver:
                 valid_distance_count += 1
                 if current_distance < closest_distance:
                     closest_distance = current_distance
-        average_distance = average_distance / valid_distance_count if valid_distance_count != 0 else 0
+        average_distance = (
+            average_distance / valid_distance_count if valid_distance_count != 0 else 0
+        )
 
         speed = average_distance * 0.002
         print("speed =", speed)
