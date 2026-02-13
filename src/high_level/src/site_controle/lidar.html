@@ -2,27 +2,54 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>LIDAR</title>
   <style>
-    canvas { background: #111; }
+    canvas { background: #111;
+        width: 100vw;
+        height: 100vh;
+        display: block;
+    }
+
+    html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* plus jamais de scrollbar */
+    background: #111;
+    }
   </style>
 </head>
 <body>
 
-<canvas id="lidar" width="1000" height="1000"></canvas>
+<canvas id="lidar"></canvas>
 
 <script>
 const canvas = document.getElementById("lidar");
+function resizeCanvas() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
 const ctx = canvas.getContext("2d");
 const scale = 0.15; // mm → pixels
 
 const proto = location.protocol === "https:" ? "wss" : "ws";
 const ws = new WebSocket(proto + "://" + location.host + "/api/lidar/ws");
-
+function decodeBase64ToInt16Array(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Int16Array(bytes.buffer);
+}
 
 ws.onmessage = (e) => {
   const data = JSON.parse(e.data);
-
+  const x = decodeBase64ToInt16Array(data.x);
+  const y = decodeBase64ToInt16Array(data.y);
+  const tof = data.tof; // assuming tof is sent as an integer in cm
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // origine au centre
@@ -78,13 +105,19 @@ ws.onmessage = (e) => {
 
   // points lidar
   ctx.fillStyle = "#00ff88";
-  for (let i = 0; i < data.x.length; i++) {
+  for (let i = 0; i < x.length; i++) {
     ctx.fillRect(
-      data.x[i] * scale,
-      -data.y[i] * scale,
+      x[i] * scale,
+      -y[i] * scale,
       2, 2
     );
   }
+  ctx.fillStyle = "#ff0000";
+        const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
+        ctx.beginPath();
+        ctx.arc(0, tofY, 5, 0, Math.PI );
+        ctx.fill();
+        ctx.restore();
 
   ctx.restore();
 };

@@ -1,30 +1,22 @@
+import asyncio
 import logging
-import logging as log
 import os
 import threading
 import time
-from threading import Thread
+from typing import Optional, cast
 
+import aiohttp
 import cv2
 import numpy as np
 import scipy as sp
-from cv2.typing import MatLike
-from picamera2 import Picamera2
-from picamera2.encoders import JpegEncoder
-from picamera2.outputs import FileOutput, Output
-from PIL import Image
-
-from high_level.autotech_constant import (
-    CAMERA_QUALITY,
-    CAMERA_STREAM_ON_START,
-    FRAME_RATE,
-    PORT_STREAMING_CAMERA,
-    SIZE_CAMERA_X,
-    SIZE_CAMERA_Y,
-    STREAM_PATH,
+from aiortc import (
+    RTCConfiguration,
+    RTCPeerConnection,
+    RTCSessionDescription,
+    VideoStreamTrack,
 )
-from programs.camera_serv import StreamHandler, StreamOutput, StreamServer, frame_buffer
-from programs.program import Program
+from av import VideoFrame
+from PIL import Image
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
@@ -35,154 +27,159 @@ COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
 
 
-class JpegCallback(Output):
-    def __init__(self, parent_cam):
-        super().__init__()
-        self.parent = parent_cam
-
-    def outputframe(
-        self, frame, keyframe=True, timestamp=None, packet=None, audio=False
-    ):
-        # frame = bytes JPEG
-        self.parent._on_new_frame(frame)
-
-
-class ProgramStreamCamera(Program):
-    def __init__(self, serveur):
-        super().__init__()
-        self.log = logging.getLogger(__name__)
-        self.serveur = serveur
-        self.running = False
-        self.controls_car = False
-
-        if CAMERA_STREAM_ON_START:
-            self.start()
-
-    @property
-    def camera(self):
-        # accès dynamique
-        return self.serveur.camera
-
-    def start(self):
-        cam = self.camera
-        if cam is None:
-            self.log.error("Camera not initialized yet")
-            return
-
-        self.running = True
-        self.camera.start_stream()
-
-    def kill(self):
-        self.running = False
-        self.camera.stop_stream()
-
-
 class Camera:
-    def __init__(self, size=(SIZE_CAMERA_X, SIZE_CAMERA_Y), port=PORT_STREAMING_CAMERA):
-        self.size = size
-        self.port = port
+    """
+    Camera = client WebRTC (WHEP) vers MediaMTX.
+    MediaMTX ouvre la PiCam (source: rpiCamera). Python ne fait que consommer.
+    """
 
-        self.streaming = False
-        self.stream_thread: Thread
-        self.picam2: Picamera2
-
-        self.last_frame: MatLike
+    def __init__(self, whep_url: str = "http://192.168.0.20:8889/cam/whep"):
+        self.log = logging.getLogger(__name__)
+        self.whep_url = whep_url
         self.debug_counter = 0
-        self.image_no = 0
+        self.last_frame = np.zeros((0, 0, 0))
+        self._lock = threading.Lock()
 
-        # Démarrage en mode "acquisition locale sans stream"
-        self._start_local_capture()
+        self._stop_flag = threading.Event()
+        self._frame_queue: asyncio.Queue[VideoFrame] = asyncio.Queue(maxsize=2)
+        self._thread = threading.Thread(target=self._thread_main, daemon=True)
 
-    # ----------------------------------------------------------
-    # Capture locale (sans MJPEG server)
-    # ----------------------------------------------------------
-    def _start_local_capture(self):
-        self.picam2 = Picamera2()
-        config = self.picam2.create_video_configuration(
-            main={"size": self.size},  # plus large, moins zoomé
-            controls={"FrameRate": FRAME_RATE},  # FPS stable
-        )
+        self._thread.start()
 
-        self.picam2.configure(config)
-        self.output = StreamOutput()
+    # --------- thread -> event loop asyncio ---------
+    def _thread_main(self):
+        asyncio.run(self._run_forever())
 
-        # Qualité JPEG custom
-        self.picam2.start_recording(
-            JpegEncoder(q=CAMERA_QUALITY), FileOutput(self.output)
-        )
-
-        # thread lecture last_frame
-        self.capture_thread = threading.Thread(
-            target=self._update_last_frame_loop, daemon=True
-        )
-        self.capture_thread.start()
-
-    def _update_last_frame_loop(self):
-        """Récupère en continu la dernière frame JPEG."""
-        while True:
-            jpeg = frame_buffer.get()
-            if jpeg:
-                np_frame = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
-                if np_frame is not None:
-                    self.last_frame = cv2.cvtColor(np_frame, cv2.COLOR_BGR2RGB)
-            time.sleep(0.01)
-
-    # ----------------------------------------------------------
-    # Contrôle streaming MJPEG
-    # ----------------------------------------------------------
-    def start_stream(self):
-        if self.streaming:
-            return
-        import programs.camera_serv
-
-        programs.camera_serv.streaming_enabled = True
-
-        self.httpd = StreamServer(("", self.port), StreamHandler)
-
-        def run_server():
-            print(f"[INFO] MJPEG stream on http://<IP>:{self.port}/{STREAM_PATH}.mjpg")
+    async def _run_forever(self):
+        # boucle de reconnexion automatique
+        while not self._stop_flag.is_set():
             try:
-                self.httpd.serve_forever()
+                await self._run_once(self.whep_url)
             except Exception as e:
-                print("Serveur MJPEG arrêté:", e)
+                self.log.warning("WHEP client error: %s", e)
 
-        self.stream_thread = threading.Thread(target=run_server, daemon=True)
-        self.stream_thread.start()
-        self.streaming = True
+            # petit backoff avant de retenter
+            await asyncio.sleep(0.5)
 
-    def stop_stream(self):
-        if not self.streaming:
+    async def _processing_loop(self):
+        while not self._stop_flag.is_set():
+            frame = await self._frame_queue.get()
+            # Décodage H264 -> numpy (HORS WebRTC)
+            img_bgr = frame.to_ndarray(format="bgr24")
+            img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+
+            # optionnel mais recommandé (stabilité algo)
+            img_rgb = cv2.resize(img_rgb, (320, 240))
+
+            with self._lock:
+                self.last_frame = img_rgb
+
+    async def _wait_ice_complete(self, pc: RTCPeerConnection, timeout: float = 2.0):
+        if pc.iceGatheringState == "complete":
             return
 
-        import programs.camera_serv
+        ev = asyncio.Event()
 
-        programs.camera_serv.streaming_enabled = False
+        @pc.on("icegatheringstatechange")
+        def _on_ice():
+            if pc.iceGatheringState == "complete":
+                ev.set()
 
-        print("[INFO] Shutting down MJPEG server...")
+        try:
+            await asyncio.wait_for(ev.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            self.log.warning("ICE gathering not complete after timeout")
+            pass
 
-        self.httpd.shutdown()
-        self.httpd.server_close()
-        if self.stream_thread is not None:
-            self.stream_thread.join()
+    async def _run_once(self, url: str):
+        config = RTCConfiguration(iceServers=[])
 
-        self.streaming = False
-        print("[INFO] Stream stopped.")
+        pc = RTCPeerConnection(configuration=config)
+        pc.addTransceiver("video", direction="recvonly")
 
-    def toggle_stream(self):
-        if self.streaming:
-            print("[INFO] Stopping stream")
-            self.stop_stream()
-        else:
-            print("[INFO] Starting stream")
-            self.start_stream()
+        frame_received = asyncio.Event()
+
+        @pc.on("connectionstatechange")
+        async def on_state():
+            if pc.connectionState in ("failed", "disconnected", "closed"):
+                self.log.warning("WebRTC state: %s", pc.connectionState)
+                await pc.close()
+
+        @pc.on("track")
+        async def on_track(track: VideoStreamTrack):
+            if track.kind != "video":
+                return
+
+            self.log.info("WHEP: receiving video track")
+            frame_received.set()
+
+            processing_task = asyncio.create_task(self._processing_loop())
+
+            try:
+                while not self._stop_flag.is_set():
+                    frame = cast(VideoFrame, await track.recv())
+
+                    # ne JAMAIS bloquer ici
+                    if self._frame_queue.full():
+                        try:
+                            self._frame_queue.get_nowait()
+                        except asyncio.QueueEmpty:
+                            pass
+
+                    await self._frame_queue.put(frame)
+
+            except Exception as e:
+                self.log.warning("WebRTC track ended: %s", e)
+            processing_task.cancel()
+
+        # --- offer/answer WHEP ---
+        offer = await pc.createOffer()
+        await pc.setLocalDescription(offer)
+
+        await self._wait_ice_complete(pc, timeout=3.0)
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                url,
+                data=pc.localDescription.sdp,
+                headers={"Content-Type": "application/sdp"},
+                timeout=aiohttp.ClientTimeout(total=5),
+            ) as resp:
+                if resp.status != 201:
+                    raise RuntimeError(f"WHEP failed: HTTP {resp.status}")
+                answer_sdp = await resp.text()
+
+        await pc.setRemoteDescription(
+            RTCSessionDescription(sdp=answer_sdp, type="answer")
+        )
+
+        # attendre qu’on ait bien une piste vidéo (sinon inutile)
+        try:
+            await asyncio.wait_for(frame_received.wait(), timeout=5)
+        except asyncio.TimeoutError:
+            await pc.close()
+            raise RuntimeError("WHEP: no video track received")
+
+        # rester vivant tant que pas stoppé
+        while not self._stop_flag.is_set() and pc.connectionState != "closed":
+            await asyncio.sleep(0.1)
+
+        await pc.close()
+
+    # --------- API publique ---------
+    def stop(self):
+        """Arrête le client WHEP (ne stoppe pas MediaMTX)."""
+        self._stop_flag.set()
+
+    def get_last_image(self) -> np.ndarray:
+        with self._lock:
+            return self.last_frame.copy()
 
     # ----------------------------------------------------------
     # Interface publique
     # ----------------------------------------------------------
-    def get_last_image(self):
-        return self.last_frame
 
-    def camera_matrix(self, vector_size=128, image=None):
+    def camera_matrix(self, vector_size=128, image=None) -> np.ndarray:
         """
         Create a matrix of -1, 0, and 1 for a line in the image. The matrix size is 128.
         """
@@ -231,7 +228,7 @@ class Camera:
         ] = COLOUR_KEY["none"]
 
         # Recreate the image from the matrix
-        if log.getLogger().isEnabledFor(log.DEBUG):
+        if self.log.isEnabledFor(logging.DEBUG):
             path = os.path.join(
                 DEBUG_DIR, f"debug_combined_image{self.debug_counter}.jpg"
             )
@@ -242,8 +239,12 @@ class Camera:
         return output_matrix
 
     def recreate_image_from_matrix(
-        self, image, matrix, adjusted_width, vector_size=128
-    ):
+        self,
+        image: np.ndarray,
+        matrix: np.ndarray,
+        adjusted_width: int,
+        vector_size: int = 128,
+    ) -> Image.Image:
         """
         Recreate an image from the matrix of -1, 0, and 1 and append it to the bottom of the sliced image.
         """
@@ -304,7 +305,9 @@ class Camera:
             return COLOUR_KEY["red"]
         return COLOUR_KEY["none"]
 
-    def is_running_in_reversed(self, image=None, LEFT_IS_GREEN=True):
+    def is_running_in_reversed(
+        self, image: Optional[np.ndarray] = None, LEFT_IS_GREEN: bool = True
+    ):
         """
         Check if the car is running in reverse.
         If the car is in reverse, green will be on the right side of the image and red on the left.
@@ -326,8 +329,10 @@ class Camera:
         )  # Average index of redcolor is red
 
         if LEFT_IS_GREEN and average_red_index > average_green_index:
-            if log.getLogger().isEnabledFor(log.DEBUG):
-                log.debug(f"green: {average_green_index}, red: {average_red_index}")
+            if self.log.isEnabledFor(logging.DEBUG):
+                self.log.debug(
+                    f"green: {average_green_index}, red: {average_red_index}"
+                )
                 vector_size = 128
                 self.debug_counter += 1
                 height, width, _ = image.shape
@@ -363,21 +368,17 @@ class Camera:
 
 
 if __name__ == "__main__":
-    log.basicConfig(level=log.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
-    camera = Camera()
+    cam = Camera("http://192.168.1.10:8889/cam/whep")
 
-    print("Waiting frame...")
-    while camera.get_last_image() is None:
-        time.sleep(0.05)
-
-    frame = camera.get_last_image()
-    matrix = camera.camera_matrix()
-    print("camera_matrix OK")
-
-    input("Press to start the stream...")
-    camera.toggle_stream()
-
-    while True:
-        if input("Toggle ? ") == "o":
-            camera.toggle_stream()
+    print("Got frame. camera_matrix:", cam.camera_matrix()[:10])
+    time.sleep(5)
+    print("seconde frame", cam.camera_matrix()[:10])
+    print("Ctrl+C to exit")
+    try:
+        while True:
+            print(cam.camera_matrix()[:10])
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        cam.stop()

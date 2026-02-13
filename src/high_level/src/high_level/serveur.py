@@ -9,15 +9,14 @@ from luma.core.render import canvas
 from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
-from actionneur_capteur.camera import Camera, ProgramStreamCamera
-from actionneur_capteur.lidar import Lidar
-from actionneur_capteur.masterI2C import I2c_arduino
-from actionneur_capteur.tof import ToF
-from high_level.autotech_constant import TEXT_HEIGHT
+from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
 from programs.car import Ai_Programme
+
+# from actionneur_capteur.camera import ProgramStreamCamera
 from programs.initialisation import Initialisation
 from programs.poweroff import Poweroff
 
+# programs import
 # programs import
 from programs.ps4_controller_program import PS4ControllerProgram
 from programs.remote_control import RemoteControl
@@ -57,9 +56,7 @@ class Serveur:
         self.process = None
         self.temp = None
 
-        self.initialisation_module = Initialisation(
-            self, Camera, Lidar, ToF, I2c_arduino
-        )
+        self.initialisation_module = Initialisation(self)
 
         self.programs = [
             SshProgramme(),
@@ -67,13 +64,8 @@ class Serveur:
             Ai_Programme(self),
             PS4ControllerProgram(),
             RemoteControl(),
-            ProgramStreamCamera(self),
-            BackendAPI(
-                self,
-                host="0.0.0.0",
-                port=8001,
-                site_dir="/home/intech/CoVAPSy/src/high_level/src/site_controle",
-            ),
+            # ProgramStreamCamera(self),
+            BackendAPI(self, host="0.0.0.0", port=8001, site_dir=SITE_DIR_BACKEND),
             Poweroff(),
         ]
         self.log.debug("Programs ready: %s", [type(p).__name__ for p in self.programs])

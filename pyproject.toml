@@ -20,6 +20,7 @@ authors = [
     { name = "Arthur Ripoll", email = "arthur.ripoll@intech-robotics.fr" },
     { name = "Mohamed Benabadji", email = "mohamed.benabadji@intech-robotics.fr" },
 ]
+dependencies = []
 
 [tool.uv.workspace]
 members = ["src/high_level", "src/simulation"]

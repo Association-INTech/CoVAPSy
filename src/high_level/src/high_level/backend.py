@@ -1,25 +1,28 @@
 # BackendAPI.py
 
+import asyncio
+import base64
+import logging
+import os
 import threading
 import time
-import logging
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, List, Optional
 
+import numpy as np
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-import numpy as np
-import asyncio
-from fastapi import WebSocket
 from fastapi.websockets import WebSocketDisconnect
 
-from programs.program import Program
 from high_level.autotech_constant import (
-    PORT_STREAMING_CAMERA,
     BACKEND_ON_START,
+    MODEL_PATH,
+    PORT_STREAMING_CAMERA,
 )
+from programs.program import Program
+
 
 class BackendAPI(Program):
     """
@@ -37,10 +40,12 @@ class BackendAPI(Program):
 
     def __init__(
         self,
-        server: Any,
+        server,
         host: str = "0.0.0.0",
         port: int = 8001,
-        site_dir: Optional[str] = None,  # ex: "/home/intech/CoVAPSy/src/HL/site_controle"
+        site_dir: Optional[
+            str
+        ] = None,  # ex: "/home/intech/CoVAPSy/src/HL/site_controle"
         cors_allow_origins: Optional[List[str]] = None,
     ):
         super().__init__()
@@ -50,7 +55,6 @@ class BackendAPI(Program):
         self.controls_car = False
         self.running = False
         self.lidar_yaw = 0  # for lidar coordinate correction
-
 
         self.host = host
         self.port = port
@@ -92,8 +96,6 @@ class BackendAPI(Program):
         time.sleep(1)  # litle delay to ensure server is ready
         if BACKEND_ON_START:
             self.start()
-        
-
 
     # ----------------------------
     # Helpers: reading data from server
@@ -119,19 +121,21 @@ class BackendAPI(Program):
         direction = float(getattr(self.server, "direction", 0.0))
 
         return {
-            "battery": {
-                "lipo": voltage_lipo,
-                "nimh": voltage_nimh
-            },
+            "battery": {"lipo": voltage_lipo, "nimh": voltage_nimh},
             "car": {
                 "current_speed": current_speed,
                 "target_speed": target_speed,
                 "direction": direction,
                 "car_control": prog_name,
-                "program_id": last_ctrl
+                "program_id": last_ctrl,
             },
             "timestamp": time.time(),
         }
+
+    def _fetch_name_models(self):
+        models = os.listdir(MODEL_PATH)
+        models = [model for model in models if model.endswith(".onnx")]
+        return models
 
     def _list_programs(self) -> List[Dict[str, Any]]:
         programs = getattr(self.server, "programs", [])
@@ -146,7 +150,9 @@ class BackendAPI(Program):
                     "name": type(p).__name__,
                     "running": bool(getattr(p, "running", False)),
                     "controls_car": bool(getattr(p, "controls_car", False)),
-                    "display": p.display() if hasattr(p, "display") else type(p).__name__,
+                    "display": p.display()
+                    if hasattr(p, "display")
+                    else type(p).__name__,
                 }
             )
         return out
@@ -154,8 +160,8 @@ class BackendAPI(Program):
     def _camera_stream_url(self) -> str:
         ip = getattr(getattr(self.server, "SOCKET_ADRESS", None), "IP", None)
         ip = getattr(self.server, "ip", None) or "192.168.1.10"
-        return f"http://{ip}:{PORT_STREAMING_CAMERA}/stream.mjpg"
-    
+        return f"http://{ip}:{PORT_STREAMING_CAMERA}/cam/"
+
     def _lidar(self):
         return getattr(self.server, "lidar", None)
 
@@ -169,29 +175,28 @@ class BackendAPI(Program):
 
         # lidar angle values
         theta_lidar = np.linspace(
-            -3*np.pi/4,   # -135°
-            +3*np.pi/4,   # +135°
+            -3 * np.pi / 4,  # -135°
+            +3 * np.pi / 4,  # +135°
             n,
-            endpoint=True
+            endpoint=True,
         )
 
-        # orientation correction 
+        # orientation correction
         theta_world = theta_lidar + self.lidar_yaw
 
         # projection
         # cartésien coordonates
-        x = -np.sin(theta_world) * r
-        y = np.cos(theta_world) * r
-
+        x = (-np.sin(theta_world) * r).astype(np.int16)
+        y = (np.cos(theta_world) * r).astype(np.int16)
 
         return {
-            "x": x.tolist(),
-            "y": y.tolist(),
+            "x": base64.b64encode(x.tobytes()).decode("ascii"),
+            "y": base64.b64encode(y.tobytes()).decode("ascii"),
+            "tof": int(self.server.tof.distance),
+            "dtype": "int16",
             "unit": "mm",
             "timestamp": time.time(),
         }
-
-
 
     # ----------------------------
     # Routes
@@ -200,10 +205,36 @@ class BackendAPI(Program):
         @self.app.get("/api/status")
         def status():
             return {
-                "backend": {"running": self.running, "host": self.host, "port": self.port},
+                "backend": {
+                    "running": self.running,
+                    "host": self.host,
+                    "port": self.port,
+                },
                 "telemetry": self._get_telemetry(),
                 "programs": self._list_programs(),
+                "models": self._fetch_name_models(),
             }
+
+        @self.app.post("/api/ai/start")
+        async def start_ai_with_model(req: Request):
+            body = await req.json()
+            model = body.get("model")
+
+            if not model:
+                raise HTTPException(status_code=400, detail="Model name required")
+
+            programs = getattr(self.server, "programs", [])
+
+            ai_prog = next(
+                (p for p in programs if type(p).__name__ == "Ai_Programme"), None
+            )
+
+            if ai_prog is None:
+                raise HTTPException(status_code=404, detail="AI program not found")
+
+            ai_prog.start(model_give=model)
+
+            return {"status": "ok", "model": model}
 
         @self.app.get("/api/programs")
         def programs():
@@ -217,7 +248,11 @@ class BackendAPI(Program):
 
             self.server.start_process(prog_id)
             # après action, renvoyer état mis à jour
-            return {"status": "ok", "program_id": prog_id, "programs": self._list_programs()}
+            return {
+                "status": "ok",
+                "program_id": prog_id,
+                "programs": self._list_programs(),
+            }
 
         @self.app.post("/api/programs/{prog_id}/start")
         def start_program(prog_id: int):
@@ -250,14 +285,14 @@ class BackendAPI(Program):
         def camera_stream():
             # give the URL.
             return {"url": self._camera_stream_url()}
-        
+
         @self.app.get("/api/lidar")
         def lidar_snapshot():
             data = self._get_lidar_points_cartesian()
             if data is None:
                 raise HTTPException(status_code=503, detail="Lidar not available")
             return data
-        
+
         @self.app.websocket("/api/lidar/ws")
         async def lidar_ws(ws: WebSocket):
             await ws.accept()
@@ -271,6 +306,7 @@ class BackendAPI(Program):
                     await asyncio.sleep(0.1)
             except WebSocketDisconnect:
                 self.logger.info("Lidar WS client disconnected")
+
         @self.app.websocket("/api/telemetry/ws")
         async def telemetry_ws(ws: WebSocket):
             await ws.accept()
@@ -284,7 +320,6 @@ class BackendAPI(Program):
             except WebSocketDisconnect:
                 self.logger.info("Telemetry WS client disconnected")
 
-
     # ----------------------------
     # Program interface
     # ----------------------------
@@ -294,12 +329,15 @@ class BackendAPI(Program):
         self.running = True
 
         # Uvicorn
-        config = uvicorn.Config(self.app, host=self.host, port=self.port, log_level="info")
+        config = uvicorn.Config(
+            self.app, host=self.host, port=self.port, log_level="info"
+        )
         self._uvicorn_server = uvicorn.Server(config)
 
         def _run():
             try:
                 self.logger.info("BackendAPI starting on %s:%d", self.host, self.port)
+                assert self._uvicorn_server is not None
                 self._uvicorn_server.run()
             except Exception as e:
                 self.logger.error("BackendAPI crashed: %s", e, exc_info=True)

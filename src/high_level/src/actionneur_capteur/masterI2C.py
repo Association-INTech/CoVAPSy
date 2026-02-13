@@ -35,13 +35,13 @@ class I2c_arduino:
             try :
                 data = struct.pack('<ff', float(self.serveur.target_speed), float(self.serveur.direction))
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
-                time.sleep(1e-5) # Short delay to prevent overwhelming the bus
+                time.sleep(1e-4) # Short delay to prevent overwhelming the bus
             except Exception as e:
                 self.log.error("Erreur I2C write: %s", e, exc_info=True)
                 time.sleep(I2C_SLEEP_ERROR_LOOP)
 
     def start_received(self):
-        """rreceived data from the microcontroller regularly."""
+        """received data from the microcontroller regularly."""
         self.log.info("Thread I2C receive started")
         length = I2C_NUMBER_DATA_RECEIVED * 4 
         while self.receive_running:

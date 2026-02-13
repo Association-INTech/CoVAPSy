@@ -1,6 +1,8 @@
 import logging
+import os
 import time
 from threading import Thread
+from typing import Optional
 
 import numpy as np
 import onnxruntime as ort
@@ -21,12 +23,21 @@ from .utils.driver import Driver
 
 
 class Car:
-    def __init__(self, driving_strategy, serveur):
+    def __init__(self, driving_strategy, serveur, model):
         self.log = logging.getLogger(__name__)
         self.target_speed = 0  # Speed in millimeters per second
         self.direction = 0  # Steering angle in degrees
         self.serveur = serveur
         self.reverse_count = 0
+
+        def _initialize_ai():
+            """Initialize the AI session."""
+            try:
+                self.ai_session = ort.InferenceSession(os.path.join(MODEL_PATH, model))
+                self.log.info("AI session initialized successfully")
+            except Exception as e:
+                self.log.error(f"Error initializing AI session: {e}")
+                raise
 
         # Initialize AI session
         try:
@@ -86,9 +97,8 @@ class Car:
 
     def main(self):
         # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
-        if self.camera is None or self.lidar is None or self.tof is None:
+        if self.camera is None or self.lidar is None:
             self.log.debug("Capteurs pas encore prêts")
-            print("Capteurs pas encore prêts")
             return
         lidar_data = self.lidar.rDistance[:1080] / 1000
         lidar_data_ai = (
@@ -100,10 +110,10 @@ class Car:
             )
         )  # convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
         self.direction, self.target_speed = self.driving(
-            lidar_data_ai
+            lidar_data_ai, self.camera.camera_matrix()
         )  # l'ai prend des distance en mètre et non en mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
-
+        """
         if self.camera.is_running_in_reversed():
             self.reverse_count += 1
         else:
@@ -111,9 +121,10 @@ class Car:
         if self.reverse_count > 2:
             self.turn_around()
             self.reverse_count = 0
+
         if self.has_Crashed():
-            print("Obstacle détecté")
-            color = self.camera.is_green_or_red(lidar_data)
+            self.log.info("Obstacle détecté")
+            color= self.camera.is_green_or_red(lidar_data)
             if color == 0:
                 small_distances = [
                     d for d in self.lidar.rDistance if 0 < d < CRASH_DIST
@@ -133,7 +144,7 @@ class Car:
                 self.log.info("Obstacle vert détecté")
             angle = -color * MAX_ANGLE
             self.target_speed = -2
-            self.direction = angle
+            self.direction = angle"""
 
 
 class Ai_Programme(Program):
@@ -145,6 +156,15 @@ class Ai_Programme(Program):
         self.GR86 = None
         self.running = False
         self.controls_car = True
+        try:
+            self.models = [
+                model for model in os.listdir(MODEL_PATH) if model.endswith(".onnx")
+            ]
+        except Exception as e:
+            self.log.error(f"Erreur lors de la récupération des modèles: {e}")
+        self.nb_models = len(self.models)
+        self.id_model = self.nb_models
+        # start with the last model which is the fallback for not running
 
     @property
     def target_speed(self):
@@ -163,39 +183,65 @@ class Ai_Programme(Program):
             try:
                 if self.GR86 is not None:
                     self.GR86.main()
+                print("lolooibiiuib : " + self.running.__str__())
             except Exception as e:
                 self.log.error(f"Erreur IA: {e}")
                 self.running = False
+                raise
 
-    def start(self):
-        if self.running:
-            return
+    def initializeai(self, model: str):
+        self.driver = Driver(128, 128)
+        self.driver.load_model(model)
 
-        if (
-            self.serveur.camera is None
-            or self.serveur.lidar is None
-            or self.serveur.tof is None
-        ):
-            print("Capteurs non initialisés")
-            return
+        # self.GR86 = Car(self.driver.ai, self.serveur, model)
+        self.GR86 = Car(self.driver.omniscent, self.serveur, model)
+        # self.GR86 = Car(self.driver.simple_minded, self.serveur, model)
 
-        try:
-            self.driver = Driver(128, 128)
-            self.driver.load_model()
-            self.GR86 = Car(self.driver, self.serveur)
-        except Exception as e:
-            self.log.error(f"Impossible de démarrer l'IA: {e}")
-            self.driver = None
-            self.GR86 = None
+    def start(self, model_give: Optional[str] = None):
+
+        if self.serveur.camera is None or self.serveur.lidar is None:
+            self.log.error("Capteurs non initialisés")
             return
+        if self.models is None:
+            self.log.error("Aucun modèle disponible pour l'IA")
+            return
+        if model_give is not None:
+            self.initializeai(model_give)
+            self.log.info(f"Démarrage de l'IA avec le modèle {model_give}")
+        else:
+            try:
+                self.id_model = (self.id_model + 1) % (self.nb_models)
+                self.log.info(f"Modèle sélectionné: {self.models[self.id_model]}")
+                model = self.models[self.id_model]
+                self.initializeai(model)
+
+            except Exception as e:
+                self.log.error(f"Impossible de démarrer l'IA: {e}")
+                self.driver = None
+                self.GR86 = None
+                return
 
         self.running = True
         Thread(target=self.run, daemon=True).start()
 
-    def stop(self):
+    def kill(self):
         self.running = False
-        if self.GR86 is not None:
-            self.GR86.stop()
+
+    def display(self):
+        text = self.__class__.__name__
+        if self.running:
+            text += "*"
+        if not self.running:
+            for model in self.models:
+                text += f"\n   {model[:8]}..."  # display only the first 5 characters of the model name to avoid cuttoff
+
+        else:
+            for model in self.models:
+                if model == self.models[self.id_model]:
+                    text += f"\n -> {model[:8]}..."
+                else:
+                    text += f"\n   {model[:8]}..."
+        return text
 
 
 """

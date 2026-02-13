@@ -28,7 +28,6 @@ dependencies = [
     "adafruit-blinka>=8.0.0",
     # PS4 controller support
     "pyPS4Controller>=1.2.0",
-    "zmq>=0.0.0",
     "netifaces>=0.11.0",
     "matplotlib>=3.10.5",
     "opencv-python>=4.12.0.88",
@@ -36,6 +35,10 @@ dependencies = [
     "websockets>=16.0",
     "fastapi>=0.128.0",
     "uvicorn>=0.40.0",
+    "aiortc>=1.14.0",
+    "aiohttp>=3.13.3",
+    "zmq>=0.0.0",
+    "adafruit-circuitpython-vl53l1x>=1.2.7",
 ]
 
 

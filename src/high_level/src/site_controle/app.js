@@ -23,7 +23,7 @@ function drawSpeedChart() {
     ctx.lineTo(w - 10, h - 20);
     ctx.stroke();
 
-    
+
 
     const maxAbs = Math.max(
     ...speedHistory.real.map(Math.abs),
@@ -60,13 +60,13 @@ function drawSpeedChart() {
     drawCurve(speedHistory.real, "#00ff88");   // actual
 
     // legend
-    
+
     ctx.fillStyle = "#ffaa00";
     ctx.fillText("Target", w - 100, 20);
     ctx.fillStyle = "#00ff88";
     ctx.fillText("Actual", w - 100, 35);
     ctx.font = "10px monospace";
-    
+
 }
 
 function drawSteering(directionDeg) {
@@ -219,6 +219,49 @@ function updatePrograms(programs) {
         tbody.appendChild(tr);
     }
 }
+async function loadModels() {
+    try {
+        const res = await fetch("/api/status");
+        if (!res.ok) throw new Error("Failed to load models");
+
+        const data = await res.json();
+        const models = data.models;
+
+        const select = document.getElementById("model_select");
+        select.innerHTML = "";
+
+        for (const m of models) {
+            const option = document.createElement("option");
+            option.value = m;
+            option.textContent = m;
+            select.appendChild(option);
+        }
+
+    } catch (e) {
+        console.error("Failed to load models", e);
+    }
+}
+
+async function startSelectedModel() {
+    const select = document.getElementById("model_select");
+    const model = select.value;
+
+    try {
+        const res = await fetch("/api/ai/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ model })
+        });
+
+        if (!res.ok) throw new Error("Failed to start AI");
+
+        console.log("AI started with model:", model);
+
+    } catch (e) {
+        console.error("Start model failed", e);
+    }
+}
+
 async function refreshPrograms() {
     try {
         const res = await fetch("/api/programs");
@@ -231,6 +274,13 @@ async function refreshPrograms() {
         console.error("Failed to refresh programs", e);
     }
 }
+function decodeBase64ToInt16Array(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Int16Array(bytes.buffer);
+}
+
 function initLidar(retryDelay = 1000) {
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
@@ -243,6 +293,9 @@ function initLidar(retryDelay = 1000) {
     try{
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
+        const x = decodeBase64ToInt16Array(data.x);
+        const y = decodeBase64ToInt16Array(data.y);
+        const tof = data.tof;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -308,14 +361,19 @@ function initLidar(retryDelay = 1000) {
 
         /* ---------- LIDAR Points ---------- */
         ctx.fillStyle = "#00ff88";
-        for (let i = 0; i < data.x.length; i++) {
+        for (let i = 0; i < x.length; i++) {
             ctx.fillRect(
-                data.x[i] * scale,
-               -data.y[i] * scale,
+                x[i] * scale,
+               -y[i] * scale,
                 2, 2
             );
         }
-
+        // Draw ToF point on lidar pov
+        ctx.fillStyle = "#00eaff";
+        const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
+        ctx.beginPath();
+        ctx.arc(0, tofY, 5, 0, Math.PI );
+        ctx.fill();
         ctx.restore();
     };
     }catch(e){
@@ -340,7 +398,7 @@ function initTelemetryWS() {
     };
     }catch(e){
     console.error("Error in Telemetry WS onmessage:", e);
-}   
+}
     ws.onclose = () => {
         console.warn("Telemetry WS disconnected, retrying...");
         setTimeout(initTelemetryWS, 1000);
@@ -364,8 +422,19 @@ async function loadProgramsOnce() {
 async function init() {
     try {
         const camUrl = await fetchCameraUrl();
-        const camEl = document.getElementById("camera");
-        const camLink = document.getElementById("camera-link");
+        const camEl = document.getElementById("camera_frame");
+        const camLink = document.getElementById("camera");
+        loadModels();
+        // const url = "http://10.255.28.97:8889/cam/";
+
+        // if (Hls.isSupported()) {
+        //     const hls = new Hls();
+        //     hls.loadSource(url);
+        //     hls.attachMedia(video);
+        // } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        //     video.src = url;
+        // }
+
 
         if (camEl && camLink) {
             camEl.src = camUrl;
@@ -384,4 +453,3 @@ async function init() {
 }
 
 window.addEventListener("DOMContentLoaded", init);
- 
