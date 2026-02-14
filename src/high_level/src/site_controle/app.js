@@ -185,6 +185,8 @@ function updateTelemetry(t) {
         t.car.direction.toFixed(2);
     document.getElementById("active_program").textContent =
         t.car.car_control ?? "None";
+    document.getElementById("tof").textContent =
+        t.car.tof.toFixed(2);
     speedHistory.real.push(t.car.current_speed);
     speedHistory.demand.push(t.car.target_speed);
 

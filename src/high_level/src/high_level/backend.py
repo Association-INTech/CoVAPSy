@@ -128,6 +128,7 @@ class BackendAPI(Program):
                 "direction": direction,
                 "car_control": prog_name,
                 "program_id": last_ctrl,
+                "tof" : self.server.tof.distance,
             },
             "timestamp": time.time(),
         }
@@ -192,7 +193,7 @@ class BackendAPI(Program):
         return {
             "x": base64.b64encode(x.tobytes()).decode("ascii"),
             "y": base64.b64encode(y.tobytes()).decode("ascii"),
-            "tof": int(self.server.tof.distance),
+            "tof": self.server.tof.distance,
             "dtype": "int16",
             "unit": "mm",
             "timestamp": time.time(),
