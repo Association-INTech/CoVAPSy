@@ -8,12 +8,8 @@ from high_level.autotech_constant import LOGGING_LEVEL
 class Program:
     controls_car: bool  # whether the program controls the car or not to know if we need to stop the old program that controls the car
     running: bool  # base state of the program (on car startup)
-
-    @property
-    def target_speed(self) -> float: ...
-
-    @property
-    def direction(self) -> float: ...
+    target_speed: float
+    direction: float
 
     def __init__(self):
         self.logger = logging.getLogger(__name__)
