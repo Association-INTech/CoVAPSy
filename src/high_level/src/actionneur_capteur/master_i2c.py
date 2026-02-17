@@ -3,7 +3,7 @@ import struct
 import threading
 import time
 
-import smbus  # type: ignore #ignore the module could not be resolved error because it is a linux only module
+import smbus
 
 from high_level.autotech_constant import (
     I2C_NUMBER_DATA_RECEIVED,
@@ -25,7 +25,7 @@ class I2CArduino:
         self.voltage_lipo = 0
         self.voltage_nimh = 0
 
-        # initialisation of i2c bus
+        # initialization of i2c bus
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
         self.log.info("I2C: bus opened on /dev/i2c-1")
 
@@ -47,7 +47,7 @@ class I2CArduino:
                 self.bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
                 time.sleep(1e-4)  # Short delay to prevent overwhelming the bus
             except Exception as e:
-                self.log.error("Erreur I2C write: %s", e, exc_info=True)
+                self.log.error("I2C write error: %s", e, exc_info=True)
                 time.sleep(I2C_SLEEP_ERROR_LOOP)
 
     def start_received(self):
@@ -63,7 +63,7 @@ class I2CArduino:
                 )
                 list_values = list(float_values)
 
-                # on enregistre les valeur
+                # we record the values
                 self.voltage_lipo = list_values[0]
                 self.voltage_nimh = list_values[1]
                 self.current_speed = list_values[2]

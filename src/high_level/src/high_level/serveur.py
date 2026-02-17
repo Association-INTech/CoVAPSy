@@ -11,13 +11,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
 from programs.car import AIProgram
-
-# from actionneur_capteur.camera import ProgramStreamCamera
 from programs.initialisation import Initialisation
 from programs.poweroff import Poweroff
-
-# programs import
-# programs import
 from programs.ps4_controller_program import PS4ControllerProgram
 from programs.remote_control import RemoteControl
 from programs.ssh_programme import SshProgramme
@@ -29,10 +24,10 @@ from .backend import BackendAPI
 class Serveur:
     def __init__(self):
         self.log = logging.getLogger(__name__)
-        # initialisation of different modules
+        # initialization of different modules
         self.log.info("Server initialization")
 
-        # initialisation of GPIO buttons, LEDs, buzzer
+        # initialization of GPIO buttons, LEDs, buzzer
         self.bp_next = Button("GPIO5", bounce_time=0.1)
         self.bp_entre = Button("GPIO6", bounce_time=0.1)
 
@@ -46,7 +41,7 @@ class Serveur:
         self.bus = smbus.SMBus(1)  # 1 indicates /dev/i2c-1
         self.log.info("I2C: bus open on /dev/i2c-1")
 
-        # initialisation of time command
+        # initialization of time command
         self.initial_time = time.time()
         self.last_cmd_time = time.time()
 
@@ -70,7 +65,7 @@ class Serveur:
         ]
         self.log.debug("Programs ready: %s", [type(p).__name__ for p in self.programs])
 
-        # donnée de l'écran
+        # screen data
         self.screen = 0
         self.state = 0
         self.scroll_offset = 3
@@ -125,7 +120,7 @@ class Serveur:
             display.bitmap((0, 0), im, fill="white")
 
     def make_voltage_im(self):
-        """cCreate an image showing the battery voltages to be pasted on the main display"""
+        """Create an image showing the battery voltages to be pasted on the main display"""
         if self.arduino_I2C is not None:
             received = [self.arduino_I2C.voltage_lipo, self.arduino_I2C.voltage_nimh]
         else:

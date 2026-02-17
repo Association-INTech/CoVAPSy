@@ -1,5 +1,3 @@
-# BackendAPI.py
-
 import asyncio
 import base64
 import logging
@@ -186,7 +184,7 @@ class BackendAPI(Program):
         theta_world = theta_lidar + self.lidar_yaw
 
         # projection
-        # cartésien coordonates
+        # cartesian coordinates
         x = (-np.sin(theta_world) * r).astype(np.int16)
         y = (np.cos(theta_world) * r).astype(np.int16)
 
@@ -248,7 +246,7 @@ class BackendAPI(Program):
                 raise HTTPException(status_code=404, detail="Unknown program id")
 
             self.server.start_process(prog_id)
-            # après action, renvoyer état mis à jour
+            # after action, return updated state
             return {
                 "status": "ok",
                 "program_id": prog_id,
