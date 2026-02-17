@@ -54,7 +54,7 @@ class BackendAPI(Program):
         self.server = server
         self.controls_car = False
         self.running = False
-        self.lidar_yaw = 0  # for lidar coordinate correction
+        self.lidar_yaw = np.pi / 2  # for lidar coordinate correction
 
         self.host = host
         self.port = port

@@ -27,7 +27,11 @@ class ToF:
         while True:
             try:
                 if self.vl53.data_ready:
-                    self.distance = self.vl53.distance if self.vl53.distance is not None else 0 # en cm
+                    distance = self.vl53.distance
+                    if distance is None:
+                        self.distance = 0 # en cm
+                    else:
+                        self.distance = distance # en cm
                     self.vl53.clear_interrupt()
                 time.sleep(0.05)
             except Exception as e:
