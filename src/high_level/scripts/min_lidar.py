@@ -51,10 +51,10 @@ def main():
     print("Arrêt du lidar...")
     lidar.stop()
 
-    result = np.vstack((lidar.xTheta, min_distance)).T
-    np.save("../src/high_level/data/min_lidar.npy", result)
+    result = min_distance
+    np.save("../src/high_level/programs/data/min_lidar.npy", result)
 
-    print("Sauvegardé dans min_lidar.npy")
+    print("Sauvegardé dans ../src/high_level/programs/data/min_lidar.npy")
     print("Shape:", result.shape)
 
 

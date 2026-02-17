@@ -293,7 +293,8 @@ async function fetchLidarInit() {
   if (!res.ok) throw new Error(`lidar_init failed: ${res.status}`);
   const data = await res.json();
   const theta = decodeBase64ToFloat32Array(data.xTheta);
-  return theta;
+  const carBorder = data.car_border ? decodeBase64ToFloat32Array(data.car_border) : null;
+  return { theta, carBorder };
 }
 
 function initLidar(theta, retryDelay = 1000) {
@@ -311,6 +312,8 @@ function initLidar(theta, retryDelay = 1000) {
         sinT[i] = Math.sin(theta[i]);
         cosT[i] = Math.cos(theta[i]);
     }
+
+
 
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(proto + "://" + location.host + "/api/lidar/ws");
@@ -407,6 +410,25 @@ function initLidar(theta, retryDelay = 1000) {
 
         ctx.fillRect(x, -y, 2, 2);
         }
+        /* ---------- Car Border (from min_lidar) ---------- */
+        if (car_border) {
+            ctx.fillStyle = "#fffb00";
+            for (let i = 0; i < n; i++) {
+            const ri = car_border[i]; // mm
+
+            // x = -(sin(theta+yaw))*r
+            // y =  (cos(theta+yaw))*r
+            // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
+            // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
+            const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
+            const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
+
+            const x = (-sinW * ri) * scale;
+            const y = ( cosW * ri) * scale;
+
+            ctx.fillRect(x, -y, 2, 2);
+            }
+        }
         // Draw ToF point on lidar pov
         ctx.fillStyle = "#00eaff";
         const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
@@ -423,7 +445,7 @@ function initLidar(theta, retryDelay = 1000) {
         console.warn("LIDAR WS disconnected");
 
         setTimeout(() => {
-            initLidar(theta, Math.min(retryDelay * 2, 8000));
+            initLidar(theta, car_border, Math.min(retryDelay * 2, 8000));
         }, retryDelay);
 }
 }
@@ -482,8 +504,8 @@ async function init() {
         } else {
             console.warn("Element #camera not found at initialization");
         }
-        const theta = await fetchLidarInit();
-        initLidar(theta);
+        const { theta, car_border } = await fetchLidarInit();
+        initLidar(theta, car_border);
         initTelemetryWS();
         loadProgramsOnce();
     } catch (e) {

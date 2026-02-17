@@ -54,7 +54,7 @@ class BackendAPI(Program):
         self.server = server
         self.controls_car = False
         self.running = False
-        self.lidar_yaw = np.pi / 2  # for lidar coordinate correction
+        self.lidar_yaw = -np.pi / 2  # for lidar coordinate correction
 
         self.host = host
         self.port = port
@@ -187,7 +187,12 @@ class BackendAPI(Program):
             "timestamp": time.time(),
             "n": int(r_i16.shape[0]),
         }
-
+    def _get_car_border(self):
+        try:
+            data = np.load("/src/high_level/programs/data/min_lidar.npy")
+            return base64.b64encode(data.astype(np.float32).tobytes()).decode("ascii")
+        except FileNotFoundError:
+            return None
     # ----------------------------
     # Routes
     # ----------------------------
@@ -297,6 +302,7 @@ class BackendAPI(Program):
 
             return {
                 "xTheta": base64.b64encode(xTheta.tobytes()).decode("ascii"),
+                "car_border": self._get_car_border(),
                 "dtype": "float32",
                 "unit": "radian",
                 "n": int(xTheta.shape[0]),

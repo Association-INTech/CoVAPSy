@@ -11,17 +11,17 @@ class Program:
     target_speed: float
     direction: float
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(LOGGING_LEVEL)
 
-    def kill(self):
+    def kill(self) -> None:
         pass
 
-    def start(self):
+    def start(self) -> None:
         pass
 
-    def display(self):
+    def display(self) -> str:
         name = self.__class__.__name__
         if self.running:
             return f"{name} \n (running)"
