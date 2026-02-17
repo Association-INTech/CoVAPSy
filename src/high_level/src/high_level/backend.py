@@ -189,10 +189,11 @@ class BackendAPI(Program):
         }
     def _get_car_border(self):
         try:
-            data = np.load("/home/intech/CoVAPSy/src/high_level/programs/data/min_lidar.npy")
+            print("oubuibiubuibiubiubiubiubiubiubiubuibiubiub")
+            data = np.load("/home/intech/CoVAPSy/src/high_level/src/programs/data/min_lidar.npy")
+            print(data[:10])
             self.logger.warning("car_border loaded:", data.shape)
-            print(data.dtype)
-            return base64.b64encode(data.astype(np.float32).tobytes()).decode("ascii")
+            return base64.b64encode(data.tobytes()).decode("ascii")
         except FileNotFoundError:
             self.logger.error("Car border not found")
             return None
@@ -302,7 +303,6 @@ class BackendAPI(Program):
                 raise HTTPException(status_code=503, detail="Lidar not ready (xTheta missing)")
 
             xTheta = np.asarray(xTheta, dtype=np.float32)
-
             return {
                 "xTheta": base64.b64encode(xTheta.tobytes()).decode("ascii"),
                 "car_border": self._get_car_border(),

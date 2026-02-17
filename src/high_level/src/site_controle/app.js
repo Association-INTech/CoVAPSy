@@ -295,6 +295,7 @@ async function fetchLidarInit() {
   console.log(data);
   const theta = decodeBase64ToFloat32Array(data.xTheta);
   const carBorder = data.car_border ? decodeBase64ToFloat32Array(data.car_border) : null;
+  console.log(carBorder);
   return { theta, carBorder };
 }
 
