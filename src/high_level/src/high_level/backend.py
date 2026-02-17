@@ -133,7 +133,7 @@ class BackendAPI(Program):
             "timestamp": time.time(),
         }
 
-    def _fetch_name_models(self):
+    def _fetch_name_models(self) -> list[str]:
         models = os.listdir(MODEL_PATH)
         models = [model for model in models if model.endswith(".onnx")]
         return models
@@ -166,37 +166,26 @@ class BackendAPI(Program):
     def _lidar(self):
         return getattr(self.server, "lidar", None)
 
-    def _get_lidar_points_cartesian(self):
+    def _get_lidar_ranges(self):
         lidar = self._lidar()
         if not lidar or lidar.rDistance is None:
             return None
 
         r = np.asarray(lidar.rDistance)
-        n = r.shape[0]
 
-        # lidar angle values
-        theta_lidar = np.linspace(
-            -3 * np.pi / 4,  # -135°
-            +3 * np.pi / 4,  # +135°
-            n,
-            endpoint=True,
-        )
 
-        # orientation correction
-        theta_world = theta_lidar + self.lidar_yaw
-
-        # projection
-        # cartésien coordonates
-        x = (-np.sin(theta_world) * r).astype(np.int16)
-        y = (np.cos(theta_world) * r).astype(np.int16)
+        # int16 suffit.
+        # Sinon passe en int32 .
+        r_i16 = r.astype(np.int16, copy=False)
 
         return {
-            "x": base64.b64encode(x.tobytes()).decode("ascii"),
-            "y": base64.b64encode(y.tobytes()).decode("ascii"),
-            "tof": self.server.tof.distance,
+            "r": base64.b64encode(r_i16.tobytes()).decode("ascii"),
             "dtype": "int16",
             "unit": "mm",
+            "yaw": float(self.lidar_yaw),
+            "tof": float(self.server.tof.distance),
             "timestamp": time.time(),
+            "n": int(r_i16.shape[0]),
         }
 
     # ----------------------------
@@ -289,10 +278,29 @@ class BackendAPI(Program):
 
         @self.app.get("/api/lidar")
         def lidar_snapshot():
-            data = self._get_lidar_points_cartesian()
+            data = self._get_lidar_ranges()
             if data is None:
                 raise HTTPException(status_code=503, detail="Lidar not available")
             return data
+
+        @self.app.get("/api/lidar_init")
+        def lidar_init():
+            lidar = self._lidar()
+            if not lidar:
+                raise HTTPException(status_code=503, detail="Lidar not available")
+
+            xTheta = getattr(lidar, "xTheta", None)
+            if xTheta is None:
+                raise HTTPException(status_code=503, detail="Lidar not ready (xTheta missing)")
+
+            xTheta = np.asarray(xTheta, dtype=np.float32)
+
+            return {
+                "xTheta": base64.b64encode(xTheta.tobytes()).decode("ascii"),
+                "dtype": "float32",
+                "unit": "radian",
+                "n": int(xTheta.shape[0]),
+            }
 
         @self.app.websocket("/api/lidar/ws")
         async def lidar_ws(ws: WebSocket):
@@ -301,7 +309,7 @@ class BackendAPI(Program):
 
             try:
                 while True:
-                    data = self._get_lidar_points_cartesian()
+                    data = self._get_lidar_ranges()
                     if data:
                         await ws.send_json(data)
                     await asyncio.sleep(0.1)

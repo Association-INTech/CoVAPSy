@@ -1,8 +1,8 @@
 import time
-from ..src.HL.Lidar import Lidar
+from actionneur_capteur.lidar import Lidar
 
 
-IP = '192.168.0.10'
+IP = '192.168.0.20'
 PORT = 10940
 
 if __name__ == '__main__':

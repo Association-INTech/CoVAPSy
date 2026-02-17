@@ -282,25 +282,54 @@ function decodeBase64ToInt16Array(b64) {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new Int16Array(bytes.buffer);
 }
+function decodeBase64ToFloat32Array(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Float32Array(bytes.buffer);
+}
+async function fetchLidarInit() {
+  const res = await fetch(`${API}/api/lidar_init`);
+  if (!res.ok) throw new Error(`lidar_init failed: ${res.status}`);
+  const data = await res.json();
+  const theta = decodeBase64ToFloat32Array(data.xTheta);
+  return theta;
+}
 
-function initLidar(retryDelay = 1000) {
+function initLidar(theta, retryDelay = 1000) {
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     const scale = 0.15; // 10 cm = 15 px
 
+
+    // Precompute sin/cos once (fast)
+    const sinT = new Float32Array(theta.length);
+    const cosT = new Float32Array(theta.length);
+    for (let i = 0; i < theta.length; i++) {
+        sinT[i] = Math.sin(theta[i]);
+        cosT[i] = Math.cos(theta[i]);
+    }
+
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(proto + "://" + location.host + "/api/lidar/ws");
     try{
     ws.onmessage = (e) => {
         const data = JSON.parse(e.data);
-        const x = decodeBase64ToInt16Array(data.x);
-        const y = decodeBase64ToInt16Array(data.y);
-        const tof = data.tof;
+
+        const r = decodeBase64ToInt16Array(data.r);
+        const yaw = data.yaw ?? 0.0;
+        const tof = data.tof ?? 0.0;
+
+        // Safety: handle mismatch if lidar changes resolution
+        const n = Math.min(r.length, sinT.length);
+
+        // yaw rotation scalars
+        const cosYaw = Math.cos(yaw);
+        const sinYaw = Math.sin(yaw);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         ctx.save();
         ctx.translate(canvas.width / 2, canvas.height / 2);
 
@@ -363,12 +392,20 @@ function initLidar(retryDelay = 1000) {
 
         /* ---------- LIDAR Points ---------- */
         ctx.fillStyle = "#00ff88";
-        for (let i = 0; i < x.length; i++) {
-            ctx.fillRect(
-                x[i] * scale,
-               -y[i] * scale,
-                2, 2
-            );
+        for (let i = 0; i < n; i++) {
+        const ri = r[i]; // mm
+
+        // x = -(sin(theta+yaw))*r
+        // y =  (cos(theta+yaw))*r
+        // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
+        // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
+        const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
+        const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
+
+        const x = (-sinW * ri) * scale;
+        const y = ( cosW * ri) * scale;
+
+        ctx.fillRect(x, -y, 2, 2);
         }
         // Draw ToF point on lidar pov
         ctx.fillStyle = "#00eaff";
@@ -386,7 +423,7 @@ function initLidar(retryDelay = 1000) {
         console.warn("LIDAR WS disconnected");
 
         setTimeout(() => {
-            initLidar(Math.min(retryDelay * 2, 8000));
+            initLidar(theta, Math.min(retryDelay * 2, 8000));
         }, retryDelay);
 }
 }
@@ -445,8 +482,8 @@ async function init() {
         } else {
             console.warn("Element #camera not found at initialization");
         }
-
-        initLidar();
+        const theta = await fetchLidarInit();
+        initLidar(theta);
         initTelemetryWS();
         loadProgramsOnce();
     } catch (e) {
