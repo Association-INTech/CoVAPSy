@@ -30,15 +30,6 @@ class Car:
         self.serveur = serveur
         self.reverse_count = 0
 
-        def _initialize_ai():
-            """Initialize the AI session."""
-            try:
-                self.ai_session = ort.InferenceSession(os.path.join(MODEL_PATH, model))
-                self.log.info("AI session initialized successfully")
-            except Exception as e:
-                self.log.error(f"Error initializing AI session: {e}")
-                raise
-
         # Initialize AI session
         try:
             self.ai_session = ort.InferenceSession(MODEL_PATH)
