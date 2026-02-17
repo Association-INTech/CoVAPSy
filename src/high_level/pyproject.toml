@@ -41,7 +41,10 @@ dependencies = [
     "adafruit-circuitpython-vl53l1x>=1.2.7",
 ]
 
-
+[project.optional-dependencies]
+controller = [
+    "pygame>=2.6.1",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.24,<0.10.0"]

@@ -1,4 +1,5 @@
 import time
+
 import board
 import busio
 from adafruit_vl53l1x import VL53L1X
@@ -17,13 +18,13 @@ except Exception as e:
 # --- CONFIGURATION (important for VL53L1X) ---
 
 # Distance mode:
-# 1 = Short (≈1.3m, faster, better précision)
-# 2 = Long (≈4m, un peu plus bruité)
-tof.distance_mode = 2   # Long range (change si besoin)
+# 1 = Short (~1.3m, faster, better precision)
+# 2 = Long (~4m, a bit noisier)
+tof.distance_mode = 2  # Long range (change if needed)
 
 # Timing budget (ms)
-# plus grand = plus précis, plus lent
-tof.timing_budget = 50  # bon compromis
+# larger = more accurate, slower
+tof.timing_budget = 50  # good compromise
 
 # Start ranging
 tof.start_ranging()
@@ -33,7 +34,7 @@ print("Starting continuous ranging...")
 try:
     while True:
         if tof.data_ready:
-            distance = tof.distance  # en cm
+            distance = tof.distance  # in cm
             print(f"Distance in cm: {distance}")
             tof.clear_interrupt()
 

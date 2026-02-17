@@ -1,7 +1,9 @@
-from programs.program import Program
-from programs.utils.ssh import check_ssh_connections
 import socket
 import time
+
+from programs.program import Program
+from programs.utils.ssh import check_ssh_connections
+
 
 class SshProgramme(Program):
     """Give information about SSH connections and IP address and if the car is in standby mode (when this program is running)"""
@@ -11,13 +13,20 @@ class SshProgramme(Program):
         self.running = True
         self.controls_car = True
 
-        self.target_speed = 0
-        self.direction = 0
+
 
         # Cache IP
         self.ip = None
         self._last_ip_check = 0
         self._ip_refresh_interval = 1.0  # secondes
+    
+    @property
+    def target_speed(self) -> float:
+        return 0.
+
+    @property
+    def direction(self) -> float:
+        return 0.
 
     def start(self):
         self.running = True
@@ -46,9 +55,9 @@ class SshProgramme(Program):
     def display(self):
         self._update_ip_if_needed()
 
-        text = f"Ssh to: {self.ip or 'non connecté'}"
+        text = f"Ssh to: {self.ip or 'not connected'}"
         if check_ssh_connections():
-            text += "\n connecté"
+            text += "\n connected"
         if self.running:
-            text += "\n Voiture en stand by"
+            text += "\n Car in standby"
         return text

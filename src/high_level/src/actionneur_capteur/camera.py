@@ -64,11 +64,11 @@ class Camera:
     async def _processing_loop(self):
         while not self._stop_flag.is_set():
             frame = await self._frame_queue.get()
-            # Décodage H264 -> numpy (HORS WebRTC)
+            # H264 decoding -> numpy (OUTSIDE WebRTC)
             img_bgr = frame.to_ndarray(format="bgr24")
             img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
-            # optionnel mais recommandé (stabilité algo)
+            # optional but recommended (algorithm stability)
             img_rgb = cv2.resize(img_rgb, (320, 240))
 
             with self._lock:
@@ -119,7 +119,7 @@ class Camera:
                 while not self._stop_flag.is_set():
                     frame = cast(VideoFrame, await track.recv())
 
-                    # ne JAMAIS bloquer ici
+                    # NEVER block here
                     if self._frame_queue.full():
                         try:
                             self._frame_queue.get_nowait()
@@ -153,31 +153,32 @@ class Camera:
             RTCSessionDescription(sdp=answer_sdp, type="answer")
         )
 
-        # attendre qu’on ait bien une piste vidéo (sinon inutile)
+        # wait until we have a video track (otherwise useless)
         try:
             await asyncio.wait_for(frame_received.wait(), timeout=5)
         except asyncio.TimeoutError:
             await pc.close()
             raise RuntimeError("WHEP: no video track received")
 
-        # rester vivant tant que pas stoppé
+        # stay alive as long as not stopped
         while not self._stop_flag.is_set() and pc.connectionState != "closed":
             await asyncio.sleep(0.1)
 
         await pc.close()
 
-    # --------- API publique ---------
+    # ----------------------------
+    # Program interface
+    # ----------------------------
     def stop(self):
-        """Arrête le client WHEP (ne stoppe pas MediaMTX)."""
+        """Stops the WHEP client (does not stop MediaMTX)."""
         self._stop_flag.set()
 
+    # ----------
+    # Public API
+    # ----------
     def get_last_image(self) -> np.ndarray:
         with self._lock:
             return self.last_frame.copy()
-
-    # ----------------------------------------------------------
-    # Interface publique
-    # ----------------------------------------------------------
 
     def camera_matrix(self, vector_size=128, image=None) -> np.ndarray:
         """

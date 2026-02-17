@@ -1,9 +1,9 @@
 # Copyright 1996-2022 Cyberbotics Ltd.
 #
-# Controle de la voiture TT-02 simulateur CoVAPSy pour Webots 2023b
-# Inspiré de vehicle_driver_altino controller
+# Control of the TT-02 car simulator CoVAPSy for Webots 2023b
+# Inspired by vehicle_driver_altino controller
 # Kévin Hoarau, Anthony Juton, Bastien Lhopitallier, Martin Taynaud
-# juillet 2023
+# July 2023
 
 
 from typing import cast
@@ -28,20 +28,20 @@ camera.enable(sensorTime)
 touch_sensor = cast(TouchSensor, driver.getDevice("touch_sensor"))
 touch_sensor.enable(sensorTime)
 
-# vitesse en km/h
+# speed in km/h
 speed = 0
 maxSpeed = 28  # km/h
 
-# angle de la direction
+# steering angle
 angle = 0
-maxangle = 0.28  # rad (étrange, la voiture est défini pour une limite à 0.31 rad...
+maxangle = 0.28  # rad (strange, the car is defined with a limit of 0.31 rad...
 
 backwards_duration = 2000  # ms
 stop_duration = 3000  # ms
 
 death_count = 0
 
-# mise a zéro de la vitesse et de la direction
+# reset speed and direction to zero
 driver.setSteeringAngle(angle)
 driver.setCruisingSpeed(speed)
 
@@ -91,7 +91,7 @@ while driver.step() != -1:
             stop()
 
     speed = 1  # km/h
-    # l'angle de la direction est la différence entre les mesures des rayons
+    # the steering angle is the difference between ray measurements
     avg_color = np.mean(camera_data, axis=0) / 255
 
     i = np.argmin(lidar_data)

@@ -31,19 +31,19 @@ import numpy as np
 
 
 class Lidar:
-    measureMsgHeads = {"ME", "GE", "MD", "GD"}
+    measure_msg_heads = {"ME", "GE", "MD", "GD"}
 
-    def deg2theta(self, deg):
+    def deg_to_theta(self, deg):
         return deg / 360 * 2 * np.pi
 
-    def makeSocket(self, ip, port):
+    def make_socket(self, ip, port):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect((ip, port))
         sock.settimeout(5)
         return sock
 
     # decode 3 byte integer data line
-    def decodeDistance(self, data):
+    def decode_distance(self, data):
 
         def partition(n: int, lst):
             for i in range(0, len(lst), n):
@@ -61,12 +61,12 @@ class Lidar:
         # set out-of-range value to zero
         ns = [0 if n == 65533 else n for n in ns]
 
-        self.rDistance = np.array(ns)
-        self.mStep = self.startStep
+        self.r_distance = np.array(ns)
+        self.m_step = self.start_step
         self.measuring = False
         return ns
 
-    def __init__(self, ip, port, startStep=0):
+    def __init__(self, ip, port, start_step=0):
         self.log = logging.getLogger(__name__)
         self.ip = ip
         self.port = port
@@ -75,32 +75,32 @@ class Lidar:
         self.skip = 0
         self.head = None
         # Starting step id
-        self.startStep = startStep
+        self.start_step = start_step
         # Current step id, for decoding polar distance data
-        self.mStep = startStep
+        self.m_step = start_step
         # Array of distance
-        self.rDistance = np.zeros(1081 - startStep, dtype=int)
+        self.r_distance = np.zeros(1081 - start_step, dtype=int)
         # Buffer to receive packets
         self.buf = ""
-        self.expectedPacketSize = (
+        self.expected_packet_size = (
             65 * 50 + 44
         )  # TODO hardcoded for full range measurement
 
-        ids = np.arange(1081 - startStep)
-        self.xTheta = self.deg2theta((ids + startStep) * 270.0 / 1080 + 45 - 90)
+        ids = np.arange(1081 - start_step)
+        self.x_theta = self.deg_to_theta((ids + start_step) * 270.0 / 1080 + 45 - 90)
 
-        self.sock = self.makeSocket(ip, port)
-        self.__startReader__()
+        self.sock = self.make_socket(ip, port)
+        self.__start_reader__()
 
     def send(self, cmd: str):
         self.sock.sendall(cmd.encode())
 
-    def startPlotter(self, autorange=False):
+    def start_plotter(self, autorange=False):
 
-        def toCartesian(xTheta, xR):
-            X = np.cos(xTheta) * xR
-            Y = np.sin(xTheta) * xR
-            return X, Y
+        def to_cartesian(x_theta, x_r):
+            x = np.cos(x_theta) * x_r
+            y = np.sin(x_theta) * x_r
+            return x, y
 
         plt.show()
         plt.figure()
@@ -111,16 +111,16 @@ class Lidar:
         axp.grid(True)
         self.log.info("Plotter started, press any key to exit")
 
-        self.log.debug(f"{self.xTheta}, {self.rDistance}")
+        self.log.debug(f"{self.x_theta}, {self.r_distance}")
         while True:
-            X, Y = toCartesian(self.xTheta, self.rDistance)
+            x, y = to_cartesian(self.x_theta, self.r_distance)
 
             axp.clear()
             axc.clear()
 
-            axp.plot(self.xTheta, self.rDistance)
+            axp.plot(self.x_theta, self.r_distance)
 
-            axc.plot(X, Y)
+            axc.plot(x, y)
 
             if not autorange:
                 axp.set_rmax(8000)
@@ -133,28 +133,28 @@ class Lidar:
                 os._exit(0)
 
     # Change hokuyo IP address, requires reboot
-    def changeIP(self, ip: str, gateway: str, netmask="255.255.255.0"):
-        def formatZeros(addr):
+    def change_ip(self, ip: str, gateway: str, netmask="255.255.255.0"):
+        def format_zeros(addr):
             return "".join([n.rjust(3, "0") for n in addr.split(".")])
 
-        ip = formatZeros(ip)
-        gateway = formatZeros(gateway)
-        netmask = formatZeros(netmask)
+        ip = format_zeros(ip)
+        gateway = format_zeros(gateway)
+        netmask = format_zeros(netmask)
         cmd = f"$IP{ip}{netmask}{gateway}\r\n"
         self.log.debug(f"ChangeIP cmd:  {cmd}")
         self.send(cmd)
 
     # Start continous read mode
-    def startContinuous(self, start: int, end: int, withIntensity=False):
-        head = "ME" if withIntensity else "MD"
+    def start_continuous(self, start: int, end: int, with_intensity=False):
+        head = "ME" if with_intensity else "MD"
         cmd = f"{head}{start:04d}{end:04d}00000\r\n"
         self.log.debug(cmd)
         self.head = cmd.strip()
         self.send(cmd)
 
     # Start single read
-    def singleRead(self, start: int, end: int, withIntensity=False):
-        head = "GE" if withIntensity else "GD"
+    def single_read(self, start: int, end: int, with_intensity=False):
+        head = "GE" if with_intensity else "GD"
         cmd = f"{head}{start:04d}{end:04d}01000\r\n"
         self.send(cmd)
 
@@ -167,11 +167,11 @@ class Lidar:
         self.send(cmd)
         self.send(cmd)
 
-    def handleMsgLine(self, line):
+    def handle_msg_line(self, line):
         if line == self.head:
             self.measuring = True
             self.skip = 0
-            self.mStep = self.startStep
+            self.m_step = self.start_step
             return True
 
         if self.measuring:
@@ -181,18 +181,18 @@ class Lidar:
             else:
                 self.buf += line.strip()
                 # self.log.debug(f'buf size {len(self.buf)}')
-                if len(self.buf) >= self.expectedPacketSize:
-                    self.decodeDistance(self.buf)
+                if len(self.buf) >= self.expected_packet_size:
+                    self.decode_distance(self.buf)
                     self.buf = ""
                 return True
 
         return False
 
-    def __startReader__(self):
-        def handleMeasuring(msg):
+    def __start_reader__(self):
+        def handle_measuring(msg):
             lines = msg.split()
             for line in lines:
-                if not self.handleMsgLine(line):
+                if not self.handle_msg_line(line):
                     self.log.debug(f"ignore {line}")
 
         def loop():
@@ -201,7 +201,7 @@ class Lidar:
                     try:
                         m, _ = self.sock.recvfrom(1024)
                         msg = m.decode()
-                        handleMeasuring(msg)
+                        handle_measuring(msg)
                     except socket.timeout:
                         self.log.error("Read timeout, sensor disconnected?")
                         os._exit(1)

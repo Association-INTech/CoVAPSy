@@ -89,7 +89,7 @@ class VehicleDriver(Driver):
             "wb",
         )
 
-    # Vérification de l"état de la voiture
+    # Check the state of the car
     def observe(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # try:
         sensor_data = np.array([self.touch_sensor.getValue()], dtype=np.float32)
@@ -113,13 +113,13 @@ class VehicleDriver(Driver):
         return (sensor_data, lidar_data, camera_data)
 
         # except:
-        #     # En cas de non retour lidar
+        #     # In case of no lidar return
         #     return (
         #         np.array(self.touch_sensor.getValue(), dtype=np.float32),
         #         np.zeros(self.lidar.getNumberOfPoints(), dtype=np.float32),
         #     )
 
-    # Fonction step de l"environnement GYM
+    # Step function of the GYM environment
     def step(self):
         match self.state:
             case State.AI:
@@ -173,7 +173,7 @@ class VehicleDriver(Driver):
             self.state = State.BACK
 
     def back(self):
-        # si mur de "dir": braquer à "dir"" et reculer jusqu'à pouvoir réavancer (distance au mur à vérif)
+        # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
         lidar, cam = self.observe()[1:]
         S = sum(cam)
         dir = S > 0
@@ -201,7 +201,7 @@ class VehicleDriver(Driver):
             pass
 
 
-# ----------------Programme principal--------------------
+# ----------------Main Program--------------------
 def main():
     driver = VehicleDriver()
     driver.log.info("Starting the vehicle driver")

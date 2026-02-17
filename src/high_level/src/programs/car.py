@@ -30,15 +30,6 @@ class Car:
         self.serveur = serveur
         self.reverse_count = 0
 
-        def _initialize_ai():
-            """Initialize the AI session."""
-            try:
-                self.ai_session = ort.InferenceSession(os.path.join(MODEL_PATH, model))
-                self.log.info("AI session initialized successfully")
-            except Exception as e:
-                self.log.error(f"Error initializing AI session: {e}")
-                raise
-
         # Initialize AI session
         try:
             self.ai_session = ort.InferenceSession(MODEL_PATH)
@@ -51,7 +42,7 @@ class Car:
 
         self.log.info("Car initialization complete")
 
-    # accès dynamique aux capteurs
+    # dynamic access to sensors
     @property
     def camera(self):
         return self.serveur.camera
@@ -67,18 +58,18 @@ class Car:
     def stop(self):
         self.target_speed = 0
         self.direction = 0
-        self.log.info("Arrêt du moteur")
+        self.log.info("Motor stop")
 
     def has_Crashed(self):
 
         small_distances = [
-            d for d in self.lidar.rDistance[200:880] if 0 < d < CRASH_DIST
+            d for d in self.lidar.r_distance[200:880] if 0 < d < CRASH_DIST
         ]  # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
         self.log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
             while self.tof.get_distance() < REAR_BACKUP_DIST:
-                self.log.info(f"Obstacle arriere détecté {self.tof.get_distance()}")
+                self.log.info(f"Rear obstacle detected {self.tof.get_distance()}")
                 self.target_speed = 0
                 time.sleep(0.1)
             return True
@@ -96,11 +87,11 @@ class Car:
             self.turn_around()
 
     def main(self):
-        # récupération des données du lidar. On ne prend que les 1080 premières valeurs et on ignore la dernière par facilit" pour l'ia
+        # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
         if self.camera is None or self.lidar is None:
-            self.log.debug("Capteurs pas encore prêts")
+            self.log.debug("Sensors not yet ready")
             return
-        lidar_data = self.lidar.rDistance[:1080] / 1000
+        lidar_data = self.lidar.r_distance[:1080] / 1000
         lidar_data_ai = (
             (lidar_data - 0.5)
             * (
@@ -108,10 +99,10 @@ class Car:
                 + LIDAR_DATA_AMPLITUDE
                 * np.exp(-1 / 2 * ((np.arange(1080) - 135) / LIDAR_DATA_SIGMA**2))
             )
-        )  # convertir en mètre et ajouter un bruit gaussien #On traffique les données fournit a l'IA
+        )  # convert to meters and add Gaussian noise. We manipulate the data provided to the AI
         self.direction, self.target_speed = self.driving(
             lidar_data_ai, self.camera.camera_matrix()
-        )  # l'ai prend des distance en mètre et non en mm
+        )  # the ai takes distances in meters not in mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
         """
         if self.camera.is_running_in_reversed():
@@ -123,31 +114,31 @@ class Car:
             self.reverse_count = 0
 
         if self.has_Crashed():
-            self.log.info("Obstacle détecté")
+            self.log.info("Obstacle detected")
             color= self.camera.is_green_or_red(lidar_data)
             if color == 0:
                 small_distances = [
-                    d for d in self.lidar.rDistance if 0 < d < CRASH_DIST
+                    d for d in self.lidar.r_distance if 0 < d < CRASH_DIST
                 ]
                 if len(small_distances) == 0:
-                    self.log.info("Aucun obstacle détecté")
+                    self.log.info("No obstacle detected")
                     return
                 min_index = np.argmin(small_distances)
                 direction = (
                     MAX_ANGLE if min_index < 540 else -MAX_ANGLE
                 )  # 540 is the middle of the lidar
                 color = direction / direction
-                self.log.info("Obstacle détecté, Lidar Fallback")
+                self.log.info("Obstacle detected, Lidar Fallback")
             if color == -1:
-                self.log.info("Obstacle rouge détecté")
+                self.log.info("Red obstacle detected")
             if color == 1:
-                self.log.info("Obstacle vert détecté")
+                self.log.info("Green obstacle detected")
             angle = -color * MAX_ANGLE
             self.target_speed = -2
             self.direction = angle"""
 
 
-class Ai_Programme(Program):
+class AIProgram(Program):
     def __init__(self, serveur):
         super().__init__()
         self.log = logging.getLogger(__name__)
@@ -161,7 +152,7 @@ class Ai_Programme(Program):
                 model for model in os.listdir(MODEL_PATH) if model.endswith(".onnx")
             ]
         except Exception as e:
-            self.log.error(f"Erreur lors de la récupération des modèles: {e}")
+            self.log.error(f"Error retrieving models: {e}")
         self.nb_models = len(self.models)
         self.id_model = self.nb_models
         # start with the last model which is the fallback for not running
@@ -185,7 +176,7 @@ class Ai_Programme(Program):
                     self.GR86.main()
                 print("lolooibiiuib : " + self.running.__str__())
             except Exception as e:
-                self.log.error(f"Erreur IA: {e}")
+                self.log.error(f"AI error: {e}")
                 self.running = False
                 raise
 
@@ -200,23 +191,23 @@ class Ai_Programme(Program):
     def start(self, model_give: Optional[str] = None):
 
         if self.serveur.camera is None or self.serveur.lidar is None:
-            self.log.error("Capteurs non initialisés")
+            self.log.error("Sensors not initialized")
             return
         if self.models is None:
-            self.log.error("Aucun modèle disponible pour l'IA")
+            self.log.error("No models available for AI")
             return
         if model_give is not None:
             self.initializeai(model_give)
-            self.log.info(f"Démarrage de l'IA avec le modèle {model_give}")
+            self.log.info(f"Starting AI with model {model_give}")
         else:
             try:
                 self.id_model = (self.id_model + 1) % (self.nb_models)
-                self.log.info(f"Modèle sélectionné: {self.models[self.id_model]}")
+                self.log.info(f"Selected model: {self.models[self.id_model]}")
                 model = self.models[self.id_model]
                 self.initializeai(model)
 
             except Exception as e:
-                self.log.error(f"Impossible de démarrer l'IA: {e}")
+                self.log.error(f"Unable to start AI: {e}")
                 self.driver = None
                 self.GR86 = None
                 return
@@ -245,9 +236,9 @@ class Ai_Programme(Program):
 
 
 """
-if __name__ == '__main__': # non fonctionnelle
+if __name__ == '__main__': # non functional
     Format= '%(asctime)s:%(name)s:%(levelname)s:%(message)s'
-    if input("Appuyez sur D pour démarrer en debug ou sur n'importe quelle autre touche pour démarrer en mode normal") in ("D", "d"):
+    if input("Press D to start in debug mode or any other key to start in normal mode") in ("D", "d"):
         logging.basicConfig(level=logging.DEBUG, format=Format)
     else:
         logging.basicConfig(level=logging.INFO, format=Format)
@@ -257,19 +248,19 @@ if __name__ == '__main__': # non fonctionnelle
         GR86 = Car(Schumacher,None,None)
         GR86._initialize_camera()
         GR86._initialize_lidar()
-        logging.info("Initialisation terminée")
-        if input("Appuyez sur D pour démarrer ou tout autre touche pour quitter") in ("D", "d") or bp2.is_pressed:
-            logging.info("Depart")
+        logging.info("Initialization complete")
+        if input("Press D to start or any other key to quit") in ("D", "d") or bp2.is_pressed:
+            logging.info("Start")
             while True:
                 GR86.main()
         else:
-            raise Exception("Le programme a été arrêté par l'utilisateur")
+            raise Exception("The program was stopped by the user")
     except KeyboardInterrupt:
         GR86.stop()
-        logging.info("Le programme a été arrêté par l'utilisateur")
+        logging.info("The program was stopped by the user")
 
     except Exception as e: # catch all exceptions to stop the car
         GR86.stop()
-        logging.error("Erreur inconnue")
+        logging.error("Unknown error")
         raise e # re-raise the exception to see the error message
     """

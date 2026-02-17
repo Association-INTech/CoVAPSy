@@ -20,23 +20,23 @@ def send_data():
 
 
 ###################################################
-# Vehicule control variables
+# Vehicle control variables
 ###################################################
 direction = 0
 target_speed = 0
 
 max_target_speed = 2
 min_target_speed = -2
-angle_degre_max = 18
+angle_degree_max = 18
 
 
 def map_range(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
-def set_direction_degre(angle_degre):
+def set_direction_degrees(angle_degrees):
     global direction
-    direction = angle_degre
+    direction = angle_degrees
     print(direction, target_speed)
 
 
@@ -47,7 +47,7 @@ def set_target_speed(vit):
 
 if __name__ == "__main__":
     ###################################################
-    # Init pygame + manette
+    # Init pygame + controller
     ###################################################
     pygame.init()
     pygame.joystick.init()
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     print("joystick detected:", joy.get_name())
 
     ###################################################
-    # Boucle principale
+    # Main loop
     ###################################################
     Thread(target=send_data, daemon=True).start()
 
@@ -69,32 +69,32 @@ if __name__ == "__main__":
         while True:
             pygame.event.pump()
 
-            # Axes :
-            # Pour Xbox/PS4 USB :
-            # L2 = axis 2   (souvent 0..1)
-            # R2 = axis 5   (souvent 0..1)
-            # Stick gauche horizontal = axis 0 (-1..1)
+            # Axes:
+            # For Xbox/PS4 USB:
+            # L2 = axis 2   (often 0..1)
+            # R2 = axis 5   (often 0..1)
+            # Left stick horizontal = axis 0 (-1..1)
 
-            axis_lx = joy.get_axis(0)  # Gauche droite
-            axis_l2 = joy.get_axis(2)  # Accélération inverse
-            axis_r2 = joy.get_axis(5)  # Accélération
+            axis_lx = joy.get_axis(0)  # Left right
+            axis_l2 = joy.get_axis(2)  # Reverse acceleration
+            axis_r2 = joy.get_axis(5)  # Forward acceleration
 
             # Direction
-            direction = map_range(axis_lx, -1, 1, -angle_degre_max, angle_degre_max)
-            set_direction_degre(round(direction))
+            direction = map_range(axis_lx, -1, 1, -angle_degree_max, angle_degree_max)
+            set_direction_degrees(round(direction))
 
-            # Accélération
+            # Acceleration
             accel = (axis_r2 + 1) / 2
             brake = (axis_l2 + 1) / 2
 
-            # Certaines manettes vont de -1..1, d'autres 0..1
+            # Some controllers go from -1..1, others 0..1
 
-            # Avant
+            # Forward
             if accel > 0.05:
                 vit = accel * max_target_speed * 1000
                 set_target_speed(round(vit))
 
-            # Arrière
+            # Reverse
             elif brake > 0.05:
                 vit = brake * min_target_speed * 1000
                 set_target_speed(round(vit))

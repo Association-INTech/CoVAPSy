@@ -61,13 +61,13 @@ class Driver:
     def load_model(self, model: str):
         if self._loaded:
             return
-        self.log.info("Chargement du modèle IA...")
+        self.log.info("Loading AI model...")
         self.ai_session = ort.InferenceSession(MODEL_PATH + "/" + model)
         self.context = np.zeros(
             [2, self.context_size, self.horizontal_size], dtype=np.float32
         )
         self._loaded = True
-        self.log.info("Modèle IA chargé")
+        self.log.info("AI model loaded")
 
     def reset(self):
         self.context = np.zeros(
@@ -95,7 +95,7 @@ class Driver:
         self, lidar_data: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:
         if not self._loaded:
-            raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
+            raise RuntimeError("Driver not initialized (AI model not loaded)")
 
         # self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
 
@@ -119,7 +119,7 @@ class Driver:
         )[0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
-        vect_dir = softmax(vect_dir)  # distribution de probabilité
+        vect_dir = softmax(vect_dir)  # probability distribution
         vect_prop = softmax(vect_prop)
 
         if self.log.isEnabledFor(logging.DEBUG):
@@ -147,15 +147,15 @@ class Driver:
         print(" ".join([f"{x:.1f}" for x in vect_dir]))
         print(" ".join([f"{x:.1f}" for x in vect_prop]), flush=True)
         """
-        angle = sum(ANGLE_LOOKUP * vect_dir)  # moyenne pondérée des angles
-        # moyenne pondérée des vitesses
+        angle = sum(ANGLE_LOOKUP * vect_dir)  # weighted average of angles
+        # weighted average of speeds
         vitesse = sum(SPEED_LOOKUP * vect_prop)
 
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data) -> Tuple[float, float]:
         if not self._loaded:
-            raise RuntimeError("Driver non initialisé (modèle IA non chargé)")
+            raise RuntimeError("Driver not initialized (AI model not loaded)")
         lidar_data = np.array(lidar_data, dtype=np.float32) * 1.6
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
         vect = cast(
@@ -164,11 +164,11 @@ class Driver:
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in
 
-        vect_dir = softmax(vect_dir / Temperature)  # distribution de probabilité
+        vect_dir = softmax(vect_dir / Temperature)  # probability distribution
         vect_prop = softmax(vect_prop)
 
-        angle = sum(ANGLE_LOOKUP * vect_dir)  # moyenne pondérée des angles
-        # moyenne pondérée des vitesses
+        angle = sum(ANGLE_LOOKUP * vect_dir)  # weighted average of angles
+        # weighted average of speeds
         vitesse = sum(SPEED_LOOKUP * vect_prop)
         return angle, vitesse
 

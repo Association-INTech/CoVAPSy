@@ -1,12 +1,12 @@
 from rpi_hardware_pwm import HardwarePWM
 
-# paramètres de départ, avec des butées très proche du centre
-direction = -1  # 1 pour angle_pwm_min a gauche, -1 pour angle_pwm_min à droite
+# startup parameters, with stops very close to the center
+direction = -1  # 1 for angle_pwm_min to the left, -1 for angle_pwm_min to the right
 angle_pwm_min = 6.91  # min
 angle_pwm_max = 10.7  # max
 angle_pwm_centre = 8.805
 
-angle_degre_max = +18  # vers la gauche
+angle_degre_max = +18  # towards the left
 angle_degre = 0
 
 pwm_dir = HardwarePWM(
@@ -15,13 +15,13 @@ pwm_dir = HardwarePWM(
 pwm_dir.start(angle_pwm_centre)
 
 
-def set_direction_degre(angle_degre):
+def set_direction_degrees(angle_degrees):
     global angle_pwm_min
     global angle_pwm_max
     global angle_pwm_centre
     angle_pwm = angle_pwm_centre + direction * (
         angle_pwm_max - angle_pwm_min
-    ) * angle_degre / (2 * angle_degre_max)
+    ) * angle_degrees / (2 * angle_degre_max)
     if angle_pwm > angle_pwm_max:
         angle_pwm = angle_pwm_max
     if angle_pwm < angle_pwm_min:
@@ -29,62 +29,62 @@ def set_direction_degre(angle_degre):
     pwm_dir.change_duty_cycle(angle_pwm)
 
 
-print("réglage des butées, Q pour quitter")
-print("valeur numérique pour tester un angle de direction")
-print("I pour inverser droite et gauche")
-print("g pour diminuer la butée gauche et G pour l'augmenter")
-print("d pour diminuer la butée droite et D pour l'augmenter")
+print("Adjust stops, Q to quit")
+print("Enter numeric value to test a direction angle")
+print("I to reverse left and right")
+print("g to decrease the left stop and G to increase it")
+print("d to decrease the right stop and D to increase it")
 
 while True:
     a = input("angle, I, g, G, d, D ?")
     try:
         angle_degre = int(a)
-        set_direction_degre(angle_degre)
+        set_direction_degrees(angle_degre)
     except Exception:
         if a == "I":
             direction = -direction
-            print("nouvelle direction : " + str(direction))
+            print("new direction: " + str(direction))
         elif a == "g":
             if direction == 1:
                 angle_pwm_max -= 0.1
-                print("nouvelle butée gauche : " + str(angle_pwm_max))
+                print("new left stop: " + str(angle_pwm_max))
             else:
                 angle_pwm_min += 0.1
-                print("nouvelle butée gauche : " + str(angle_pwm_min))
+                print("new left stop: " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(18)
+            set_direction_degrees(18)
         elif a == "G":
             if direction == 1:
                 angle_pwm_max += 0.1
-                print("nouvelle butée gauche : " + str(angle_pwm_max))
+                print("new left stop: " + str(angle_pwm_max))
             else:
                 angle_pwm_min -= 0.1
-                print("nouvelle butée gauche : " + str(angle_pwm_min))
+                print("new left stop: " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(18)
+            set_direction_degrees(18)
         elif a == "d":
             if direction == -1:
                 angle_pwm_max -= 0.1
-                print("nouvelle butée droite : " + str(angle_pwm_max))
+                print("new right stop: " + str(angle_pwm_max))
             else:
                 angle_pwm_min += 0.1
-                print("nouvelle butée droite : " + str(angle_pwm_min))
+                print("new right stop: " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(-18)
+            set_direction_degrees(-18)
         elif a == "D":
             if direction == -1:
                 angle_pwm_max += 0.1
-                print("nouvelle butée droite : " + str(angle_pwm_max))
+                print("new right stop: " + str(angle_pwm_max))
             else:
                 angle_pwm_min -= 0.1
-                print("nouvelle butée droite : " + str(angle_pwm_min))
+                print("new right stop: " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(-18)
+            set_direction_degrees(-18)
         else:
             break
 
-print("nouvelles valeurs")
-print("direction : " + str(direction))
-print("angle_pwm_min : " + str(angle_pwm_min))
-print("angle_pwm_max : " + str(angle_pwm_max))
-print("angle_pwm_centre : " + str(angle_pwm_centre))
+print("new values")
+print("direction: " + str(direction))
+print("angle_pwm_min: " + str(angle_pwm_min))
+print("angle_pwm_max: " + str(angle_pwm_max))
+print("angle_pwm_centre: " + str(angle_pwm_centre))

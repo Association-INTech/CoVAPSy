@@ -1,5 +1,3 @@
-# BackendAPI.py
-
 import asyncio
 import base64
 import logging
@@ -128,7 +126,7 @@ class BackendAPI(Program):
                 "direction": direction,
                 "car_control": prog_name,
                 "program_id": last_ctrl,
-                "tof" : self.server.tof.distance,
+                "tof": self.server.tof.distance,
             },
             "timestamp": time.time(),
         }
@@ -168,11 +166,10 @@ class BackendAPI(Program):
 
     def _get_lidar_ranges(self):
         lidar = self._lidar()
-        if not lidar or lidar.rDistance is None:
+        if not lidar or lidar.r_distance is None:
             return None
 
         r = np.asarray(lidar.rDistance)
-
 
         # int16 suffit.
         # Sinon passe en int32 .
@@ -187,15 +184,19 @@ class BackendAPI(Program):
             "timestamp": time.time(),
             "n": int(r_i16.shape[0]),
         }
+
     def _get_car_border(self):
         try:
-            data = np.load("/home/intech/CoVAPSy/src/high_level/src/programs/data/min_lidar.npy")
+            data = np.load(
+                "/home/intech/CoVAPSy/src/high_level/src/programs/data/min_lidar.npy"
+            )
             self.logger.warning("car_border loaded:", data.shape)
             data32 = data.astype(np.float32)
             return base64.b64encode(data32.tobytes()).decode("ascii")
         except FileNotFoundError:
             self.logger.error("Car border not found")
             return None
+
     # ----------------------------
     # Routes
     # ----------------------------
@@ -224,7 +225,7 @@ class BackendAPI(Program):
             programs = getattr(self.server, "programs", [])
 
             ai_prog = next(
-                (p for p in programs if type(p).__name__ == "Ai_Programme"), None
+                (p for p in programs if type(p).__name__ == "AIProgram"), None
             )
 
             if ai_prog is None:
@@ -245,7 +246,7 @@ class BackendAPI(Program):
                 raise HTTPException(status_code=404, detail="Unknown program id")
 
             self.server.start_process(prog_id)
-            # après action, renvoyer état mis à jour
+            # after action, return updated state
             return {
                 "status": "ok",
                 "program_id": prog_id,
@@ -299,7 +300,9 @@ class BackendAPI(Program):
 
             xTheta = getattr(lidar, "xTheta", None)
             if xTheta is None:
-                raise HTTPException(status_code=503, detail="Lidar not ready (xTheta missing)")
+                raise HTTPException(
+                    status_code=503, detail="Lidar not ready (xTheta missing)"
+                )
 
             xTheta = np.asarray(xTheta, dtype=np.float32)
             return {

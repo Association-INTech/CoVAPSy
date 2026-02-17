@@ -36,7 +36,7 @@ def read_data(num_floats=3):
         raise ValueError("Not enough data received from I2C bus")
 
 
-def displayvoltage():
+def display_voltage():
     received = read_data(2)  # Adjust length as needed
     received = [round(elem, 2) for elem in received]
     for i in range(len(received)):
@@ -56,4 +56,4 @@ def displayvoltage():
 
 if __name__ == "__main__":
     while True:
-        displayvoltage()
+        display_voltage()

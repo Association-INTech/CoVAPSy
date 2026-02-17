@@ -2,7 +2,7 @@ import logging
 import threading
 from enum import Enum
 
-from actionneur_capteur import Camera, I2c_arduino, Lidar, ToF
+from actionneur_capteur import Camera, I2CArduino, Lidar, ToF
 from high_level.autotech_constant import SOCKET_ADRESS
 
 from .program import Program
@@ -34,7 +34,7 @@ class Initialisation(Program):
 
     def init_I2C_arduino(self, server):
         try:
-            self.arduino_I2C = I2c_arduino(server)
+            self.arduino_I2C = I2CArduino(server)
             self.arduino_I2C_init = ProgramState.RUNNING
             self.log.info("I2C Arduino initialized successfully")
         except Exception as e:
@@ -54,7 +54,7 @@ class Initialisation(Program):
         try:
             self.lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
             self.lidar.stop()
-            self.lidar.startContinuous(0, 1080)
+            self.lidar.start_continuous(0, 1080)
             self.log.info("Lidar initialized successfully")
             self.lidar_init = ProgramState.RUNNING
         except Exception as e:
