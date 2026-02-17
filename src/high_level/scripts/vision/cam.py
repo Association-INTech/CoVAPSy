@@ -39,7 +39,7 @@ def run_test(resolution):
     total_path_creation_time = 0
     total_save_time = 0
 
-    Start_time = time.time()  # Start time for the image stream
+    start_time = time.time()  # Start time for the image stream
 
     for i in range(N):
         init_time = time.time()  # Initialize the time for the first frame
@@ -77,7 +77,7 @@ def run_test(resolution):
     average_convert_time = total_convert_time / N
     average_path_creation_time = total_path_creation_time / N
     average_save_time = total_save_time / N
-    total_time = time.time() - Start_time
+    total_time = time.time() - start_time
 
     # Print results
     print(f"Average Capture time: {average_capture_time:.5f} seconds")

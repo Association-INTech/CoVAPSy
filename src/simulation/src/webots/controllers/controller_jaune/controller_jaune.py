@@ -38,8 +38,8 @@ driver.setCruisingSpeed(speed)
 tableau_lidar_mm = [0.0] * 360
 
 
-def set_vitesse_m_s(vitesse_m_s):
-    speed = vitesse_m_s * 3.6
+def set_speed_m_s(speed_m_s):
+    speed = speed_m_s * 3.6
     if speed > maxSpeed:
         speed = maxSpeed
     if speed < 0:
@@ -47,16 +47,16 @@ def set_vitesse_m_s(vitesse_m_s):
     driver.setCruisingSpeed(speed)
 
 
-def set_direction_degre(angle_degre):
-    if angle_degre > maxangle_degre:
-        angle_degre = maxangle_degre
-    elif angle_degre < -maxangle_degre:
-        angle_degre = -maxangle_degre
-    angle = -angle_degre * 3.14 / 180
+def set_direction_degrees(angle_degrees):
+    if angle_degrees > maxangle_degre:
+        angle_degrees = maxangle_degre
+    elif angle_degrees < -maxangle_degre:
+        angle_degrees = -maxangle_degre
+    angle = -angle_degrees * 3.14 / 180
     driver.setSteeringAngle(angle)
 
 
-def recule():  # sur la voiture réelle, il y a un stop puis un recul pendant 1s.
+def reverse():  # sur la voiture réelle, il y a un stop puis un recul pendant 1s.
     driver.setCruisingSpeed(-1)
 
 
@@ -92,22 +92,22 @@ while driver.step() != -1:
             tableau_lidar_mm[i] = 0
 
     if not modeAuto:
-        set_direction_degre(0)
-        set_vitesse_m_s(0)
+        set_direction_degrees(0)
+        set_speed_m_s(0)
 
     if modeAuto:
         ########################################################
         # Programme etudiant avec
         #    - le tableau tableau_lidar_mm
-        #    - la fonction set_direction_degre(...)
-        #    - la fonction set_vitesse_m_s(...)
-        #    - la fonction recule()
+        #    - la fonction set_direction_degrees(...)
+        #    - la fonction set_speed_m_s(...)
+        #    - la fonction reverse()
         #######################################################
 
         # un secteur par tranche de 20° donc 10 secteurs numérotés de 0 à 9
         angle_degre = 0.02 * (tableau_lidar_mm[60] - tableau_lidar_mm[-60])
-        set_direction_degre(angle_degre)
-        vitesse_m_s = 0.5
-        set_vitesse_m_s(vitesse_m_s)
+        set_direction_degrees(angle_degre)
+        speed_m_s = 0.5
+        set_speed_m_s(speed_m_s)
 
     #########################################################

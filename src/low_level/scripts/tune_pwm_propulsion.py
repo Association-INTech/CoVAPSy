@@ -36,7 +36,7 @@ def set_vitesse_m_s(vitesse_m_s):
         )
 
 
-def recule():
+def reverse():
     set_vitesse_m_s(-vitesse_max_m_s_hard)
     time.sleep(0.2)
     set_vitesse_m_s(0)
@@ -63,8 +63,8 @@ while True:
             direction_prop = -direction_prop
             print("nouvelle direction : " + str(direction_prop))
         elif a == "R":
-            recule()
-            print("recule")
+            reverse()
+            print("reverse")
         elif a == "p":
             delta_pwm_max_prop -= 0.1
             print("nouveau delta_pwm_max_prop : " + str(delta_pwm_max_prop))

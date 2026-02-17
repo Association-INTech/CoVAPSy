@@ -34,9 +34,9 @@ def map_range(x, in_min, in_max, out_min, out_max):
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 
-def set_direction_degre(angle_degre):
+def set_direction_degrees(angle_degrees):
     global direction
-    direction = angle_degre
+    direction = angle_degrees
     print(direction, target_speed)
 
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
             # Direction
             direction = map_range(axis_lx, -1, 1, -angle_degre_max, angle_degre_max)
-            set_direction_degre(round(direction))
+            set_direction_degrees(round(direction))
 
             # Accélération
             accel = (axis_r2 + 1) / 2

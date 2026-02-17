@@ -128,7 +128,7 @@ class BackendAPI(Program):
                 "direction": direction,
                 "car_control": prog_name,
                 "program_id": last_ctrl,
-                "tof" : self.server.tof.distance,
+                "tof": self.server.tof.distance,
             },
             "timestamp": time.time(),
         }
@@ -168,10 +168,10 @@ class BackendAPI(Program):
 
     def _get_lidar_points_cartesian(self):
         lidar = self._lidar()
-        if not lidar or lidar.rDistance is None:
+        if not lidar or lidar.r_distance is None:
             return None
 
-        r = np.asarray(lidar.rDistance)
+        r = np.asarray(lidar.r_distance)
         n = r.shape[0]
 
         # lidar angle values
@@ -227,7 +227,7 @@ class BackendAPI(Program):
             programs = getattr(self.server, "programs", [])
 
             ai_prog = next(
-                (p for p in programs if type(p).__name__ == "Ai_Programme"), None
+                (p for p in programs if type(p).__name__ == "AIProgram"), None
             )
 
             if ai_prog is None:

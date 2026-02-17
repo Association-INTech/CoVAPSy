@@ -15,13 +15,13 @@ pwm_dir = HardwarePWM(
 pwm_dir.start(angle_pwm_centre)
 
 
-def set_direction_degre(angle_degre):
+def set_direction_degrees(angle_degrees):
     global angle_pwm_min
     global angle_pwm_max
     global angle_pwm_centre
     angle_pwm = angle_pwm_centre + direction * (
         angle_pwm_max - angle_pwm_min
-    ) * angle_degre / (2 * angle_degre_max)
+    ) * angle_degrees / (2 * angle_degre_max)
     if angle_pwm > angle_pwm_max:
         angle_pwm = angle_pwm_max
     if angle_pwm < angle_pwm_min:
@@ -39,7 +39,7 @@ while True:
     a = input("angle, I, g, G, d, D ?")
     try:
         angle_degre = int(a)
-        set_direction_degre(angle_degre)
+        set_direction_degrees(angle_degre)
     except Exception:
         if a == "I":
             direction = -direction
@@ -52,7 +52,7 @@ while True:
                 angle_pwm_min += 0.1
                 print("nouvelle butée gauche : " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(18)
+            set_direction_degrees(18)
         elif a == "G":
             if direction == 1:
                 angle_pwm_max += 0.1
@@ -61,7 +61,7 @@ while True:
                 angle_pwm_min -= 0.1
                 print("nouvelle butée gauche : " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(18)
+            set_direction_degrees(18)
         elif a == "d":
             if direction == -1:
                 angle_pwm_max -= 0.1
@@ -70,7 +70,7 @@ while True:
                 angle_pwm_min += 0.1
                 print("nouvelle butée droite : " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(-18)
+            set_direction_degrees(-18)
         elif a == "D":
             if direction == -1:
                 angle_pwm_max += 0.1
@@ -79,7 +79,7 @@ while True:
                 angle_pwm_min -= 0.1
                 print("nouvelle butée droite : " + str(angle_pwm_min))
             angle_pwm_centre = (angle_pwm_max + angle_pwm_min) / 2
-            set_direction_degre(-18)
+            set_direction_degrees(-18)
         else:
             break
 

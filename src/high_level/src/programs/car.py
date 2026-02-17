@@ -72,7 +72,7 @@ class Car:
     def has_Crashed(self):
 
         small_distances = [
-            d for d in self.lidar.rDistance[200:880] if 0 < d < CRASH_DIST
+            d for d in self.lidar.r_distance[200:880] if 0 < d < CRASH_DIST
         ]  # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
         self.log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
@@ -100,7 +100,7 @@ class Car:
         if self.camera is None or self.lidar is None:
             self.log.debug("Capteurs pas encore prêts")
             return
-        lidar_data = self.lidar.rDistance[:1080] / 1000
+        lidar_data = self.lidar.r_distance[:1080] / 1000
         lidar_data_ai = (
             (lidar_data - 0.5)
             * (
@@ -127,7 +127,7 @@ class Car:
             color= self.camera.is_green_or_red(lidar_data)
             if color == 0:
                 small_distances = [
-                    d for d in self.lidar.rDistance if 0 < d < CRASH_DIST
+                    d for d in self.lidar.r_distance if 0 < d < CRASH_DIST
                 ]
                 if len(small_distances) == 0:
                     self.log.info("Aucun obstacle détecté")
@@ -147,7 +147,7 @@ class Car:
             self.direction = angle"""
 
 
-class Ai_Programme(Program):
+class AIProgram(Program):
     def __init__(self, serveur):
         super().__init__()
         self.log = logging.getLogger(__name__)

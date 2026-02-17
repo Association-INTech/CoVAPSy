@@ -10,7 +10,7 @@ from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
-from programs.car import Ai_Programme
+from programs.car import AIProgram
 
 # from actionneur_capteur.camera import ProgramStreamCamera
 from programs.initialisation import Initialisation
@@ -61,7 +61,7 @@ class Serveur:
         self.programs = [
             SshProgramme(),
             self.initialisation_module,
-            Ai_Programme(self),
+            AIProgram(self),
             PS4ControllerProgram(),
             RemoteControl(),
             # ProgramStreamCamera(self),
@@ -71,8 +71,8 @@ class Serveur:
         self.log.debug("Programs ready: %s", [type(p).__name__ for p in self.programs])
 
         # donnée de l'écran
-        self.Screen = 0
-        self.State = 0
+        self.screen = 0
+        self.state = 0
         self.scroll_offset = 3
 
     @property
@@ -156,7 +156,7 @@ class Serveur:
         with canvas(self.device) as draw:
             draw.bitmap((0, 0), im, fill="white")
 
-    def Idle(self):
+    def idle(self):
         """
         Manages the screen display based on the current or chosen function.
         Screen changes are managed by the button functions just below.
@@ -167,22 +167,22 @@ class Serveur:
         if not check_ssh_connections():
             self.led1.off()
 
-        if self.Screen < len(self.programs):
-            text = self.programs[self.Screen].display()
+        if self.screen < len(self.programs):
+            text = self.programs[self.screen].display()
             self.display_combined_im(text)
 
     def bouton_next(self):
         """go to next screen on oled display"""
-        self.Screen += 1
-        if self.Screen >= len(self.programs):
-            self.Screen = 0
+        self.screen += 1
+        if self.screen >= len(self.programs):
+            self.screen = 0
 
     def bouton_entre(self, num=None):
         """take action on the current screen on display and start the program"""
         if num is not None:
-            self.Screen = num
-        self.State = self.Screen
-        self.start_process(self.Screen)
+            self.screen = num
+        self.state = self.screen
+        self.start_process(self.screen)
 
     # ---------------------------------------------------------------------------------------------------
     # Processus
@@ -235,4 +235,4 @@ class Serveur:
         self.log.info("Server main loop started")
 
         while True:
-            self.Idle()
+            self.idle()
