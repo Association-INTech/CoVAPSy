@@ -189,11 +189,10 @@ class BackendAPI(Program):
         }
     def _get_car_border(self):
         try:
-            print("oubuibiubuibiubiubiubiubiubiubiubuibiubiub")
             data = np.load("/home/intech/CoVAPSy/src/high_level/src/programs/data/min_lidar.npy")
-            print(data[:10])
             self.logger.warning("car_border loaded:", data.shape)
-            return base64.b64encode(data.tobytes()).decode("ascii")
+            data32 = data.astype(np.float32)
+            return base64.b64encode(data32.tobytes()).decode("ascii")
         except FileNotFoundError:
             self.logger.error("Car border not found")
             return None

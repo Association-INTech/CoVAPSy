@@ -292,19 +292,19 @@ async function fetchLidarInit() {
   const res = await fetch(`${API}/api/lidar_init`);
   if (!res.ok) throw new Error(`lidar_init failed: ${res.status}`);
   const data = await res.json();
-  console.log(data);
-  const theta = decodeBase64ToFloat32Array(data.xTheta);
-  const carBorder = data.car_border ? decodeBase64ToFloat32Array(data.car_border) : null;
-  console.log(carBorder);
-  return { theta, carBorder };
+  return data;
 }
 
-function initLidar(theta,car_border, retryDelay = 1000) {
+function initLidar(info, retryDelay = 1000) {
+    const theta = decodeBase64ToFloat32Array(info.xTheta);
+    const carBorder = info.car_border ? decodeBase64ToFloat32Array(info.car_border) : null;
+    console.log("Lidar theta:", theta);
+    console.log("Car border:", carBorder);
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    const scale = 0.15; // 10 cm = 15 px
+    const scale = 0.50; // 10 cm = 15 px
 
 
     // Precompute sin/cos once (fast)
@@ -326,7 +326,6 @@ function initLidar(theta,car_border, retryDelay = 1000) {
         const r = decodeBase64ToInt16Array(data.r);
         const yaw = data.yaw ?? 0.0;
         const tof = data.tof ?? 0.0;
-
         // Safety: handle mismatch if lidar changes resolution
         const n = Math.min(r.length, sinT.length);
 
@@ -413,17 +412,17 @@ function initLidar(theta,car_border, retryDelay = 1000) {
         ctx.fillRect(x, -y, 2, 2);
         }
         /* ---------- Car Border (from min_lidar) ---------- */
-        if (car_border) {
+        if (carBorder) {
             ctx.fillStyle = "#fffb00";
             for (let i = 0; i < n; i++) {
-            const ri = car_border[i]; // mm
+            const ri = carBorder[i]; // mm
 
             // x = -(sin(theta+yaw))*r
             // y =  (cos(theta+yaw))*r
             // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
             // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
-            const sinW = sinT[i];
-            const cosW = cosT[i];
+            const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
+            const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
 
             const x = (-sinW * ri) * scale;
             const y = ( cosW * ri) * scale;
@@ -447,7 +446,7 @@ function initLidar(theta,car_border, retryDelay = 1000) {
         console.warn("LIDAR WS disconnected");
 
         setTimeout(() => {
-            initLidar(theta, car_border, Math.min(retryDelay * 2, 8000));
+            initLidar(info, Math.min(retryDelay * 2, 8000));
         }, retryDelay);
 }
 }
@@ -506,8 +505,8 @@ async function init() {
         } else {
             console.warn("Element #camera not found at initialization");
         }
-        const { theta, car_border } = await fetchLidarInit();
-        initLidar(theta, car_border);
+        const data = await fetchLidarInit();
+        initLidar(data);
         initTelemetryWS();
         loadProgramsOnce();
     } catch (e) {
