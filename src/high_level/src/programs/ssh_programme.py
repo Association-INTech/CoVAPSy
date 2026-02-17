@@ -13,13 +13,20 @@ class SshProgramme(Program):
         self.running = True
         self.controls_car = True
 
-        self.target_speed = 0
-        self.direction = 0
+
 
         # Cache IP
         self.ip = None
         self._last_ip_check = 0
         self._ip_refresh_interval = 1.0  # secondes
+    
+    @property
+    def target_speed(self) -> float:
+        return 0.
+
+    @property
+    def direction(self) -> float:
+        return 0.
 
     def start(self):
         self.running = True
