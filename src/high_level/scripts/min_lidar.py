@@ -1,3 +1,5 @@
+# you must run export PYTHONPATH=/home/intech/CoVAPSy/src/high_level before running this script
+
 import time
 import numpy as np
 from src.actionneur_capteur.lidar import Lidar
@@ -52,7 +54,7 @@ def main():
     lidar.stop()
 
     result = min_distance
-    np.save("../src/high_level/programs/data/min_lidar.npy", result)
+    np.save("src/programs/data/min_lidar.npy", result)
 
     print("Sauvegardé dans ../src/high_level/programs/data/min_lidar.npy")
     print("Shape:", result.shape)

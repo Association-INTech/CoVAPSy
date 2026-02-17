@@ -292,12 +292,13 @@ async function fetchLidarInit() {
   const res = await fetch(`${API}/api/lidar_init`);
   if (!res.ok) throw new Error(`lidar_init failed: ${res.status}`);
   const data = await res.json();
+  console.log(data);
   const theta = decodeBase64ToFloat32Array(data.xTheta);
   const carBorder = data.car_border ? decodeBase64ToFloat32Array(data.car_border) : null;
   return { theta, carBorder };
 }
 
-function initLidar(theta, retryDelay = 1000) {
+function initLidar(theta,car_border, retryDelay = 1000) {
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
 
@@ -420,8 +421,8 @@ function initLidar(theta, retryDelay = 1000) {
             // y =  (cos(theta+yaw))*r
             // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
             // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
-            const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
-            const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
+            const sinW = sinT[i];
+            const cosW = cosT[i];
 
             const x = (-sinW * ri) * scale;
             const y = ( cosW * ri) * scale;
