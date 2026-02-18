@@ -164,12 +164,12 @@ class BackendAPI(Program):
     def _lidar(self):
         return getattr(self.server, "lidar", None)
 
-    def _get_lidar_ranges(self):
+    def _get_lidar_ranges(self) -> dict[str, Any] | None:
         lidar = self._lidar()
         if not lidar or lidar.r_distance is None:
             return None
 
-        r = np.asarray(lidar.rDistance)
+        r = np.asarray(lidar.r_distance)
 
         # int16 suffit.
         # Sinon passe en int32 .
@@ -185,12 +185,12 @@ class BackendAPI(Program):
             "n": int(r_i16.shape[0]),
         }
 
-    def _get_car_border(self):
+    def _get_car_border(self) -> str | None:
         try:
             data = np.load(
                 "/home/intech/CoVAPSy/src/high_level/src/programs/data/min_lidar.npy"
             )
-            self.logger.warning("car_border loaded:", data.shape)
+            self.logger.warning("car_border loaded: %s", data.shape)
             data32 = data.astype(np.float32)
             return base64.b64encode(data32.tobytes()).decode("ascii")
         except FileNotFoundError:
@@ -202,7 +202,7 @@ class BackendAPI(Program):
     # ----------------------------
     def _setup_routes(self) -> None:
         @self.app.get("/api/status")
-        def status():
+        def status() -> dict[str, Any]:
             return {
                 "backend": {
                     "running": self.running,
@@ -215,7 +215,7 @@ class BackendAPI(Program):
             }
 
         @self.app.post("/api/ai/start")
-        async def start_ai_with_model(req: Request):
+        async def start_ai_with_model(req: Request) -> dict[str, Any]:
             body = await req.json()
             model = body.get("model")
 
@@ -298,7 +298,7 @@ class BackendAPI(Program):
             if not lidar:
                 raise HTTPException(status_code=503, detail="Lidar not available")
 
-            xTheta = getattr(lidar, "xTheta", None)
+            xTheta = getattr(lidar, "x_theta", None)
             if xTheta is None:
                 raise HTTPException(
                     status_code=503, detail="Lidar not ready (xTheta missing)"

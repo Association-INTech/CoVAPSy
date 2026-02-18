@@ -26,9 +26,9 @@ function drawSpeedChart() {
 
 
     const maxAbs = Math.max(
-    ...speedHistory.real.map(Math.abs),
-    ...speedHistory.demand.map(Math.abs),
-    1
+        ...speedHistory.real.map(Math.abs),
+        ...speedHistory.demand.map(Math.abs),
+        1
     );
     const yZero = h / 2;
     const scaleY = (h - 40) / (2 * maxAbs);
@@ -268,8 +268,8 @@ async function refreshPrograms() {
     try {
         const res = await fetch("/api/programs");
         if (!res.ok) {
-        throw new Error(`Programs API failed: ${res.status}`);
-    }
+            throw new Error(`Programs API failed: ${res.status}`);
+        }
         const programs = await res.json();
         updatePrograms(programs);
     } catch (e) {
@@ -277,22 +277,22 @@ async function refreshPrograms() {
     }
 }
 function decodeBase64ToInt16Array(b64) {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Int16Array(bytes.buffer);
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Int16Array(bytes.buffer);
 }
 function decodeBase64ToFloat32Array(b64) {
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Float32Array(bytes.buffer);
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Float32Array(bytes.buffer);
 }
 async function fetchLidarInit() {
-  const res = await fetch(`${API}/api/lidar_init`);
-  if (!res.ok) throw new Error(`lidar_init failed: ${res.status}`);
-  const data = await res.json();
-  return data;
+    const res = await fetch(`${API}/api/lidar_init`);
+    if (!res.ok) throw new Error(`lidar_init failed: ${res.status}`);
+    const data = await res.json();
+    return data;
 }
 
 function initLidar(info, retryDelay = 1000) {
@@ -319,126 +319,127 @@ function initLidar(info, retryDelay = 1000) {
 
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(proto + "://" + location.host + "/api/lidar/ws");
-    try{
-    ws.onmessage = (e) => {
-        const data = JSON.parse(e.data);
+    try {
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
 
-        const r = decodeBase64ToInt16Array(data.r);
-        const yaw = data.yaw ?? 0.0;
-        const tof = data.tof ?? 0.0;
-        // Safety: handle mismatch if lidar changes resolution
-        const n = Math.min(r.length, sinT.length);
+            const r = decodeBase64ToInt16Array(data.r);
+            const yaw = data.yaw ?? 0.0;
+            const tof = data.tof ?? 0.0;
+            // Safety: handle mismatch if lidar changes resolution
+            const n = Math.min(r.length, sinT.length);
 
-        // yaw rotation scalars
-        const cosYaw = Math.cos(yaw);
-        const sinYaw = Math.sin(yaw);
+            // yaw rotation scalars
+            const cosYaw = Math.cos(yaw);
+            const sinYaw = Math.sin(yaw);
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
 
-        /* ---------- Grid ---------- */
-        const circleStepMM = 100; // 10 cm
-        const circleCount = 15;
+            /* ---------- Grid ---------- */
+            const circleStepMM = 100; // 10 cm
+            const circleCount = 15;
 
-        ctx.strokeStyle = "#333";
-        ctx.lineWidth = 1;
+            ctx.strokeStyle = "#333";
+            ctx.lineWidth = 1;
 
-        for (let i = 1; i <= circleCount; i++) {
-            const r = i * circleStepMM * scale;
+            for (let i = 1; i <= circleCount; i++) {
+                const r = i * circleStepMM * scale;
+                ctx.beginPath();
+                ctx.arc(0, 0, r, 0, Math.PI * 2);
+                ctx.stroke();
+
+                if (i % (circleCount / 3) === 0) {
+                    // distance label
+                    ctx.fillStyle = "#777";
+                    ctx.font = "10px monospace";
+                    ctx.fillText(`${i * 10} cm`, r + 2, 0);
+                }
+            }
+            // Lidar FOV (270°)
+            ctx.strokeStyle = "#444";
+            ctx.lineWidth = 1;
+
+            const fovMin = -135 * Math.PI / 180;
+            const fovMax = 135 * Math.PI / 180;
+            const fovRadius = 1500 * scale;
+
             ctx.beginPath();
-            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            // left line
+            ctx.moveTo(0, 0);
+            ctx.lineTo(
+                Math.sin(fovMin) * fovRadius,
+                -Math.cos(fovMin) * fovRadius
+            );
             ctx.stroke();
 
-            if (i % (circleCount / 3) === 0){
-            // distance label
-            ctx.fillStyle = "#777";
-            ctx.font = "10px monospace";
-            ctx.fillText(`${i * 10} cm`, r + 2, 0);
-            }
-        }
-        // Lidar FOV (270°)
-        ctx.strokeStyle = "#444";
-        ctx.lineWidth = 1;
+            // right line
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(
+                Math.sin(fovMax) * fovRadius,
+                -Math.cos(fovMax) * fovRadius
+            );
+            ctx.stroke();
+            /* ---------- Axes (Axis) ---------- */
+            ctx.strokeStyle = "#555";
+            ctx.beginPath();
+            ctx.moveTo(-canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, 0);
+            ctx.stroke();
 
-        const fovMin = -135 * Math.PI / 180;
-        const fovMax =  135 * Math.PI / 180;
-        const fovRadius = 1500 * scale;
+            ctx.beginPath();
+            ctx.moveTo(0, -canvas.height / 2);
+            ctx.lineTo(0, canvas.height / 2);
+            ctx.stroke();
 
-        ctx.beginPath();
-        // left line
-        ctx.moveTo(0, 0);
-        ctx.lineTo(
-        Math.sin(fovMin) * fovRadius,
-        -Math.cos(fovMin) * fovRadius
-        );
-        ctx.stroke();
-
-        // right line
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(
-        Math.sin(fovMax) * fovRadius,
-        -Math.cos(fovMax) * fovRadius
-        );
-        ctx.stroke();
-        /* ---------- Axes (Axis) ---------- */
-        ctx.strokeStyle = "#555";
-        ctx.beginPath();
-        ctx.moveTo(-canvas.width / 2, 0);
-        ctx.lineTo(canvas.width / 2, 0);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, -canvas.height / 2);
-        ctx.lineTo(0, canvas.height / 2);
-        ctx.stroke();
-
-        /* ---------- LIDAR Points ---------- */
-        ctx.fillStyle = "#00ff88";
-        for (let i = 0; i < n; i++) {
-        const ri = r[i]; // mm
-
-        // x = -(sin(theta+yaw))*r
-        // y =  (cos(theta+yaw))*r
-        // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
-        // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
-        const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
-        const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
-
-        const x = (-sinW * ri) * scale;
-        const y = ( cosW * ri) * scale;
-
-        ctx.fillRect(x, -y, 2, 2);
-        }
-        /* ---------- Car Border (from min_lidar) ---------- */
-        if (carBorder) {
-            ctx.fillStyle = "#fffb00";
+            /* ---------- LIDAR Points ---------- */
+            ctx.fillStyle = "#00ff88";
             for (let i = 0; i < n; i++) {
-            const ri = carBorder[i]; // mm
+                const ri = r[i]; // mm
 
-            // x = -(sin(theta+yaw))*r
-            // y =  (cos(theta+yaw))*r
-            // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
-            // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
-            const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
-            const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
+                // x = -(sin(theta+yaw))*r
+                // y =  (cos(theta+yaw))*r
+                // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
+                // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
+                const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
+                const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
 
-            const x = (-sinW * ri) * scale;
-            const y = ( cosW * ri) * scale;
+                const x = (-sinW * ri) * scale;
+                const y = (cosW * ri) * scale;
 
-            ctx.fillRect(x, -y, 2, 2);
+                ctx.fillRect(x, -y, 2, 2);
             }
-        }
-        // Draw ToF point on lidar pov
-        ctx.fillStyle = "#00eaff";
-        const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
-        ctx.beginPath();
-        ctx.arc(0, tofY, 5, 0, Math.PI );
-        ctx.fill();
-        ctx.restore();
-    };
-    }catch(e){
+            /* ---------- Car Border (from min_lidar) ---------- */
+            if (carBorder) {
+                ctx.fillStyle = "#fffb00";
+                for (let i = 0; i < n; i++) {
+                    // if (i >= 750) ctx.fillStyle = "#ff0000"; // front part in red
+                    const ri = carBorder[i]; // mm
+
+                    // x = -(sin(theta+yaw))*r
+                    // y =  (cos(theta+yaw))*r
+                    // sin(theta+yaw)=sinT*cosYaw + cosT*sinYaw
+                    // cos(theta+yaw)=cosT*cosYaw - sinT*sinYaw
+                    const sinW = sinT[i] * cosYaw + cosT[i] * sinYaw;
+                    const cosW = cosT[i] * cosYaw - sinT[i] * sinYaw;
+
+                    const x = (-sinW * ri) * scale;
+                    const y = (cosW * ri) * scale;
+
+                    ctx.fillRect(x, -y, 2, 2);
+                }
+            }
+            // Draw ToF point on lidar pov
+            ctx.fillStyle = "#00eaff";
+            const tofY = (tof + 30) * scale * 10; // assuming tof[0] is the distance in mm and the 30 is an offset to place it correctly on the canvas comparing distance of the tof and the lidar
+            ctx.beginPath();
+            ctx.arc(0, tofY, 5, 0, Math.PI);
+            ctx.fill();
+            ctx.restore();
+        };
+    } catch (e) {
         console.error("Error in LIDAR WS onmessage:", e);
     }
 
@@ -448,19 +449,19 @@ function initLidar(info, retryDelay = 1000) {
         setTimeout(() => {
             initLidar(info, Math.min(retryDelay * 2, 8000));
         }, retryDelay);
-}
+    }
 }
 function initTelemetryWS() {
     const proto = location.protocol === "https:" ? "wss" : "ws";
     const ws = new WebSocket(proto + "://" + location.host + "/api/telemetry/ws");
-    try{
-            ws.onmessage = (e) => {
-        const data = JSON.parse(e.data);
-        updateTelemetry(data);
-    };
-    }catch(e){
-    console.error("Error in Telemetry WS onmessage:", e);
-}
+    try {
+        ws.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            updateTelemetry(data);
+        };
+    } catch (e) {
+        console.error("Error in Telemetry WS onmessage:", e);
+    }
     ws.onclose = () => {
         console.warn("Telemetry WS disconnected, retrying...");
         setTimeout(initTelemetryWS, 1000);
