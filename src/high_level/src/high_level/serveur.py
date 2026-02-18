@@ -1,3 +1,13 @@
+from actionneur_capteur.master_i2c import I2CArduino
+from actionneur_capteur.tof import ToF
+
+
+from actionneur_capteur.lidar import Lidar
+
+
+from actionneur_capteur.camera import Camera
+
+
 import logging
 import textwrap
 import time
@@ -71,27 +81,27 @@ class Serveur:
         self.scroll_offset = 3
 
     @property
-    def camera(self):
+    def camera(self) -> Camera:
         return self.initialisation_module.camera
 
     @property
-    def lidar(self):
+    def lidar(self) -> Lidar:
         return self.initialisation_module.lidar
 
     @property
-    def tof(self):
+    def tof(self) -> ToF:
         return self.initialisation_module.tof
 
     @property
-    def arduino_I2C(self):
+    def arduino_I2C(self) -> I2CArduino:
         return self.initialisation_module.arduino_I2C
 
     @property
-    def target_speed(self):
+    def target_speed(self) -> float:
         return self.programs[self.last_program_control].target_speed
 
     @property
-    def direction(self):
+    def direction(self) -> float:
         return self.programs[self.last_program_control].direction
 
     # -----------------------------------------------------------------------------------------------------

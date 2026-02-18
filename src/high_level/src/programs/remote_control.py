@@ -10,7 +10,7 @@ class RemoteControl(Program):
     """This program allows remote control of the car using UDP packets.
     You can take control with the script remote_control_controller.py"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.log = logging.getLogger(__name__)
         self.controls_car = True
@@ -32,7 +32,7 @@ class RemoteControl(Program):
     def direction(self) -> float:
         return self._direction
 
-    def car_controle(self, sock):
+    def car_controle(self, sock) -> None:
         """Starts control from the PC."""
         sock.settimeout(0.1)
 
@@ -43,12 +43,12 @@ class RemoteControl(Program):
             except socket.timeout:
                 continue
 
-    def start(self):
+    def start(self) -> None:
         self.running = True
         threading.Thread(
             target=self.car_controle, args=(self.public,), daemon=True
         ).start()
 
-    def kill(self):
+    def kill(self) -> None:
         """Exits the thread from its loop"""
         self.running = False

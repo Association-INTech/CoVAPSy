@@ -4,6 +4,9 @@ import time
 from threading import Thread
 from typing import Optional
 
+from actionneur_capteur import Lidar
+from actionneur_capteur.camera import Camera
+from actionneur_capteur.tof import ToF
 import numpy as np
 import onnxruntime as ort
 
@@ -23,7 +26,7 @@ from .utils.driver import Driver
 
 
 class Car:
-    def __init__(self, driving_strategy, serveur, model):
+    def __init__(self, driving_strategy, serveur, model) -> None:
         self.log = logging.getLogger(__name__)
         self.target_speed = 0  # Speed in millimeters per second
         self.direction = 0  # Steering angle in degrees
@@ -44,23 +47,23 @@ class Car:
 
     # dynamic access to sensors
     @property
-    def camera(self):
+    def camera(self) -> Camera:
         return self.serveur.camera
 
     @property
-    def lidar(self):
+    def lidar(self) -> Lidar:
         return self.serveur.lidar
 
     @property
-    def tof(self):
+    def tof(self) -> ToF:
         return self.serveur.tof
 
-    def stop(self):
+    def stop(self) -> None:
         self.target_speed = 0
         self.direction = 0
         self.log.info("Motor stop")
 
-    def has_Crashed(self):
+    def has_Crashed(self) -> bool:
 
         small_distances = [
             d for d in self.lidar.r_distance[200:880] if 0 < d < CRASH_DIST
@@ -68,14 +71,14 @@ class Car:
         self.log.debug(f"Distances: {small_distances}")
         if len(small_distances) > 2:
             # min_index = self.lidar.rDistance.index(min(small_distances))
-            while self.tof.get_distance() < REAR_BACKUP_DIST:
-                self.log.info(f"Rear obstacle detected {self.tof.get_distance()}")
+            while self.tof.distance < REAR_BACKUP_DIST:
+                self.log.info(f"Rear obstacle detected {self.tof.distance}")
                 self.target_speed = 0
                 time.sleep(0.1)
             return True
         return False
 
-    def turn_around(self):
+    def turn_around(self) -> None:
         """Turn the car around."""
         self.log.info("Turning around")
 
@@ -86,7 +89,7 @@ class Car:
         if self.camera.is_running_in_reversed():
             self.turn_around()
 
-    def main(self):
+    def main(self) -> None:
         # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
         if self.camera is None or self.lidar is None:
             self.log.debug("Sensors not yet ready")
@@ -139,7 +142,7 @@ class Car:
 
 
 class AIProgram(Program):
-    def __init__(self, serveur):
+    def __init__(self, serveur) -> None:
         super().__init__()
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
@@ -158,18 +161,18 @@ class AIProgram(Program):
         # start with the last model which is the fallback for not running
 
     @property
-    def target_speed(self):
+    def target_speed(self) -> float:
         if self.GR86 is None:
-            return 0
+            return 0.0
         return self.GR86.target_speed
 
     @property
-    def direction(self):
+    def direction(self) -> float:
         if self.GR86 is None:
-            return 0
+            return 0.0
         return self.GR86.direction
 
-    def run(self):
+    def run(self) -> None:
         while self.running:
             try:
                 if self.GR86 is not None:
@@ -180,7 +183,7 @@ class AIProgram(Program):
                 self.running = False
                 raise
 
-    def initializeai(self, model: str):
+    def initializeai(self, model: str) -> None:
         self.driver = Driver(128, 128)
         self.driver.load_model(model)
 
@@ -188,7 +191,7 @@ class AIProgram(Program):
         self.GR86 = Car(self.driver.omniscent, self.serveur, model)
         # self.GR86 = Car(self.driver.simple_minded, self.serveur, model)
 
-    def start(self, model_give: Optional[str] = None):
+    def start(self, model_give: Optional[str] = None) -> None:
 
         if self.serveur.camera is None or self.serveur.lidar is None:
             self.log.error("Sensors not initialized")
@@ -215,10 +218,10 @@ class AIProgram(Program):
         self.running = True
         Thread(target=self.run, daemon=True).start()
 
-    def kill(self):
+    def kill(self) -> None:
         self.running = False
 
-    def display(self):
+    def display(self) -> str:
         text = self.__class__.__name__
         if self.running:
             text += "*"

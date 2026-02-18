@@ -26,27 +26,24 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     print("Initialisation du lidar...")
-    lidar = Lidar(IP, PORT, startStep=START)
+    lidar = Lidar(IP, PORT, start_step=START)
 
     print("Démarrage scan continu...")
-    lidar.startContinuous(START, END)
+    lidar.start_continuous(START, END)
 
-    while np.all(lidar.rDistance == 0):
+    while np.all(lidar.r_distance == 0):
         time.sleep(0.01)
 
     print("Scan reçu. Début enregistrement min...")
     print("Appuie sur Ctrl+C pour arrêter proprement.")
 
-    min_distance = np.full(lidar.rDistance.shape, np.inf, dtype=float)
+    min_distance = np.full(lidar.r_distance.shape, np.inf, dtype=float)
 
     while running:
-        current = lidar.rDistance.astype(float)
+        current = lidar.r_distance.astype(float)
         valid = current > 0
 
-        min_distance[valid] = np.minimum(
-            min_distance[valid],
-            current[valid]
-        )
+        min_distance[valid] = np.minimum(min_distance[valid], current[valid])
 
         time.sleep(0.01)
 
