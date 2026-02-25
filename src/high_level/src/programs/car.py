@@ -22,15 +22,17 @@ from .utils.driver import Driver
 
 
 class CrashCar:
-    def __init__(self, lidar):
+    def __init__(self, serveur):
         self.log = logging.getLogger(__name__)
-        self.lidar = lidar
+        self.serveur = serveur
         self.crashed = False
         # Load reference lidar contour once
         try:
             self.reference_lidar = np.load(
                 "/home/intech/CoVAPSy/src/high_level/src/programs/data/min_lidar.npy"
-            )
+            )[
+                :1080
+            ]  # Load only the first 1080 values to match the lidar data used by the AI
             self.log.info("Reference lidar contour loaded")
             Thread(target=self.has_Crashed, daemon=True).start()
         except Exception as e:
@@ -38,11 +40,19 @@ class CrashCar:
             raise
 
     def has_Crashed(self) -> bool:
+
+        while self.serveur.lidar is None:
+            self.log.debug("Lidar not yet ready for crash detection")
+            time.sleep(0.1)
         while True:
-            current = self.lidar.r_distance[:1080]
+            current = self.serveur.lidar.r_distance[:1080]
 
             if current is None or len(current) != len(self.reference_lidar):
-                self.log.warning("Lidar size mismatch")
+                self.log.warning(
+                    str(len(current) if current is not None else "None")
+                    + " lidar points received, expected "
+                    + str(len(self.reference_lidar))
+                )
                 self.crashed = False
                 time.sleep(0.1)
             else:

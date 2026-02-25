@@ -52,7 +52,7 @@ class Serveur:
         self.temp = None
 
         self.initialisation_module = Initialisation(self)
-        self.crash_car = CrashCar(self.initialisation_module.lidar)
+        self.crash_car = CrashCar(self)
 
         self.programs = [
             SshProgramme(),

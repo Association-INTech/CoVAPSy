@@ -23,6 +23,11 @@ class Initialisation(Program):
         self.lidar_init = ProgramState.INITIALIZATION
         self.tof_init = ProgramState.INITIALIZATION
 
+        self.arduino_I2C = None
+        self.camera = None
+        self.lidar = None
+        self.tof = None
+
         threading.Thread(target=self.init_camera, daemon=True).start()
         threading.Thread(target=self.init_lidar, daemon=True).start()
         threading.Thread(target=self.init_tof, daemon=True).start()
