@@ -10,7 +10,7 @@ from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
-from programs.car import AIProgram
+from programs.car import AIProgram, CrashCar
 from programs.initialisation import Initialisation
 from programs.poweroff import Poweroff
 from programs.ps4_controller_program import PS4ControllerProgram
@@ -52,6 +52,7 @@ class Serveur:
         self.temp = None
 
         self.initialisation_module = Initialisation(self)
+        self.crash_car = CrashCar(self.initialisation_module.lidar)
 
         self.programs = [
             SshProgramme(),

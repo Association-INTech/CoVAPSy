@@ -9,17 +9,56 @@ import onnxruntime as ort
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import (
-    CRASH_DIST,
     LIDAR_DATA_AMPLITUDE,
     LIDAR_DATA_OFFSET,
     LIDAR_DATA_SIGMA,
     MAX_ANGLE,
     MODEL_PATH,
-    REAR_BACKUP_DIST,
+    LIMIT_CRASH_POINT,
 )
 
 from .program import Program
 from .utils.driver import Driver
+
+
+class CrashCar:
+    def __init__(self, lidar):
+        self.log = logging.getLogger(__name__)
+        self.lidar = lidar
+        self.crashed = False
+        # Load reference lidar contour once
+        try:
+            self.reference_lidar = np.load(
+                "/home/intech/CoVAPSy/src/high_level/src/programs/data/min_lidar.npy"
+            )
+            self.log.info("Reference lidar contour loaded")
+            Thread(target=self.has_Crashed, daemon=True).start()
+        except Exception as e:
+            self.log.error(f"Unable to load reference lidar contour: {e}")
+            raise
+
+    def has_Crashed(self) -> bool:
+        while True:
+            current = self.lidar.r_distance[:1080]
+
+            if current is None or len(current) != len(self.reference_lidar):
+                self.log.warning("Lidar size mismatch")
+                self.crashed = False
+                time.sleep(0.1)
+            else:
+                # Points that are inside the vehicle contour
+                penetration_mask = (current > 0) & (current < self.reference_lidar)
+
+                penetration_count = np.sum(penetration_mask)
+
+                self.log.debug(f"Penetration points: {penetration_count}")
+
+                if penetration_count >= LIMIT_CRASH_POINT:  # ← tu peux ajuster ici
+                    self.log.info("Crash detected via contour penetration")
+                    self.crashed = True
+                else:
+                    self.crashed = False
+                time.sleep(0.1)
 
 
 class Car:
@@ -60,21 +99,6 @@ class Car:
         self.direction = 0
         self.log.info("Motor stop")
 
-    def has_Crashed(self):
-
-        small_distances = [
-            d for d in self.lidar.r_distance[200:880] if 0 < d < CRASH_DIST
-        ]  # 360 to 720 is the front of the car. 1/3 of the fov of the lidar
-        self.log.debug(f"Distances: {small_distances}")
-        if len(small_distances) > 2:
-            # min_index = self.lidar.rDistance.index(min(small_distances))
-            while self.tof.get_distance() < REAR_BACKUP_DIST:
-                self.log.info(f"Rear obstacle detected {self.tof.get_distance()}")
-                self.target_speed = 0
-                time.sleep(0.1)
-            return True
-        return False
-
     def turn_around(self):
         """Turn the car around."""
         self.log.info("Turning around")
@@ -113,7 +137,7 @@ class Car:
             self.turn_around()
             self.reverse_count = 0
 
-        if self.has_Crashed():
+        if self.serveur.crash_car.crashed:
             self.log.info("Obstacle detected")
             color= self.camera.is_green_or_red(lidar_data)
             if color == 0:

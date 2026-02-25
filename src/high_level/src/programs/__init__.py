@@ -1,5 +1,5 @@
 from .camera_serv import StreamHandler, StreamOutput, StreamServer, frame_buffer
-from .car import AIProgram, Car
+from .car import AIProgram, Car, CrashCar
 from .initialisation import Initialisation
 from .poweroff import Poweroff
 from .program import Program  # in first because other programs depend on it
@@ -18,4 +18,5 @@ __all__ = [
     "StreamHandler",
     "StreamOutput",
     "frame_buffer",
+    "CrashCar",
 ]
