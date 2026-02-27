@@ -1,0 +1,14 @@
+[Unit]
+Description=lancement de mediamtx
+After=network.target
+
+[Service]
+Type=simple
+User=intech
+WorkingDirectory=/home/intech/
+ExecStart=/home/intech/mediamtx
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

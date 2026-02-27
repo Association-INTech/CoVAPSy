@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>CoVAPSy – Remote Control</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+<header class="topbar">
+    <img src="ressources/Logo_équipe N°20_AutoTech 2025 (long)_promo Ecole_transparent.png" alt="Logo CoVAPSy" class="logo">
+    <h1> CoVAPSy – Remote Control</h1>
+</header>
+
+<div class="grid">
+
+    <!-- TELEMETRY -->
+    <div class="card">
+        <h2>Télémétrie:</h2>
+        <p>LiPo: <span id="lipo">--</span> V</p>
+        <p>NiMH: <span id="nimh">--</span> V</p>
+        <p>Vitesse réelle: <span id="vitesse">--</span></p>
+        <p>Vitesse demandée: <span id="target_speed">--</span></p>
+        <p>Direction demandée: <span id="direction">--</span></p>
+        <p>Distance ToF: <span id="tof">--</span> cm</p>
+        <p>Programme actif: <span id="active_program">--</span></p>
+    </div>
+
+    <!-- CAMERA -->
+    <div class="card">
+        <a id="camera" target="_blank">
+            <h2>Caméra:</h2>
+            <iframe 
+            id ="camera_frame"
+            width="100%" 
+            height="300" 
+            allow="autoplay"
+            style="border:none;">
+            </iframe>
+        </a>
+    </div>
+    <!-- LIDAR -->
+    <div class="card">
+        <a href="/static/lidar.html" target="_blank">
+            <canvas id="lidar" width="400" height="400"></canvas>
+        </a>
+    </div>
+    <!-- SPEED CHART -->
+    <div class="card">
+        <canvas id="speedChart" width="400" height="400"></canvas>
+    </div>
+
+    <!-- STEERING -->
+    <div class="card">
+        <canvas id="steeringViz" width="400" height="200"></canvas>
+    </div>
+    <!-- AI MODEL SELECT -->
+    <div class="card">
+        <h2>IA – Choisir un modèle</h2>
+
+        <select id="model_select"></select>
+        <button onclick="startSelectedModel()">Lancer IA</button>
+    </div>
+
+    <!-- PROGRAMS -->
+    <div class="card card-programs">
+        <h2>Programmes:</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>État</th>
+                    <th>Contrôle voiture</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="program_table"></tbody>
+        </table>
+    </div>
+    
+
+</div>
+
+<script src="/static/app.js" defer></script>
+
+</body>
+</html>

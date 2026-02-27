@@ -1,0 +1,130 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #0f1117;
+    color: #eaeaea;
+    margin: 20px;
+}
+
+h1 {
+    text-align: center;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.card {
+    background: #1b1f2a;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.card.full {
+    grid-column: 1 / -1;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 6px;
+    text-align: center;
+}
+
+th {
+    background: #2a2f45;
+}
+
+tr:nth-child(even) {
+    background: #22263a;
+}
+
+button {
+    padding: 4px 8px;
+    margin: 2px;
+    cursor: pointer;
+}
+
+button.start { background: #2ecc71; }
+button.kill { background: #e74c3c; }
+button.toggle { background: #3498db; }
+
+img {
+    width: 100%;
+    border-radius: 6px;
+    background: black;
+}
+.card img,
+.card canvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+
+a:hover > img,
+a:hover > canvas {
+    outline: 2px solid #00ff88;
+}
+.topbar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+}
+
+.logo {
+    height: 50px;
+    width: auto;
+}
+
+
+/* --- Card Programmes large --- */
+.card-programs {
+    grid-column: span 2;
+}
+
+/* Sur très grand écran → prend 3 colonnes */
+@media (min-width: 1400px) {
+    .card-programs {
+        grid-column: span 3;
+    }
+}
+
+/* Sur petit écran → pleine largeur */
+@media (max-width: 800px) {
+    .card-programs {
+        grid-column: 1 / -1;
+    }
+}
+
+/* --- Amélioration table --- */
+.card-programs table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.card-programs th {
+    background: #2f3655;
+    font-weight: bold;
+    padding: 10px;
+}
+
+.card-programs td {
+    padding: 8px;
+}
+
+.card-programs tr:hover {
+    background: #2a2f45;
+    transition: 0.2s;
+}
+
+/* Scroll horizontal si écran trop petit */
+.card-programs {
+    overflow-x: auto;
+}

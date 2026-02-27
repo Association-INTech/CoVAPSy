@@ -1,0 +1,159 @@
+import logging
+import time
+from threading import Thread
+
+from pyPS4Controller.controller import Controller
+
+from high_level.autotech_constant import MAX_ANGLE, MAX_CONTROL_SPEED, MIN_CONTROL_SPEED
+
+from .program import Program
+
+
+def envoie_donnee(Voiture):  # if __name__ == "__main__":
+    print("I2C startup")
+    import struct
+
+    import smbus
+
+    from high_level.autotech_constant import SLAVE_ADDRESS
+
+    bus = smbus.SMBus(1)
+    while True:
+        try:
+            data = struct.pack(
+                "<ff", float(round(Voiture.speed_mms)), float(round(Voiture.direction))
+            )
+            bus.write_i2c_block_data(SLAVE_ADDRESS, 0, list(data))
+            # time.sleep(0.00005)
+        except Exception as e:
+            print("I2C dead" + str(e))
+            time.sleep(1)
+
+
+vitesse_max_m_s_soft = MAX_CONTROL_SPEED  # max speed in meters per second
+vitesse_min_m_s_soft = MIN_CONTROL_SPEED  # min speed in meters per second
+
+MAX_LEFT = -32767 + 3000  # deadzone 3000
+
+
+# function to map a value from one range to another
+def map_range(x, in_min, in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+
+class PS4ControllerProgram(Program):
+    def __init__(self):
+        super().__init__()
+        self.log = logging.getLogger(__name__)
+        self.running = False
+        self.controls_car = True
+
+        # initialisation
+        self.controller = MyController(
+            interface="/dev/input/js0", connecting_using_ds4drv=False
+        )
+        self.controller.stop = True
+
+    def start(self):
+        self.running = True
+        self.controller.stop = False
+        self.thread = Thread(
+            target=self.controller.listen, kwargs=dict(timeout=60), daemon=True
+        )
+        self.thread.start()
+
+    def kill(self):
+        self.controller.stop = True
+        self.running = False
+
+    @property
+    def target_speed(self):
+        return self.controller.speed_mms
+
+    @property
+    def direction(self):
+        return self.controller.direction
+
+
+class MyController(Controller):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.log = logging.getLogger(__name__)
+        self.speed_mms = 0  # initial speed in meters per millisecondes
+        self.direction = 0  # initial wheel angle in degrees
+        self.filtered = 0
+        self.alpha = 0.3
+        self.running = 0
+
+    def stable_direction(self, value):
+
+        # Deadzone
+        if value < MAX_LEFT:
+            target = -MAX_ANGLE
+        else:
+            target = map_range(value, -32767, 0, -MAX_ANGLE, 0)
+
+        # Low-pass filtering
+        self.filtered = self.filtered * (1 - self.alpha) + target * self.alpha
+        return self.filtered
+
+    def on_R2_press(self, value):
+        vit = map_range(value, -32252, 32767, 0, vitesse_max_m_s_soft * 1000)
+        if vit < 0:
+            self.speed_mms = 0
+        else:
+            self.speed_mms = vit
+
+    def on_R2_release(self):  # Stop the car when R2 is released
+        self.speed_mms = 0
+
+    def on_L3_x_at_rest(self):
+        self.direction = 0
+
+    def on_R1_press(self):  # Emergency stop
+        self.speed_mms = 0
+
+    def on_R1_release(self):
+        self.speed_mms = 0
+
+    def on_L3_right(self, value):
+        # print("x_r :", value, "degrees : ",map_range(value,-32767, 32767, 60, 120))
+        dir = map_range(value, 0, 32767, 0, MAX_ANGLE)
+        self.direction = dir
+
+    def on_L3_left(self, value):
+        # print("x_r :", value, "degrees : ",map_range(value,-32767, 0, -MAX_ANGLE, 0 ))
+        dir = self.stable_direction(value)
+        self.direction = dir
+
+    def on_L2_press(self, value):
+        # print("x_r :", value, "degrees : ",map_range(value,-32767, 32767, 60, 120))
+        vit = map_range(value, -32252, 32767, 0, vitesse_min_m_s_soft * 1000)
+        if vit > 0:
+            self.speed_mms = 0
+        else:
+            self.speed_mms = vit
+
+    def on_L2_release(self):  # Stop the car when L2 is released
+        self.speed_mms = 0
+
+    def on_L3_up(self, value):
+        pass
+
+    def on_L3_down(self, value):
+        pass
+
+    def on_L3_y_at_rest(self):
+        pass
+
+
+if __name__ == "__main__":
+    controller = MyController(interface="/dev/input/js0", connecting_using_ds4drv=False)
+    try:
+        Thread(target=envoie_donnee, args=(controller,), daemon=True).start()
+        controller.listen(timeout=60)
+
+    except KeyboardInterrupt:
+        print("Program stop")
+        controller.stop = True
+        exit(0)
