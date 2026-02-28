@@ -300,8 +300,6 @@ async function fetchLidarInit() {
 function initLidar(info, retryDelay = 1000) {
     const theta = decodeBase64ToFloat32Array(info.xTheta);
     const carBorder = info.car_border ? decodeBase64ToFloat32Array(info.car_border) : null;
-    console.log("Lidar theta:", theta);
-    console.log("Car border:", carBorder);
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
 
