@@ -1,6 +1,3 @@
-from _socket import _RetAddress
-
-
 import socket
 import time
 
@@ -42,7 +39,7 @@ class SshProgramme(Program):
             self._last_ip_check = now
 
     @staticmethod
-    def get_local_ip() -> _RetAddress | None:
+    def get_local_ip() -> str | None:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.settimeout(0.1)
