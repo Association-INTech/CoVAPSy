@@ -127,6 +127,7 @@ class BackendAPI(Program):
                 "car_control": prog_name,
                 "program_id": last_ctrl,
                 "tof": self.server.tof.distance,
+                "crashed": getattr(self.server.crash_car, "car_crashed", False),
             },
             "timestamp": time.time(),
         }

@@ -82,19 +82,19 @@ class Serveur:
         self.scroll_offset = 3
 
     @property
-    def camera(self) -> Camera:
+    def camera(self) -> Camera | None:
         return self.initialisation_module.camera
 
     @property
-    def lidar(self) -> Lidar:
+    def lidar(self) -> Lidar | None:
         return self.initialisation_module.lidar
 
     @property
-    def tof(self) -> ToF:
+    def tof(self) -> ToF | None:
         return self.initialisation_module.tof
 
     @property
-    def arduino_I2C(self) -> I2CArduino:
+    def arduino_I2C(self) -> I2CArduino | None:
         return self.initialisation_module.arduino_I2C
 
     @property

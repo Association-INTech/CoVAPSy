@@ -187,6 +187,8 @@ function updateTelemetry(t) {
         t.car.car_control ?? "None";
     document.getElementById("tof").textContent =
         t.car.tof.toFixed(2);
+    document.getElementById("crash_status").textContent =
+        t.car.crashed ? "CRASHED" : "OK";
     speedHistory.real.push(t.car.current_speed);
     speedHistory.demand.push(t.car.target_speed);
 
