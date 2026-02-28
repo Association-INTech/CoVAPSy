@@ -37,7 +37,7 @@ class Initialisation(Program):
             daemon=True,
         ).start()
 
-    def init_I2C_arduino(self, server):
+    def init_I2C_arduino(self, server) -> None:
         try:
             self.arduino_I2C = I2CArduino(server)
             self.arduino_I2C_init = ProgramState.RUNNING
@@ -46,7 +46,7 @@ class Initialisation(Program):
             self.arduino_I2C_init = ProgramState.STOPPED
             self.log.error("I2C Arduino init error : " + str(e))
 
-    def init_camera(self):
+    def init_camera(self) -> None:
         try:
             self.camera = Camera()
             self.camera_init = ProgramState.RUNNING
@@ -55,7 +55,7 @@ class Initialisation(Program):
             self.camera_init = ProgramState.STOPPED
             self.log.error("Camera init error : " + str(e))
 
-    def init_lidar(self):
+    def init_lidar(self) -> None:
         try:
             self.lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
             self.lidar.stop()
@@ -66,7 +66,7 @@ class Initialisation(Program):
             self.lidar_init = ProgramState.STOPPED
             self.log.error("Lidar init error : " + str(e))
 
-    def init_tof(self):
+    def init_tof(self) -> None:
         try:
             self.tof = ToF()
             self.tof_init = ProgramState.RUNNING
