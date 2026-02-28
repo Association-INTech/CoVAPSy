@@ -4,11 +4,12 @@ import time
 from threading import Thread
 from typing import Optional
 
+import numpy as np
+import onnxruntime as ort
+
 from actionneur_capteur import Lidar
 from actionneur_capteur.camera import Camera
 from actionneur_capteur.tof import ToF
-import numpy as np
-import onnxruntime as ort
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import (
@@ -22,7 +23,7 @@ from high_level.autotech_constant import (
 )
 
 from .program import Program
-from .utils.driver import Driver
+from .utils import Driver
 
 
 class Car:
