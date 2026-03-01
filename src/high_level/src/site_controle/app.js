@@ -144,6 +144,49 @@ function drawSteering(directionDeg) {
 }
 
 
+/* -------- Camera Matrix Debug (raw output of the camera matrix) -------- */
+let cameraMatrixWS = null;
+
+async function startCameraMatrix() {
+    await fetch("/api/camera_matrix/start", { method: "POST" });
+
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    cameraMatrixWS = new WebSocket(proto + "://" + location.host + "/api/camera_matrix/ws");
+
+    cameraMatrixWS.onmessage = (e) => {
+        const matrix = JSON.parse(e.data);
+        renderCameraMatrix(matrix);
+    };
+}
+
+async function stopCameraMatrix() {
+    await fetch("/api/camera_matrix/stop", { method: "POST" });
+
+    if (cameraMatrixWS) {
+        cameraMatrixWS.close();
+        cameraMatrixWS = null;
+    }
+}
+
+function renderCameraMatrix(matrix) {
+    const canvas = document.getElementById("cameraMatrixCanvas");
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const widthPerCell = canvas.width / matrix.length;
+
+    matrix.forEach((val, i) => {
+        if (val === 1) ctx.fillStyle = "green";
+        else if (val === -1) ctx.fillStyle = "red";
+        else ctx.fillStyle = "gray";
+
+        ctx.fillRect(i * widthPerCell, 0, widthPerCell, canvas.height);
+    });
+}
+
+
+
 async function fetchStatus() {
     const res = await fetch(`${API}/api/status`);
     if (!res.ok) {

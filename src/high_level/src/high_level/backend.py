@@ -92,6 +92,11 @@ class BackendAPI(Program):
 
         self._setup_routes()
 
+        self._camera_matrix_thread: Optional[threading.Thread] = None
+        self._camera_matrix_running = False
+        self._camera_matrix_lock = threading.Lock()
+        self._camera_matrix_data: Optional[np.ndarray] = None
+
         time.sleep(1)  # litle delay to ensure server is ready
         if BACKEND_ON_START:
             self.start()
@@ -197,6 +202,21 @@ class BackendAPI(Program):
         except FileNotFoundError:
             self.logger.error("Car border not found")
             return None
+
+    def _camera_matrix_loop(self):
+        self.logger.info("Camera matrix thread started")
+
+        while self._camera_matrix_running:
+            try:
+                matrix = self.server.camera.camera_matrix()
+                with self._camera_matrix_lock:
+                    self._camera_matrix_data = matrix
+            except Exception as e:
+                self.logger.warning("Camera matrix error: %s", e)
+
+            time.sleep(0.5)
+
+        self.logger.info("Camera matrix thread stopped")
 
     # ----------------------------
     # Routes
@@ -340,6 +360,44 @@ class BackendAPI(Program):
                     await asyncio.sleep(0.25)  # 4 Hz
             except WebSocketDisconnect:
                 self.logger.info("Telemetry WS client disconnected")
+
+        @self.app.post("/api/camera_matrix/start")
+        def start_camera_matrix():
+            if self._camera_matrix_running:
+                return {"status": "already_running"}
+
+            self._camera_matrix_running = True
+            self._camera_matrix_thread = threading.Thread(
+                target=self._camera_matrix_loop,
+                daemon=True,
+            )
+            self._camera_matrix_thread.start()
+
+            return {"status": "started"}
+
+        @self.app.post("/api/camera_matrix/stop")
+        def stop_camera_matrix():
+            self._camera_matrix_running = False
+            return {"status": "stopped"}
+
+        @self.app.websocket("/api/camera_matrix/ws")
+        async def camera_matrix_ws(ws: WebSocket):
+            await ws.accept()
+            self.logger.info("Camera matrix WS connected")
+
+            try:
+                while True:
+                    if self._camera_matrix_running:
+                        with self._camera_matrix_lock:
+                            matrix = self._camera_matrix_data
+
+                        if matrix is not None:
+                            await ws.send_json(matrix.tolist())
+
+                    await asyncio.sleep(0.5)
+
+            except WebSocketDisconnect:
+                self.logger.info("Camera matrix WS disconnected")
 
     # ----------------------------
     # Program interface
