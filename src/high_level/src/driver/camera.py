@@ -3,7 +3,7 @@ import logging
 import os
 import threading
 import time
-from typing import Optional, cast
+from typing import Never, Optional, cast
 
 import aiohttp
 import cv2
@@ -17,6 +17,10 @@ from aiortc import (
 )
 from av import VideoFrame
 from PIL import Image
+from high_level.autotech_constant import (
+    FREQUENCY_REVERSE_DETECTION,
+    LIMIT_REVERSE_COUNT,
+)
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
@@ -27,13 +31,117 @@ COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
 
 
+class Camera_red_or_green:
+    """
+    Class representing the camera and its processing to determine if the car is facing a red or green wall.
+    """
+
+    def __init__(self, server) -> None:
+        self.server = server
+        self.log = logging.getLogger(__name__)
+        self.is_reverse = False
+
+        threading.Thread(target=self.thread_check_reverse, daemon=True).start()
+
+    def is_running_in_reversed(
+        self, image: Optional[np.ndarray] = None, LEFT_IS_GREEN: bool = True
+    ) -> bool:
+        """
+        Check if the car is running in reverse.
+        If the car is in reverse, green will be on the right side of the image and red on the left.
+        """
+        if image is None:
+            image = self.server.camera.get_last_image()
+        matrix = self.server.camera.camera_matrix(image=image)
+        if COLOUR_KEY["green"] not in matrix or COLOUR_KEY["red"] not in matrix:
+            # If there are no green or no red pixels, return False
+            return False
+        green_indices = (matrix == COLOUR_KEY["green"]) * np.arange(1, len(matrix) + 1)
+        average_green_index = np.mean(
+            green_indices[green_indices > 0]
+        )  # Average index of green
+
+        red_indices = (matrix == COLOUR_KEY["red"]) * np.arange(1, len(matrix) + 1)
+        average_red_index = np.mean(
+            red_indices[red_indices > 0]
+        )  # Average index of redcolor is red
+
+        if LEFT_IS_GREEN and average_red_index > average_green_index:
+            """
+            if self.log.isEnabledFor(logging.DEBUG):
+                self.log.debug(
+                    f"green: {average_green_index}, red: {average_red_index}"
+                )
+                vector_size = 128
+                self.debug_counter += 1
+                height, width, _ = image.shape
+                sliced_image = image[
+                    height // 2 - height // 40 + Y_OFFSET : height // 2
+                    + height // 40
+                    + Y_OFFSET,
+                    :,
+                    :,
+                ]
+
+                # Ensure the width of the sliced image is divisible by vector_size
+                adjusted_width = (width // vector_size) * vector_size
+                sliced_image = sliced_image[:, :adjusted_width, :]
+                debug_slice_image = self.server.camera.recreate_image_from_matrix(
+                    sliced_image, matrix, adjusted_width, vector_size
+                )
+
+                debug_slice_image.save(
+                    os.path.join(
+                        DEBUG_DIR_wayfinding,
+                        f"wrong_direction_{self.debug_counter}_slice.jpg",
+                    )
+                )
+                Image.fromarray(image).convert("RGB").save(
+                    os.path.join(
+                        DEBUG_DIR_wayfinding, f"wrong_direction{self.debug_counter}.jpg"
+                    )
+                )"""
+            return True
+        elif not LEFT_IS_GREEN and average_green_index > average_red_index:
+            return True
+        return False
+
+    def thread_check_reverse(self) -> Never:
+        """
+        Thread function to continuously check if the car is running in reverse and update the server state.
+        """
+        temp = 0
+        while self.server.camera is None:
+            time.sleep(1)  # Wait until the camera is initialized
+        while True:
+            try:
+                image = self.server.camera.get_last_image()
+
+                result = self.is_running_in_reversed(image=image)
+
+                if result:
+                    temp += 1
+                else:
+                    temp = 0
+
+                if temp >= LIMIT_REVERSE_COUNT and not self.is_reverse:
+                    self.log.info("Car is running in reverse")
+                    self.is_reverse = True
+                elif temp == 0 and self.is_reverse:
+                    self.log.info("Car is no longer running in reverse")
+                    self.is_reverse = False
+            except Exception as e:
+                self.log.error(f"Error checking reverse: {e}")
+            time.sleep(FREQUENCY_REVERSE_DETECTION)
+
+
 class Camera:
     """
     Camera = client WebRTC (WHEP) vers MediaMTX.
     MediaMTX ouvre la PiCam (source: rpiCamera). Python ne fait que consommer.
     """
 
-    def __init__(self, whep_url: str = "http://192.168.0.20:8889/cam/whep"):
+    def __init__(self, whep_url: str = "http://192.168.0.20:8889/cam/whep") -> None:
         self.log = logging.getLogger(__name__)
         self.whep_url = whep_url
         self.debug_counter = 0
@@ -47,10 +155,10 @@ class Camera:
         self._thread.start()
 
     # --------- thread -> event loop asyncio ---------
-    def _thread_main(self):
+    def _thread_main(self) -> None:
         asyncio.run(self._run_forever())
 
-    async def _run_forever(self):
+    async def _run_forever(self) -> None:
         # boucle de reconnexion automatique
         while not self._stop_flag.is_set():
             try:
@@ -61,7 +169,7 @@ class Camera:
             # petit backoff avant de retenter
             await asyncio.sleep(0.5)
 
-    async def _processing_loop(self):
+    async def _processing_loop(self) -> None:
         while not self._stop_flag.is_set():
             frame = await self._frame_queue.get()
             # H264 decoding -> numpy (OUTSIDE WebRTC)
@@ -74,7 +182,9 @@ class Camera:
             with self._lock:
                 self.last_frame = img_rgb
 
-    async def _wait_ice_complete(self, pc: RTCPeerConnection, timeout: float = 2.0):
+    async def _wait_ice_complete(
+        self, pc: RTCPeerConnection, timeout: float = 2.0
+    ) -> None:
         if pc.iceGatheringState == "complete":
             return
 
@@ -91,7 +201,7 @@ class Camera:
             self.log.warning("ICE gathering not complete after timeout")
             pass
 
-    async def _run_once(self, url: str):
+    async def _run_once(self, url: str) -> None:
         config = RTCConfiguration(iceServers=[])
 
         pc = RTCPeerConnection(configuration=config)
@@ -106,7 +216,7 @@ class Camera:
                 await pc.close()
 
         @pc.on("track")
-        async def on_track(track: VideoStreamTrack):
+        async def on_track(track: VideoStreamTrack) -> None:
             if track.kind != "video":
                 return
 
@@ -169,7 +279,7 @@ class Camera:
     # ----------------------------
     # Program interface
     # ----------------------------
-    def stop(self):
+    def stop(self) -> None:
         """Stops the WHEP client (does not stop MediaMTX)."""
         self._stop_flag.set()
 
@@ -278,7 +388,7 @@ class Camera:
         self.debug_counter += 1
         return Image.fromarray(combined_image).convert("RGB")
 
-    def is_green_or_red(self, lidar):
+    def is_green_or_red(self, lidar) -> int:
         """
         Check if the car is facing a green or red wall by analyzing the bottom half of the image.
         """
@@ -305,67 +415,6 @@ class Camera:
         elif red_intensity > green_intensity + COLOR_THRESHOLD:
             return COLOUR_KEY["red"]
         return COLOUR_KEY["none"]
-
-    def is_running_in_reversed(
-        self, image: Optional[np.ndarray] = None, LEFT_IS_GREEN: bool = True
-    ):
-        """
-        Check if the car is running in reverse.
-        If the car is in reverse, green will be on the right side of the image and red on the left.
-        """
-        if image is None:
-            image = self.get_last_image()
-        matrix = self.camera_matrix(image=image)
-        if COLOUR_KEY["green"] not in matrix or COLOUR_KEY["red"] not in matrix:
-            # If there are no green or no red pixels, return False
-            return False
-        green_indices = (matrix == COLOUR_KEY["green"]) * np.arange(1, len(matrix) + 1)
-        average_green_index = np.mean(
-            green_indices[green_indices > 0]
-        )  # Average index of green
-
-        red_indices = (matrix == COLOUR_KEY["red"]) * np.arange(1, len(matrix) + 1)
-        average_red_index = np.mean(
-            red_indices[red_indices > 0]
-        )  # Average index of redcolor is red
-
-        if LEFT_IS_GREEN and average_red_index > average_green_index:
-            if self.log.isEnabledFor(logging.DEBUG):
-                self.log.debug(
-                    f"green: {average_green_index}, red: {average_red_index}"
-                )
-                vector_size = 128
-                self.debug_counter += 1
-                height, width, _ = image.shape
-                sliced_image = image[
-                    height // 2 - height // 40 + Y_OFFSET : height // 2
-                    + height // 40
-                    + Y_OFFSET,
-                    :,
-                    :,
-                ]
-
-                # Ensure the width of the sliced image is divisible by vector_size
-                adjusted_width = (width // vector_size) * vector_size
-                sliced_image = sliced_image[:, :adjusted_width, :]
-                debug_slice_image = self.recreate_image_from_matrix(
-                    sliced_image, matrix, adjusted_width, vector_size
-                )
-
-                debug_slice_image.save(
-                    os.path.join(
-                        DEBUG_DIR_wayfinding,
-                        f"wrong_direction_{self.debug_counter}_slice.jpg",
-                    )
-                )
-                Image.fromarray(image).convert("RGB").save(
-                    os.path.join(
-                        DEBUG_DIR_wayfinding, f"wrong_direction{self.debug_counter}.jpg"
-                    )
-                )
-            return True
-        elif not LEFT_IS_GREEN and average_green_index > average_red_index:
-            return True
 
 
 if __name__ == "__main__":

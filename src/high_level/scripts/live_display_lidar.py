@@ -1,6 +1,6 @@
 import time
 
-from actionneur_capteur import Lidar
+from driver import Lidar
 
 IP = "192.168.0.10"
 PORT = 10940

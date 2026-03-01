@@ -1,11 +1,11 @@
 import time
-from actionneur_capteur.lidar import Lidar
+from driver.lidar import Lidar
 
 
-IP = '192.168.0.20'
+IP = "192.168.0.20"
 PORT = 10940
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sensor = Lidar(IP, PORT)
     sensor.stop()
     # sensor.singleRead(0, 1080)

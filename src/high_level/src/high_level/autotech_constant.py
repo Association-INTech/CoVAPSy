@@ -79,5 +79,7 @@ LIDAR_STREAM_ON_START = (
 LIMIT_CRASH_POINT = 10  # number of lidar points that must be under the crash border distance to consider that the car is in a crash situation,
 FREQUENCY_CRASH_DETECTION = 0.1  # in seconds, the time between two crash detection
 
+FREQUENCY_REVERSE_DETECTION = 0.5  # in seconds, the time between two reverse detection
+LIMIT_REVERSE_COUNT = 3  # number of reverse detection before considering that the car is in reverse and must turn around
 # Backend
 SITE_DIR_BACKEND = "/home/intech/CoVAPSy/src/high_level/src/site_controle"  # the directory where the backend will look for the site to serve
