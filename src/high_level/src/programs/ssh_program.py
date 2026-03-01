@@ -5,7 +5,7 @@ from programs.program import Program
 from programs.utils.ssh import check_ssh_connections
 
 
-class SshProgramme(Program):
+class SshProgram(Program):
     """Give information about SSH connections and IP address and if the car is in standby mode (when this program is running)"""
 
     def __init__(self) -> None:

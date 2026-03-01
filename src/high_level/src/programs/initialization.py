@@ -14,7 +14,7 @@ class ProgramState(Enum):
     STOPPED = 3
 
 
-class Initialisation(Program):
+class Initialization(Program):
     def __init__(self, server) -> None:
         super().__init__()
         self.log = logging.getLogger(__name__)

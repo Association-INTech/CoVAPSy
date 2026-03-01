@@ -1,19 +1,19 @@
 from .camera_serv import StreamHandler, StreamOutput, StreamServer, frame_buffer
-from .car import AIProgram, Car, CrashCar
-from .initialisation import Initialisation
+from .car import AIProgram, Car
+from .initialization import Initialization
 from .poweroff import Poweroff
 from .program import Program  # in first because other programs depend on it
 from .remote_control import RemoteControl
-from .ssh_programme import SshProgramme
+from .ssh_program import SshProgram
 
 __all__ = [
     "Program",
     "Car",
     "AIProgram",
     "RemoteControl",
-    "Initialisation",
+    "Initialization",
     "Poweroff",
-    "SshProgramme",
+    "SshProgram",
     "StreamServer",
     "StreamHandler",
     "StreamOutput",

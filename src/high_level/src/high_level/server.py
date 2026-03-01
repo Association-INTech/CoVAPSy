@@ -1,13 +1,3 @@
-from actionneur_capteur.master_i2c import I2CArduino
-from actionneur_capteur.tof import ToF
-
-
-from actionneur_capteur.lidar import Lidar
-
-
-from actionneur_capteur.camera import Camera
-
-
 import logging
 import textwrap
 import time
@@ -19,19 +9,23 @@ from luma.core.render import canvas
 from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
+from actionneur_capteur.camera import Camera
+from actionneur_capteur.lidar import Lidar
+from actionneur_capteur.master_i2c import I2CArduino
+from actionneur_capteur.tof import ToF
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
-from programs.car import AIProgram, CrashCar
-from programs.initialisation import Initialisation
+from programs.car import AIProgram
+from programs.initialization import Initialization
 from programs.poweroff import Poweroff
 from programs.ps4_controller_program import PS4ControllerProgram
 from programs.remote_control import RemoteControl
-from programs.ssh_programme import SshProgramme
+from programs.ssh_program import SshProgram
 from programs.utils.ssh import check_ssh_connections
 
 from .backend import BackendAPI
 
 
-class Serveur:
+class Server:
     def __init__(self):
         self.log = logging.getLogger(__name__)
         # initialization of different modules
@@ -61,12 +55,11 @@ class Serveur:
         self.process = None
         self.temp = None
 
-        self.initialisation_module = Initialisation(self)
-        self.crash_car = CrashCar(self)
+        self.initialization_module = Initialization(self)
 
         self.programs = [
-            SshProgramme(),
-            self.initialisation_module,
+            SshProgram(),
+            self.initialization_module,
             AIProgram(self),
             PS4ControllerProgram(),
             RemoteControl(),
@@ -82,20 +75,20 @@ class Serveur:
         self.scroll_offset = 3
 
     @property
-    def camera(self) -> Camera | None:
-        return self.initialisation_module.camera
+    def camera(self) -> Camera:
+        return self.initialization_module.camera
 
     @property
-    def lidar(self) -> Lidar | None:
-        return self.initialisation_module.lidar
+    def lidar(self) -> Lidar:
+        return self.initialization_module.lidar
 
     @property
-    def tof(self) -> ToF | None:
-        return self.initialisation_module.tof
+    def tof(self) -> ToF:
+        return self.initialization_module.tof
 
     @property
-    def arduino_I2C(self) -> I2CArduino | None:
-        return self.initialisation_module.arduino_I2C
+    def arduino_I2C(self) -> I2CArduino:
+        return self.initialization_module.arduino_I2C
 
     @property
     def target_speed(self) -> float:

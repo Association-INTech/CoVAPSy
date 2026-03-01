@@ -1,4 +1,4 @@
-from .serveur import Serveur
 from .backend import BackendAPI
+from .server import Server
 
-__all__ = ["Serveur", "BackendAPI"]
+__all__ = ["Server", "BackendAPI"]
