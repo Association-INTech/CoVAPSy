@@ -2,7 +2,7 @@ import logging
 import threading
 from enum import Enum
 
-from actionneur_capteur import Camera, I2CArduino, Lidar, ToF
+from driver import Camera, I2CArduino, Lidar, ToF
 from high_level.autotech_constant import SOCKET_ADRESS
 
 from .program import Program
@@ -22,6 +22,11 @@ class Initialization(Program):
         self.camera_init = ProgramState.INITIALIZATION
         self.lidar_init = ProgramState.INITIALIZATION
         self.tof_init = ProgramState.INITIALIZATION
+
+        self.arduino_I2C = None
+        self.camera = None
+        self.lidar = None
+        self.tof = None
 
         threading.Thread(target=self.init_camera, daemon=True).start()
         threading.Thread(target=self.init_lidar, daemon=True).start()

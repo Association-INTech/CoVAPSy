@@ -9,12 +9,12 @@ from luma.core.render import canvas
 from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
-from actionneur_capteur.camera import Camera
-from actionneur_capteur.lidar import Lidar
-from actionneur_capteur.master_i2c import I2CArduino
-from actionneur_capteur.tof import ToF
+from driver.camera import Camera
+from driver.lidar import Lidar
+from driver.master_i2c import I2CArduino
+from driver.tof import ToF
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
-from programs.car import AIProgram
+from programs.car import AIProgram, CrashCar
 from programs.initialization import Initialization
 from programs.poweroff import Poweroff
 from programs.ps4_controller_program import PS4ControllerProgram
@@ -56,7 +56,7 @@ class Server:
         self.temp = None
 
         self.initialization_module = Initialization(self)
-
+        self.crash_car = CrashCar(self)
         self.programs = [
             SshProgram(),
             self.initialization_module,
@@ -75,19 +75,19 @@ class Server:
         self.scroll_offset = 3
 
     @property
-    def camera(self) -> Camera:
+    def camera(self) -> Camera | None:
         return self.initialization_module.camera
 
     @property
-    def lidar(self) -> Lidar:
+    def lidar(self) -> Lidar | None:
         return self.initialization_module.lidar
 
     @property
-    def tof(self) -> ToF:
+    def tof(self) -> ToF | None:
         return self.initialization_module.tof
 
     @property
-    def arduino_I2C(self) -> I2CArduino:
+    def arduino_I2C(self) -> I2CArduino | None:
         return self.initialization_module.arduino_I2C
 
     @property

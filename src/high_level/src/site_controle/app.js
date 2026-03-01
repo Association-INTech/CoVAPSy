@@ -187,6 +187,8 @@ function updateTelemetry(t) {
         t.car.car_control ?? "None";
     document.getElementById("tof").textContent =
         t.car.tof.toFixed(2);
+    document.getElementById("crash_status").textContent =
+        t.car.crashed ? "CRASHED" : "OK";
     speedHistory.real.push(t.car.current_speed);
     speedHistory.demand.push(t.car.target_speed);
 
@@ -298,8 +300,6 @@ async function fetchLidarInit() {
 function initLidar(info, retryDelay = 1000) {
     const theta = decodeBase64ToFloat32Array(info.xTheta);
     const carBorder = info.car_border ? decodeBase64ToFloat32Array(info.car_border) : null;
-    console.log("Lidar theta:", theta);
-    console.log("Car border:", carBorder);
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
 

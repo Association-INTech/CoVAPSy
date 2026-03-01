@@ -117,7 +117,6 @@ class BackendAPI(Program):
 
         target_speed = float(getattr(self.server, "target_speed", 0.0))
         direction = float(getattr(self.server, "direction", 0.0))
-
         return {
             "battery": {"lipo": voltage_lipo, "nimh": voltage_nimh},
             "car": {
@@ -127,6 +126,7 @@ class BackendAPI(Program):
                 "car_control": prog_name,
                 "program_id": last_ctrl,
                 "tof": self.server.tof.distance,
+                "crashed": self.server.crash_car.crashed,
             },
             "timestamp": time.time(),
         }
