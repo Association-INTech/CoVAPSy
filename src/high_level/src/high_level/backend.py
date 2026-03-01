@@ -214,9 +214,35 @@ class BackendAPI(Program):
             except Exception as e:
                 self.logger.warning("Camera matrix error: %s", e)
 
-            time.sleep(0.5)
+            time.sleep(0.1)
 
         self.logger.info("Camera matrix thread stopped")
+
+    def _compress_camera_matrix(self, matrix: np.ndarray) -> str:
+        """
+        Compress matrix (-1,0,1) into 2-bit packed bytes + base64.
+        """
+        mapping = {-1: 0b00, 0: 0b01, 1: 0b10}
+
+        packed = bytearray()
+        byte = 0
+        bits_filled = 0
+
+        for v in matrix:
+            bits = mapping[int(v)]
+            byte = (byte << 2) | bits
+            bits_filled += 2
+
+            if bits_filled == 8:
+                packed.append(byte)
+                byte = 0
+                bits_filled = 0
+
+        if bits_filled > 0:
+            byte = byte << (8 - bits_filled)
+            packed.append(byte)
+
+        return base64.b64encode(bytes(packed)).decode("ascii")
 
     # ----------------------------
     # Routes
@@ -392,9 +418,11 @@ class BackendAPI(Program):
                             matrix = self._camera_matrix_data
 
                         if matrix is not None:
-                            await ws.send_json(matrix.tolist())
+                            compressed = self._compress_camera_matrix(matrix)
 
-                    await asyncio.sleep(0.5)
+                            await ws.send_json({"data": compressed, "n": len(matrix)})
+
+                    await asyncio.sleep(0.1)
 
             except WebSocketDisconnect:
                 self.logger.info("Camera matrix WS disconnected")

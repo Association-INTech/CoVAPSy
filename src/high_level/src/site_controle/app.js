@@ -154,7 +154,8 @@ async function startCameraMatrix() {
     cameraMatrixWS = new WebSocket(proto + "://" + location.host + "/api/camera_matrix/ws");
 
     cameraMatrixWS.onmessage = (e) => {
-        const matrix = JSON.parse(e.data);
+        const payload = JSON.parse(e.data);
+        const matrix = decodeCameraMatrix(payload.data, payload.n);
         renderCameraMatrix(matrix);
     };
 }
@@ -185,7 +186,34 @@ function renderCameraMatrix(matrix) {
     });
 }
 
+function decodeCameraMatrix(b64, n) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
 
+    for (let i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i);
+    }
+
+    const result = new Array(n);
+    let index = 0;
+
+    for (let b of bytes) {
+        for (let shift = 6; shift >= 0; shift -= 2) {
+            if (index >= n) break;
+
+            const bits = (b >> shift) & 0b11;
+
+            if (bits === 0b00) result[index] = -1;
+            else if (bits === 0b01) result[index] = 0;
+            else if (bits === 0b10) result[index] = 1;
+            else result[index] = 0;
+
+            index++;
+        }
+    }
+
+    return result;
+}
 
 async function fetchStatus() {
     const res = await fetch(`${API}/api/status`);
@@ -544,7 +572,6 @@ async function init() {
 
         if (camEl && camLink) {
             camEl.src = camUrl;
-            camLink.href = camUrl;
 
         } else {
             console.warn("Element #camera not found at initialization");
