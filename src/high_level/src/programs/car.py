@@ -18,14 +18,21 @@ from high_level.autotech_constant import (
     MAX_ANGLE,
     MODEL_PATH,
     LIMIT_CRASH_POINT,
+    FREQUENCY_CRASH_DETECTION,
 )
 
 from .program import Program
 from .utils.driver import Driver
 
 
+class Border_zone:
+    ZONE1 = [0, 370]
+    ZONE2 = [371, 750]
+    ZONE3 = [751, 1080]
+
+
 class CrashCar:
-    def __init__(self, serveur):
+    def __init__(self, serveur) -> None:
         self.log = logging.getLogger(__name__)
         self.serveur = serveur
         self.crashed = False
@@ -57,7 +64,6 @@ class CrashCar:
                     + str(len(self.reference_lidar))
                 )
                 self.crashed = False
-                time.sleep(0.1)
             else:
                 # Points that are inside the vehicle contour
                 penetration_mask = (current > 0) & (current < self.reference_lidar)
@@ -66,12 +72,12 @@ class CrashCar:
 
                 self.log.debug(f"Penetration points: {penetration_count}")
 
-                if penetration_count >= LIMIT_CRASH_POINT:  # ← tu peux ajuster ici
+                if penetration_count >= LIMIT_CRASH_POINT:
                     self.log.info("Crash detected via contour penetration")
                     self.crashed = True
                 else:
                     self.crashed = False
-                time.sleep(0.1)
+            time.sleep(FREQUENCY_CRASH_DETECTION)  # time between two crash detection
 
 
 class Car:
@@ -152,7 +158,7 @@ class Car:
 
         if self.serveur.crash_car.crashed:
             self.log.info("Obstacle detected")
-            color= self.camera.is_green_or_red(lidar_data)
+            color = self.camera.is_green_or_red(lidar_data)
             if color == 0:
                 small_distances = [
                     d for d in self.lidar.r_distance if 0 < d < CRASH_DIST

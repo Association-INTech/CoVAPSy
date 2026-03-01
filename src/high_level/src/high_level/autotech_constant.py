@@ -77,5 +77,7 @@ LIDAR_STREAM_ON_START = (
     True  # If True the lidar stream will start at the launch of the car
 )
 LIMIT_CRASH_POINT = 10  # number of lidar points that must be under the crash border distance to consider that the car is in a crash situation,
+FREQUENCY_CRASH_DETECTION = 0.1  # in seconds, the time between two crash detection
+
 # Backend
 SITE_DIR_BACKEND = "/home/intech/CoVAPSy/src/high_level/src/site_controle"  # the directory where the backend will look for the site to serve
