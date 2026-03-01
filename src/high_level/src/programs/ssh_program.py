@@ -1,6 +1,3 @@
-from _socket import _RetAddress
-
-
 import socket
 import time
 
@@ -8,7 +5,7 @@ from programs.program import Program
 from programs.utils.ssh import check_ssh_connections
 
 
-class SshProgramme(Program):
+class SshProgram(Program):
     """Give information about SSH connections and IP address and if the car is in standby mode (when this program is running)"""
 
     def __init__(self) -> None:
@@ -42,7 +39,7 @@ class SshProgramme(Program):
             self._last_ip_check = now
 
     @staticmethod
-    def get_local_ip() -> _RetAddress | None:
+    def get_local_ip() -> str | None:
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.settimeout(0.1)

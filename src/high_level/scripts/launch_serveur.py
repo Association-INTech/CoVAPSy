@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------------------------------
 import logging
 
-from high_level import Serveur
+from high_level import Server
 
 if __name__ == "__main__":
     logging.basicConfig(
@@ -23,5 +23,5 @@ if __name__ == "__main__":
     log_lidar = logging.getLogger("src.HL.actionneur_capteur.Lidar")
     log_lidar.setLevel(level=logging.INFO)
 
-    boot = Serveur()
+    boot = Server()
     boot.main()

@@ -1,10 +1,11 @@
 # you must run export PYTHONPATH=/home/intech/CoVAPSy/src/high_level before running this script
 
-import time
-import numpy as np
-from src.actionneur_capteur.lidar import Lidar
 import signal
-import sys
+import time
+
+import numpy as np
+
+from src.actionneur_capteur.lidar import Lidar
 
 IP = "192.168.0.10"
 PORT = 10940
