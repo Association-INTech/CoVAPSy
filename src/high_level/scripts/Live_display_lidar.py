@@ -11,5 +11,5 @@ if __name__ == "__main__":
     # sensor.singleRead(0, 1080)
     time.sleep(2)
 
-    sensor.startContinuous(0, 1080)
-    sensor.startPlotter()
+    sensor.start_continuous(0, 1080)
+    sensor.start_plotter()

@@ -78,13 +78,14 @@ class BackendAPI(Program):
             @self.app.get("/", response_class=HTMLResponse)
             def index():
                 # the frontend is served at /static/index.html
-                return """
+                return f"""
                 <html>
                   <head><meta charset="utf-8"><title>CoVAPSy</title></head>
                   <body>
                     <h3>CoVAPSy Control</h3>
                     <p>Frontend: <a href="/static/index.html">/static/index.html</a></p>
                     <p>Lidar: <a href="/static/lidar.html">/static/lidar.html</a></p>
+                    <p>Camera: <a href="http://{getattr(self.server, "ip", None) or "192.168.1.10"}:{PORT_STREAMING_CAMERA}/cam/">Camera Stream</a></p>
                   </body>
                 </html>
                 """

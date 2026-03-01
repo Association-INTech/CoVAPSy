@@ -33,9 +33,9 @@ class Border_zone:
 
 
 class CrashCar:
-    def __init__(self, serveur) -> None:
+    def __init__(self, server) -> None:
         self.log = logging.getLogger(__name__)
-        self.serveur = serveur
+        self.server = server
         self.crashed = False
         # Load reference lidar contour once
         try:
@@ -52,11 +52,11 @@ class CrashCar:
 
     def has_Crashed(self) -> bool:
 
-        while self.serveur.lidar is None:
+        while self.server.lidar is None:
             self.log.debug("Lidar not yet ready for crash detection")
             time.sleep(0.1)
         while True:
-            current = self.serveur.lidar.r_distance[:1080]
+            current = self.server.lidar.r_distance[:1080]
 
             if current is None or len(current) != len(self.reference_lidar):
                 self.log.warning(
@@ -82,11 +82,11 @@ class CrashCar:
 
 
 class Car:
-    def __init__(self, driving_strategy, serveur, model) -> None:
+    def __init__(self, driving_strategy, server, model) -> None:
         self.log = logging.getLogger(__name__)
         self.target_speed = 0  # Speed in millimeters per second
         self.direction = 0  # Steering angle in degrees
-        self.serveur = serveur
+        self.server = server
         self.reverse_count = 0
 
         # Initialize AI session
@@ -104,15 +104,15 @@ class Car:
     # dynamic access to sensors
     @property
     def camera(self) -> Camera:
-        return self.serveur.camera
+        return self.server.camera
 
     @property
     def lidar(self) -> Lidar:
-        return self.serveur.lidar
+        return self.server.lidar
 
     @property
     def tof(self) -> ToF:
-        return self.serveur.tof
+        return self.server.tof
 
     def stop(self) -> None:
         self.target_speed = 0
@@ -127,7 +127,7 @@ class Car:
         self.direction = MAX_ANGLE
         self.target_speed = -2  # blocing call
         time.sleep(1.8)  # Wait for the car to turn around
-        if self.camera.is_running_in_reversed():
+        if self.server.camera_red_or_green.is_reverse:
             self.turn_around()
 
     def main(self) -> None:
@@ -157,7 +157,7 @@ class Car:
             self.turn_around()
             self.reverse_count = 0
 
-        if self.serveur.crash_car.crashed:
+        if self.server.crash_car.crashed:
             self.log.info("Obstacle detected")
             color = self.camera.is_green_or_red(lidar_data)
             if color == 0:
@@ -183,10 +183,10 @@ class Car:
 
 
 class AIProgram(Program):
-    def __init__(self, serveur) -> None:
+    def __init__(self, server) -> None:
         super().__init__()
         self.log = logging.getLogger(__name__)
-        self.serveur = serveur
+        self.server = server
         self.driver = None
         self.GR86 = None
         self.running = False
@@ -228,13 +228,13 @@ class AIProgram(Program):
         self.driver = Driver(128, 128)
         self.driver.load_model(model)
 
-        # self.GR86 = Car(self.driver.ai, self.serveur, model)
-        self.GR86 = Car(self.driver.omniscent, self.serveur, model)
-        # self.GR86 = Car(self.driver.simple_minded, self.serveur, model)
+        # self.GR86 = Car(self.driver.ai, self.server, model)
+        self.GR86 = Car(self.driver.omniscent, self.server, model)
+        # self.GR86 = Car(self.driver.simple_minded, self.server, model)
 
     def start(self, model_give: Optional[str] = None) -> None:
 
-        if self.serveur.camera is None or self.serveur.lidar is None:
+        if self.server.camera is None or self.server.lidar is None:
             self.log.error("Sensors not initialized")
             return
         if self.models is None:
