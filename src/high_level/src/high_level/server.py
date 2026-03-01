@@ -9,10 +9,10 @@ from luma.core.render import canvas
 from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
-from actionneur_capteur.camera import Camera
-from actionneur_capteur.lidar import Lidar
-from actionneur_capteur.master_i2c import I2CArduino
-from actionneur_capteur.tof import ToF
+from driver.camera import Camera
+from driver.lidar import Lidar
+from driver.master_i2c import I2CArduino
+from driver.tof import ToF
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
 from programs.car import AIProgram, CrashCar
 from programs.initialization import Initialization
