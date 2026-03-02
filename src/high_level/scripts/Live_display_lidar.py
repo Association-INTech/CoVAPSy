@@ -1,5 +1,5 @@
 import time
-from driver.lidar import Lidar
+from drivers.lidar import Lidar
 
 
 IP = "192.168.0.20"

@@ -2,7 +2,7 @@ import logging
 import threading
 from enum import Enum
 
-from driver import Camera, I2CArduino, Lidar, ToF
+from drivers import Camera, I2CArduino, Lidar, ToF
 from high_level.autotech_constant import SOCKET_ADRESS
 
 from .program import Program
