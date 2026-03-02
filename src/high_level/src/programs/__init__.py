@@ -18,4 +18,5 @@ __all__ = [
     "StreamHandler",
     "StreamOutput",
     "frame_buffer",
+    "CrashCar",
 ]

@@ -20,7 +20,7 @@ if __name__ == "__main__":
     log_serveur = logging.getLogger("src.HL")
     log_serveur.setLevel(level=logging.DEBUG)
 
-    log_lidar = logging.getLogger("src.HL.actionneur_capteur.Lidar")
+    log_lidar = logging.getLogger("src.HL.driver.Lidar")
     log_lidar.setLevel(level=logging.INFO)
 
     boot = Server()
