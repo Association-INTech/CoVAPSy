@@ -1,9 +1,14 @@
+# this file is launched as a separate process by camera_proxy.py.
 import asyncio
 import logging
 import os
 import threading
 import time
 from typing import Never, Optional, cast
+
+import numpy as np
+from multiprocessing.shared_memory import SharedMemory
+from multiprocessing.connection import Listener
 
 import aiohttp
 import cv2
@@ -415,6 +420,64 @@ class Camera:
         elif red_intensity > green_intensity + COLOR_THRESHOLD:
             return COLOUR_KEY["red"]
         return COLOUR_KEY["none"]
+
+
+def run_camera(
+    whep_url: str,
+    shm_name: str,
+    w: int,
+    h: int,
+    rpc_addr=("127.0.0.1", 6000),
+    authkey=b"covapsy",
+) -> None:
+
+    shm = SharedMemory(name=shm_name, create=True, size=w * h * 3)
+    buf = np.ndarray((h, w, 3), dtype=np.uint8, buffer=shm.buf)
+    buf[:] = 0
+
+    cam = Camera(whep_url)
+    stop_flag = threading.Event()
+
+    def writer_loop():
+        while not stop_flag.is_set():
+            frame = cam.get_last_image()
+            if frame is not None and frame.shape == buf.shape:
+                buf[:] = frame
+            time.sleep(0.01)
+
+    t = threading.Thread(target=writer_loop, daemon=True)
+    t.start()
+
+    listener = Listener(rpc_addr, authkey=authkey)
+
+    try:
+        conn = listener.accept()  # un seul client suffit
+        while not stop_flag.is_set():
+            try:
+                msg = conn.recv()
+            except EOFError:
+                break
+
+            cmd = msg.get("cmd")
+            if cmd == "ping":
+                conn.send({"ok": True, "msg": "pong"})
+            elif cmd == "stop":
+                conn.send({"ok": True})
+                stop_flag.set()
+            else:
+                conn.send({"ok": False, "error": f"unknown cmd {cmd}"})
+    finally:
+        stop_flag.set()
+        try:
+            cam.stop()
+        except Exception:
+            pass
+        try:
+            listener.close()
+        except Exception:
+            pass
+        shm.close()
+        shm.unlink()
 
 
 if __name__ == "__main__":

@@ -2,7 +2,9 @@ import logging
 import threading
 from enum import Enum
 
-from drivers import Camera, I2CArduino, Lidar, ToF
+from drivers import I2CArduino, Lidar, ToF
+from .camera_proxy import CameraProxy
+
 from high_level.autotech_constant import SOCKET_ADRESS
 
 from .program import Program
@@ -48,7 +50,7 @@ class Initialization(Program):
 
     def init_camera(self) -> None:
         try:
-            self.camera = Camera()
+            self.camera = CameraProxy(whep_url="http://192.168.1.10:8889/cam/whep")
             self.camera_init = ProgramState.RUNNING
             self.log.info("Camera initialized successfully")
         except Exception as e:
