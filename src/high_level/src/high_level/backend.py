@@ -451,7 +451,6 @@ class BackendAPI(Program):
                 self.logger.error("BackendAPI crashed: %s", e, exc_info=True)
             finally:
                 self.running = False
-                self.logger.warning("BackendAPI stopped")
 
         self._thread = threading.Thread(target=_run, daemon=True)
         self._thread.start()
@@ -459,10 +458,24 @@ class BackendAPI(Program):
     def kill(self):
         if not self.running:
             return
-        self.running = False
-        if self._uvicorn_server:
+        self.logger.info("BackendAPI stopping...")
+
+        self._camera_matrix_running = False
+
+        if (
+            self._camera_matrix_thread is not None
+            and self._camera_matrix_thread.is_alive()
+        ):
+            self._camera_matrix_thread.join(timeout=1.0)
+
+        if self._uvicorn_server is not None:
             self._uvicorn_server.should_exit = True
-        self.logger.info("BackendAPI kill requested")
+
+        if self._thread is not None and self._thread.is_alive():
+            self._thread.join(timeout=3.0)
+
+        self.running = False
+        self.logger.info("BackendAPI stopped")
 
     def display(self):
         name = self.__class__.__name__

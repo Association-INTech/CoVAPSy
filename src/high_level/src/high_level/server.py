@@ -57,13 +57,9 @@ class Server:
         self.process = None
         self.temp = None
 
-        self.initialization_module = Initialization(self)
-        self.crash_car = CrashCar(self)
-        self.camera_red_or_green = Camera_red_or_green(self)
-
         self.programs = [
             SshProgram(),
-            self.initialization_module,
+            Initialization(self),
             AIProgram(self),
             PS4ControllerProgram(),
             RemoteControl(),
@@ -71,6 +67,12 @@ class Server:
             BackendAPI(self, host="0.0.0.0", port=8001, site_dir=SITE_DIR_BACKEND),
             Poweroff(),
         ]
+        self.initialization_module = self.programs[
+            1
+        ]  # the initialization program is the second in the list
+        self.crash_car = CrashCar(self)
+        self.camera_red_or_green = Camera_red_or_green(self)
+
         self.log.debug("Programs ready: %s", [type(p).__name__ for p in self.programs])
 
         # screen data
@@ -96,13 +98,17 @@ class Server:
 
     @property
     def target_speed(self) -> float:
-        if not hasattr(self, "programs"):
+        try:
+            return self.programs[self.last_program_control].target_speed
+        except (IndexError, AttributeError):
             return 0.0
-        return self.programs[self.last_program_control].target_speed
 
     @property
     def direction(self) -> float:
-        return self.programs[self.last_program_control].direction
+        try:
+            return self.programs[self.last_program_control].direction
+        except (IndexError, AttributeError):
+            return 0.0
 
     # -----------------------------------------------------------------------------------------------------
     # Screen display functions

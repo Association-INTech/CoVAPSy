@@ -73,7 +73,7 @@ class Initialization(Program):
         try:
             self.tof = ToF()
             self.tof_init = ProgramState.RUNNING
-            self.log.info("Camera initialized successfully")
+            self.log.info("Tof initialized successfully")
         except Exception as e:
             self.tof_init = ProgramState.STOPPED
             self.log.error("Tof init error : " + str(e))

@@ -342,6 +342,13 @@ def run_camera(
             try:
                 msg = conn.recv()
             except EOFError:
+                log.info("run_camera: RPC connection closed by peer")
+                break
+            except KeyboardInterrupt:
+                log.info("run_camera: KeyboardInterrupt received")
+                break
+            except OSError as e:
+                log.info("run_camera: RPC receive stopped: %s", e)
                 break
 
             cmd = msg.get("cmd")
