@@ -17,11 +17,11 @@ from extractors import (  # noqa: F401
 # -------------------------------------------------------------------------
 
 def log(s: str):
-    if B_DEBUG:
+    if False:
         print(s, file=open("/tmp/autotech/logs", "a"))
 
 
-ONNX_MODEL_PATH = "model.onnx"
+ONNX_MODEL_PATH = "/home/exo/Bureau/CoVAPSy/model.onnx" #mettre la bonne adresse
 
 # --- Initialisation du moteur d'inférence ONNX Runtime (ORT) ---
 def init_onnx_runtime_session(onnx_path: str) -> ort.InferenceSession:
@@ -132,7 +132,7 @@ if __name__ == "__main__":
         os.mkdir("/tmp/autotech/")
 
     os.system('if [ -n "$(ls /tmp/autotech)" ]; then rm /tmp/autotech/*; fi')
-    if B_DEBUG:
+    if False:
         print("Webots started", file=open("/tmp/autotech/logs", "w"))
 
 
