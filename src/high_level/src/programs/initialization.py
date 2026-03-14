@@ -19,6 +19,7 @@ class ProgramState(Enum):
 class Initialization(Program):
     def __init__(self, server) -> None:
         super().__init__()
+        self.running = True
         self.log = logging.getLogger(__name__)
         self.arduino_I2C_init = ProgramState.INITIALIZATION
         self.camera_init = ProgramState.INITIALIZATION

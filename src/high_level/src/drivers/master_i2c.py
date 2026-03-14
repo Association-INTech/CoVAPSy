@@ -30,8 +30,11 @@ class I2CArduino:
         self.log.info("I2C: bus opened on /dev/i2c-1")
 
         # initialization of i2c send and received
-        threading.Thread(target=self.start_send, daemon=True).start()
-        threading.Thread(target=self.start_received, daemon=True).start()
+        self._send_thread = threading.Thread(target=self.start_send, daemon=True)
+        self._receive_thread = threading.Thread(target=self.start_received, daemon=True)
+
+        self._send_thread.start()
+        self._receive_thread.start()
 
     def start_send(self):
         """send speed and direction to the microcontroller regularly."""
@@ -72,3 +75,27 @@ class I2CArduino:
                     "I2C: unexpected size (%d but %d excepted)", len(data), length
                 )
             time.sleep(I2C_SLEEP_RECEIVED)
+
+    def stop(self):
+        """stop the send and receive threads."""
+        self.send_running = False
+        self.receive_running = False
+        try:
+            if self._send_thread.is_alive():
+                self._send_thread.join(timeout=1.0)
+        except Exception as e:
+            self.log.warning("I2C send thread join failed: %s", e)
+
+        try:
+            if self._receive_thread.is_alive():
+                self._receive_thread.join(timeout=1.0)
+        except Exception as e:
+            self.log.warning("I2C receive thread join failed: %s", e)
+
+        try:
+            self.bus.close()
+            self.log.info("I2C: bus closed")
+        except Exception as e:
+            self.log.warning("I2C bus close failed: %s", e)
+
+        self.log.info("I2CArduino stopped")

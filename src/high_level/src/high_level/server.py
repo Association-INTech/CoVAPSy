@@ -29,6 +29,7 @@ from .backend import BackendAPI
 class Server:
     def __init__(self):
         self.log = logging.getLogger(__name__)
+        self._stop_flag = False
         # initialization of different modules
         self.log.info("Server initialization")
 
@@ -95,6 +96,8 @@ class Server:
 
     @property
     def target_speed(self) -> float:
+        if not hasattr(self, "programs"):
+            return 0.0
         return self.programs[self.last_program_control].target_speed
 
     @property
@@ -229,12 +232,114 @@ class Server:
     # ---------------------------------------------------------------------------------------------------
     # car function
     # ---------------------------------------------------------------------------------------------------
+    def cleanup_gpio(self):
+        """Libère proprement les ressources GPIO / OLED / I2C du serveur."""
+        self.log.info("Cleaning up GPIO and display...")
+
+        # 1) désactiver les callbacks des boutons
+        try:
+            self.bp_next.when_pressed = None
+        except Exception as e:
+            self.log.warning("bp_next callback cleanup failed: %s", e)
+
+        try:
+            self.bp_entre.when_pressed = None
+        except Exception as e:
+            self.log.warning("bp_entre callback cleanup failed: %s", e)
+
+        # 2) mettre les sorties dans un état sûr
+        try:
+            self.led1.off()
+        except Exception as e:
+            self.log.warning("led1 off failed: %s", e)
+
+        try:
+            self.led2.off()
+        except Exception as e:
+            self.log.warning("led2 off failed: %s", e)
+
+        try:
+            self.buzzer.off()
+        except Exception as e:
+            self.log.warning("buzzer off failed: %s", e)
+
+        # 3) effacer l'écran OLED
+        try:
+            with canvas(self.device) as draw:
+                pass
+        except Exception as e:
+            self.log.warning("OLED clear failed: %s", e)
+
+        # 4) fermer proprement les objets gpiozero
+        for name in ("bp_next", "bp_entre", "led1", "led2", "buzzer"):
+            obj = getattr(self, name, None)
+            if obj is not None:
+                try:
+                    obj.close()
+                except Exception as e:
+                    self.log.warning("%s close failed: %s", name, e)
+
+        # 5) fermer le bus SMBus du serveur
+        # attention: si I2CArduino utilise aussi /dev/i2c-1, il vaut mieux l'avoir stoppé avant
+        try:
+            if hasattr(self, "bus") and self.bus is not None:
+                self.bus.close()
+        except Exception as e:
+            self.log.warning("Server SMBus close failed: %s", e)
+
+        # 6) fermer l'interface OLED si possible
+        # selon les libs, close() peut ne pas exister, donc on protège
+        for name in ("device", "serial"):
+            obj = getattr(self, name, None)
+            if obj is not None and hasattr(obj, "close"):
+                try:
+                    obj.close()
+                except Exception as e:
+                    self.log.warning("%s close failed: %s", name, e)
+
+        self.log.info("GPIO and display cleanup finished")
+
+    def stop(self):
+        """Stop the car by killing the program that controls it and starting the crash car program"""
+        self.log.info("Server stopping...")
+        self.programs[self.last_program_control].kill()
+
+        self._stop_flag = True
+
+        for p in self.programs:
+            if p.running:
+                p.kill()
+
+        # camera
+        try:
+            if self.camera is not None:
+                self.camera.stop()
+        except Exception as e:
+            self.log.warning("Camera stop failed: %s", e)
+
+        # I2C
+        try:
+            if self.arduino_I2C is not None:
+                self.arduino_I2C.stop()
+        except Exception as e:
+            self.log.warning("I2C stop failed: %s", e)
+
+        try:
+            self.cleanup_gpio()
+        except Exception as e:
+            self.log.warning("GPIO cleanup failed: %s", e)
+
+        self.log.info("Server stopped")
 
     def main(self):
         self.bp_next.when_pressed = self.bouton_next
         self.bp_entre.when_pressed = self.bouton_entre
 
-        self.log.info("Server main loop started")
-
-        while True:
-            self.idle()
+        try:
+            self.log.info("Server main loop started")
+            while not self._stop_flag:
+                self.idle()
+        except KeyboardInterrupt:
+            self.log.info("KeyboardInterrupt received in server main")
+        finally:
+            self.stop()
