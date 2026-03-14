@@ -35,8 +35,8 @@ class CameraProxy:
         self.rpc_addr = rpc_addr
         self.authkey = authkey
 
-        # the nale of the shared memory block that the worker process will create and write the small BGR image to
-        self.shm_name = "covapsy_cam_small"
+        # the name of the shared memory block that the worker process will create and write the small BGR image to
+        self.shm_name = f"covapsy_cam_small_{os.getpid()}"
 
         # start the worker process
         self._proc = Process(

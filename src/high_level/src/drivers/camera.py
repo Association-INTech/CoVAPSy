@@ -281,9 +281,16 @@ class Camera:
     # ----------------------------
     # Program interface
     # ----------------------------
+
     def stop(self) -> None:
-        """Stops the WHEP client (does not stop MediaMTX)."""
+        self.log.info("Camera: stopping")
         self._stop_flag.set()
+        try:
+            if self._thread.is_alive():
+                self._thread.join(timeout=2)
+        except Exception as e:
+            self.log.warning("Camera: thread join failed: %s", e)
+        self.log.info("Camera: stopped")
 
     # ----------
     # Public API
@@ -302,6 +309,7 @@ def run_camera(
     authkey=b"covapsy",
 ) -> None:
 
+    log = logging.getLogger(__name__)
     try:
         shm = SharedMemory(name=shm_name, create=True, size=w * h * 3)
     except FileExistsError:
@@ -356,3 +364,46 @@ def run_camera(
             pass
         shm.close()
         shm.unlink()
+
+    def stop(self) -> None:
+        self.log.info("CameraProxy: stopping")
+
+        # 1) Demander l'arrêt au worker
+        if self._rpc is not None:
+            try:
+                self._rpc.send({"cmd": "stop"})
+                self._rpc.recv()
+            except (BrokenPipeError, EOFError, OSError) as e:
+                self.log.warning("CameraProxy: RPC stop failed: %s", e)
+            except Exception as e:
+                self.log.warning("CameraProxy: unexpected RPC stop error: %s", e)
+
+        # 2) Attendre que le process finisse
+        if self._proc is not None:
+            try:
+                self._proc.join(timeout=3)
+                if self._proc.is_alive():
+                    self.log.warning("CameraProxy: worker still alive, terminating")
+                    self._proc.terminate()
+                    self._proc.join(timeout=1)
+            except Exception as e:
+                self.log.warning("CameraProxy: process join/terminate failed: %s", e)
+
+        # 3) Fermer la SHM côté proxy
+        if self._shm is not None:
+            try:
+                self._shm.close()
+            except Exception as e:
+                self.log.warning("CameraProxy: shm.close failed: %s", e)
+
+        # 4) Tentative de cleanup final
+        try:
+            shm = SharedMemory(name=self.shm_name)
+            shm.close()
+            shm.unlink()
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            self.log.warning("CameraProxy: shm unlink cleanup failed: %s", e)
+
+        self.log.info("CameraProxy: stopped")
