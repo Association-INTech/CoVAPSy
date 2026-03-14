@@ -302,7 +302,14 @@ def run_camera(
     authkey=b"covapsy",
 ) -> None:
 
-    shm = SharedMemory(name=shm_name, create=True, size=w * h * 3)
+    try:
+        shm = SharedMemory(name=shm_name, create=True, size=w * h * 3)
+    except FileExistsError:
+        old = SharedMemory(name=shm_name)
+        old.close()
+        old.unlink()
+        shm = SharedMemory(name=shm_name, create=True, size=w * h * 3)
+
     buf = np.ndarray((h, w, 3), dtype=np.uint8, buffer=shm.buf)
     buf[:] = 0
 

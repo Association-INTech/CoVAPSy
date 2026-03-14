@@ -44,6 +44,19 @@ class CameraProxy:
             args=(whep_url, self.shm_name, w, h, rpc_addr, authkey),
             daemon=True,
         )
+        # cleanup any existing shared memory with the same name (in case it wasn't cleaned up properly last time)
+        try:
+            old_shm = SharedMemory(name=self.shm_name)
+            old_shm.close()
+            old_shm.unlink()
+            self.log.warning(
+                "CameraProxy: removed stale shared memory %s", self.shm_name
+            )
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            self.log.warning("CameraProxy: could not cleanup stale SHM: %s", e)
+
         self._proc.start()
 
         # wait for the existity of the SHM
