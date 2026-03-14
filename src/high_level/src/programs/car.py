@@ -21,6 +21,7 @@ from high_level.autotech_constant import (
     LIMIT_CRASH_POINT,
     FREQUENCY_CRASH_DETECTION,
 )
+from programs.camera_proxy import CameraProxy
 
 from .program import Program
 from .utils import Driver
@@ -103,7 +104,7 @@ class Car:
 
     # dynamic access to sensors
     @property
-    def camera(self) -> Camera:
+    def camera(self) -> CameraProxy:
         return self.server.camera
 
     @property

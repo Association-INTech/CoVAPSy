@@ -9,10 +9,7 @@ from PIL import Image
 import scipy as sp
 
 from drivers.camera import run_camera
-from high_level.autotech_constant import (
-    FREQUENCY_REVERSE_DETECTION,
-    LIMIT_REVERSE_COUNT,
-)
+
 
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
