@@ -74,7 +74,7 @@ class CrashCar:
                 self.log.debug(f"Penetration points: {penetration_count}")
 
                 if penetration_count >= LIMIT_CRASH_POINT:
-                    self.log.info("Crash detected via contour penetration")
+                    # self.log.info("Crash detected via contour penetration")
                     self.crashed = True
                 else:
                     self.crashed = False
