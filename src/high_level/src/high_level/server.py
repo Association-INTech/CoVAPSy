@@ -14,6 +14,7 @@ from drivers.lidar import Lidar
 from drivers.master_i2c import I2CArduino
 from drivers.tof import ToF
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
+from programs.camera_proxy import CameraProxy
 from programs.car import AIProgram, CrashCar
 from programs.initialization import Initialization
 from programs.poweroff import Poweroff
@@ -77,7 +78,7 @@ class Server:
         self.scroll_offset = 3
 
     @property
-    def camera(self) -> Camera | None:
+    def camera(self) -> CameraProxy | None:
         return self.initialization_module.camera
 
     @property

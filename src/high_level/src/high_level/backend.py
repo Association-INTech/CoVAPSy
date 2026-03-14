@@ -133,6 +133,7 @@ class BackendAPI(Program):
                 "program_id": last_ctrl,
                 "tof": self.server.tof.distance,
                 "crashed": self.server.crash_car.crashed,
+                "camera_red_or_green": self.server.camera_red_or_green.is_reverse,
             },
             "timestamp": time.time(),
         }

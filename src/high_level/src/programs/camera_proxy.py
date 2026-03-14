@@ -54,6 +54,9 @@ class CameraProxy:
                 break
             except FileNotFoundError:
                 if time.time() - t0 > 5:
+                    self.log.error(
+                        "CameraProxy: shared memory not created after 5 seconds"
+                    )
                     raise RuntimeError("CameraProxy: shared memory not created")
                 time.sleep(0.05)
 
@@ -67,6 +70,9 @@ class CameraProxy:
                 break
             except ConnectionRefusedError:
                 if time.time() - t0 > 5:
+                    self.log.error(
+                        "CameraProxy: RPC server not available after 5 seconds"
+                    )
                     raise RuntimeError("CameraProxy: RPC not ready")
                 time.sleep(0.05)
 

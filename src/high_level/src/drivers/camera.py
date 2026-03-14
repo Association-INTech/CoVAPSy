@@ -144,6 +144,7 @@ class Camera:
 
     def __init__(self, whep_url: str = "http://192.168.0.20:8889/cam/whep") -> None:
         self.log = logging.getLogger(__name__)
+        self.log.info("Initializing Camera with WHEP URL: %s", whep_url)
         self.whep_url = whep_url
         self.debug_counter = 0
         self.last_frame = np.zeros((0, 0, 0))
