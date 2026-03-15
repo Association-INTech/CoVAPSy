@@ -199,7 +199,7 @@ class Server:
     # Processus
     # ---------------------------------------------------------------------------------------------------
 
-    def start_process(self, number_program):
+    def start_process(self, number_program, attr=None) -> None:
         """Starts the program referenced by its number:
         if it is a program that controls the car, it kills the old program that was controlling,
         otherwise the program is started or stopped depending on whether it was already running or stopped before"""
@@ -224,7 +224,10 @@ class Server:
 
         elif self.programs[number_program].controls_car:
             self.programs[self.last_program_control].kill()
-            self.programs[number_program].start()
+            if attr is not None:
+                self.programs[number_program].start(attr)
+            else:
+                self.programs[number_program].start()
             self.log.warning(
                 "Car control changed: %s -> %s",
                 type(self.programs[self.last_program_control]).__name__,

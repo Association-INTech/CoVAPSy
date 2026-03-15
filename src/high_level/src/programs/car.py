@@ -92,7 +92,7 @@ class Car:
 
         # Initialize AI session
         try:
-            self.ai_session = ort.InferenceSession(MODEL_PATH)
+            self.ai_session = ort.InferenceSession(MODEL_PATH + "/" + model)
             self.log.info("AI session initialized successfully")
         except Exception as e:
             self.log.error(f"Error initializing AI session: {e}")
@@ -219,7 +219,6 @@ class AIProgram(Program):
             try:
                 if self.GR86 is not None:
                     self.GR86.main()
-                print("lolooibiiuib : " + self.running.__str__())
             except Exception as e:
                 self.log.error(f"AI error: {e}")
                 self.running = False

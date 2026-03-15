@@ -273,22 +273,27 @@ class BackendAPI(Program):
             programs = getattr(self.server, "programs", [])
 
             ai_prog = next(
-                (p for p in programs if type(p).__name__ == "AIProgram"), None
+                (
+                    i
+                    for i in range(len(programs))
+                    if type(programs[i]).__name__ == "AIProgram"
+                ),
+                None,
             )
 
             if ai_prog is None:
                 raise HTTPException(status_code=404, detail="AI program not found")
 
-            ai_prog.start(model_give=model)
+            self.server.start_process(ai_prog, attr=model)
 
             return {"status": "ok", "model": model}
 
         @self.app.get("/api/programs")
-        def programs():
+        def programs() -> List[Dict[str, Any]]:
             return self._list_programs()
 
         @self.app.post("/api/programs/{prog_id}/toggle")
-        def toggle_program(prog_id: int):
+        def toggle_program(prog_id: int) -> dict[str, Any]:
             programs = getattr(self.server, "programs", [])
             if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
@@ -302,7 +307,7 @@ class BackendAPI(Program):
             }
 
         @self.app.post("/api/programs/{prog_id}/start")
-        def start_program(prog_id: int):
+        def start_program(prog_id: int) -> dict[str, Any]:
             programs = getattr(self.server, "programs", [])
             if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
@@ -315,7 +320,7 @@ class BackendAPI(Program):
             return {"status": "ok", "program_id": prog_id}
 
         @self.app.post("/api/programs/{prog_id}/kill")
-        def kill_program(prog_id: int):
+        def kill_program(prog_id: int) -> dict[str, Any]:
             programs = getattr(self.server, "programs", [])
             if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
@@ -329,19 +334,19 @@ class BackendAPI(Program):
             return {"status": "ok", "program_id": prog_id}
 
         @self.app.get("/api/stream/camera")
-        def camera_stream():
+        def camera_stream() -> dict[str, str]:
             # give the URL.
             return {"url": self._camera_stream_url()}
 
         @self.app.get("/api/lidar")
-        def lidar_snapshot():
+        def lidar_snapshot() -> dict[str, Any]:
             data = self._get_lidar_ranges()
             if data is None:
                 raise HTTPException(status_code=503, detail="Lidar not available")
             return data
 
         @self.app.get("/api/lidar_init")
-        def lidar_init():
+        def lidar_init() -> dict[str, Any]:
             lidar = self._lidar()
             if not lidar:
                 raise HTTPException(status_code=503, detail="Lidar not available")
@@ -362,7 +367,7 @@ class BackendAPI(Program):
             }
 
         @self.app.websocket("/api/lidar/ws")
-        async def lidar_ws(ws: WebSocket):
+        async def lidar_ws(ws: WebSocket) -> None:
             await ws.accept()
             self.logger.info("Lidar WS client connected")
 
@@ -389,7 +394,7 @@ class BackendAPI(Program):
                 self.logger.info("Telemetry WS client disconnected")
 
         @self.app.post("/api/camera_matrix/start")
-        def start_camera_matrix():
+        def start_camera_matrix() -> dict[str, str]:
             if self._camera_matrix_running:
                 return {"status": "already_running"}
 
@@ -403,7 +408,7 @@ class BackendAPI(Program):
             return {"status": "started"}
 
         @self.app.post("/api/camera_matrix/stop")
-        def stop_camera_matrix():
+        def stop_camera_matrix() -> dict[str, str]:
             self._camera_matrix_running = False
             return {"status": "stopped"}
 
@@ -431,7 +436,7 @@ class BackendAPI(Program):
     # ----------------------------
     # Program interface
     # ----------------------------
-    def start(self):
+    def start(self) -> None:
         if self.running:
             return
         self.running = True
@@ -442,7 +447,7 @@ class BackendAPI(Program):
         )
         self._uvicorn_server = uvicorn.Server(config)
 
-        def _run():
+        def _run() -> None:
             try:
                 self.logger.info("BackendAPI starting on %s:%d", self.host, self.port)
                 assert self._uvicorn_server is not None
@@ -455,7 +460,7 @@ class BackendAPI(Program):
         self._thread = threading.Thread(target=_run, daemon=True)
         self._thread.start()
 
-    def kill(self):
+    def kill(self) -> None:
         if not self.running:
             return
         self.logger.info("BackendAPI stopping...")
@@ -477,6 +482,6 @@ class BackendAPI(Program):
         self.running = False
         self.logger.info("BackendAPI stopped")
 
-    def display(self):
+    def display(self) -> str:
         name = self.__class__.__name__
         return f"{name}\n(running)" if self.running else name
