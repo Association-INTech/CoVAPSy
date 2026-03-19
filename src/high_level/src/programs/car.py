@@ -26,6 +26,7 @@ from programs.camera_proxy import CameraProxy
 from .program import Program
 from .utils import Driver
 
+
 def too_close(lidar, dir):
     R = 0.83
     length = len(lidar)
@@ -44,6 +45,7 @@ def too_close(lidar, dir):
     theta = np.arccos(cos)
     L = R * (1 - np.sin(theta))
     return nearest < L
+
 
 class Border_zone:
     ZONE1 = [0, 370]
@@ -167,7 +169,7 @@ class Car:
                 self.target_speed = -2
             else:
                 self.state = 0
-                
+
     def main(self) -> None:
         # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
         if self.camera is None or self.lidar is None:
@@ -189,7 +191,7 @@ class Car:
 
         if self.server.crash_car.crashed:
             self.state = 1
-        
+
         if self.state == 1:
             self.back()
 

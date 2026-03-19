@@ -22,6 +22,7 @@ from programs.ps4_controller_program import PS4ControllerProgram
 from programs.remote_control import RemoteControl
 from programs.ssh_program import SshProgram
 from programs.utils.ssh import check_ssh_connections
+from programs import Test_recule
 
 from .backend import BackendAPI
 
@@ -66,6 +67,7 @@ class Server:
             # ProgramStreamCamera(self),
             BackendAPI(self, host="0.0.0.0", port=8001, site_dir=SITE_DIR_BACKEND),
             Poweroff(),
+            Test_recule(self),
         ]
         self.initialization_module = self.programs[
             1
