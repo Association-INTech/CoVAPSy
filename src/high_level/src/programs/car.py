@@ -26,6 +26,24 @@ from programs.camera_proxy import CameraProxy
 from .program import Program
 from .utils import Driver
 
+def too_close(lidar, dir):
+    R = 0.83
+    length = len(lidar)
+    straight = lidar[length // 2]
+    if dir:
+        nearest = min(lidar[length // 2 :])
+    else:
+        nearest = min(lidar[: length // 2])
+
+    cos = nearest / straight
+
+    # I don't know why sometimes this happens
+    if cos < -1 or cos > 1:
+        return True
+
+    theta = np.arccos(cos)
+    L = R * (1 - np.sin(theta))
+    return nearest < L
 
 class Border_zone:
     ZONE1 = [0, 370]
@@ -38,6 +56,7 @@ class CrashCar:
         self.log = logging.getLogger(__name__)
         self.server = server
         self.crashed = False
+        self.state = 0
         # Load reference lidar contour once
         try:
             self.reference_lidar = np.load(
@@ -131,6 +150,24 @@ class Car:
         if self.server.camera_red_or_green.is_reverse:
             self.turn_around()
 
+    def back(self):
+        # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
+        lidar, cam = self.lidar.r_distance, self.camera.camera_matrix
+        S = sum(cam)
+        dir = S > 0
+        if dir:
+            self.direction = 18
+            if too_close(lidar, dir):
+                self.target_speed = -2
+            else:
+                self.state = 0
+        else:
+            self.direction = -18
+            if too_close(lidar, dir):
+                self.target_speed = -2
+            else:
+                self.state = 0
+                
     def main(self) -> None:
         # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
         if self.camera is None or self.lidar is None:
@@ -149,6 +186,13 @@ class Car:
             lidar_data_ai, self.camera.camera_matrix()
         )  # the ai takes distances in meters not in mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
+
+        if self.server.crash_car.crashed:
+            self.state = 1
+        
+        if self.state == 1:
+            self.back()
+
         """
         if self.camera.is_running_in_reversed():
             self.reverse_count += 1
