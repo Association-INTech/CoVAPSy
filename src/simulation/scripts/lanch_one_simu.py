@@ -13,135 +13,19 @@ from extractors import (  # noqa: F401
     CNN1DResNetExtractor,
     TemporalResNetExtractor,
 )
+
+from simulation import VehicleEnv
+
 # -------------------------------------------------------------------------
 
-def log(s: str):
-    if B_DEBUG:
-        print(s, file=open("/tmp/autotech/logs", "a"))
+ONNX_MODEL_PATH = "/home/exo/Bureau/CoVAPSy/model.onnx"
 
 
-ONNX_MODEL_PATH = "/home/exo/Bureau/CoVAPSy/model.onnx" #mettre la bonne adresse
-
-# --- Initialisation du moteur d'inférence ONNX Runtime (ORT) ---
+# --- Launching of inference motor ONNX Runtime (ORT) ---
 def init_onnx_runtime_session(onnx_path: str) -> ort.InferenceSession:
     if not os.path.exists(onnx_path):
         raise FileNotFoundError(f"Le fichier ONNX est introuvable à : {onnx_path}. Veuillez l'exporter d'abord.")
-
-    # Crée la session d'inférence
-    return ort.InferenceSession(onnx_path) #On peut modifier le providers afin de mettre une CUDA
-
-
-class WebotsSimulationGymEnvironment(gym.Env):
-    """
-    One environment for each vehicle
-
-    n: index of the vehicle
-    supervisor: the supervisor of the simulation
-    """
-
-    def __init__(self, simulation_rank: int):
-        super().__init__()
-        self.simulation_rank = simulation_rank
-        self.vehicle_rank = 0
-
-        # this is only true if lidar_horizontal_resolution = camera_horizontal_resolution
-        box_min = np.zeros([2, context_size, lidar_horizontal_resolution], dtype=np.float32)
-        box_max = np.ones([2, context_size, lidar_horizontal_resolution], dtype=np.float32) * 30
-
-        self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
-        self.action_space = gym.spaces.MultiDiscrete([n_actions_steering, n_actions_speed])
-
-        if not os.path.exists("/tmp/autotech"):
-            os.mkdir("/tmp/autotech")
-
-        log(f"SERVER{simulation_rank} : {simulation_rank=}")
-
-        for i in range(n_vehicles):
-            os.mkfifo(f"/tmp/autotech/{simulation_rank}_{i}toserver.pipe")
-            os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}_{i}.pipe")
-            # Si le superviseur en a aussi besoin :
-            os.mkfifo(f"/tmp/autotech/{simulation_rank}_{i}tosupervisor.pipe")
-
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        world_path = os.path.normpath(
-        os.path.join(current_dir, "..", "src", "webots", "worlds", f"piste{simulation_rank % n_map}.wbt"))
-
-        #  --mode=fast --minimize --no-rendering --batch --stdout
-        os.system(f"""
-                    webots {world_path} --mode=fast --minimize --no-rendering --batch --stdout &
-                    echo $! {simulation_rank} >>/tmp/autotech/simulationranks
-                """)
-        log(f"SERVER{simulation_rank} : Ouverture des pipes en ECRITURE en premier...")
-
-        # 1. On ouvre les pipes où Webots attend de LIRE ("rb") pour le débloquer
-        self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}_{self.vehicle_rank}.pipe", "wb")
-
-        # NOUVEAU : On ouvre le pipe du Superviseur pour le débloquer aussi !
-        self.fifo_w_sup = open(f"/tmp/autotech/{simulation_rank}_{self.vehicle_rank}tosupervisor.pipe", "wb")
-
-        log(f"SERVER{simulation_rank} : Ouverture des pipes en LECTURE...")
-        # 2. Ensuite seulement, on ouvre le pipe où Webots va ÉCRIRE ("wb")
-        self.fifo_r = open(f"/tmp/autotech/{simulation_rank}_{self.vehicle_rank}toserver.pipe", "rb")
-
-        log(f"SERVER{simulation_rank} : fifo opened :D and init done")
-        log("-------------------------------------------------------------------")
-
-    def reset(self, seed=0):
-        # basically useless function
-        # lidar data
-        # this is true for lidar_horizontal_resolution = camera_horizontal_resolution
-        self.context = obs = np.zeros([2, context_size, lidar_horizontal_resolution], dtype=np.float32)
-        info = {}
-        return obs, info
-
-    def step(self, action):
-        log(f"SERVER{self.simulation_rank} : sending {action=}")
-        self.fifo_w.write(action.astype(np.int64).tobytes())
-        self.fifo_w.flush()
-
-        # communication with the supervisor
-        cur_state   = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize * (n_sensors + lidar_horizontal_resolution + camera_horizontal_resolution)), dtype=np.float32)
-        log(f"SERVER{self.simulation_rank} : received {cur_state=}")
-        reward      = np.frombuffer(self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32)[0] # scalar
-        log(f"SERVER{self.simulation_rank} : received {reward=}")
-        done        = np.frombuffer(self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool)[0] # scalar
-        log(f"SERVER{self.simulation_rank} : received {done=}")
-        truncated   = np.frombuffer(self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool)[0] # scalar
-        log(f"SERVER{self.simulation_rank} : received {truncated=}")
-        info        = {}
-
-        cur_state = np.nan_to_num(cur_state[n_sensors:], nan=0., posinf=30.)
-
-        lidar_obs = cur_state[:lidar_horizontal_resolution]
-        camera_obs = cur_state[lidar_horizontal_resolution:]
-
-        # apply dropout to the camera
-        # p = 0.5
-        # camera_obs *= np.random.binomial(1, 1-p, camera_obs.shape) # random values in {0, 1}
-
-        self.context = obs = np.concatenate([
-            self.context[:, 1:],
-            [lidar_obs[None], camera_obs[None]]
-        ], axis=1)
-        # check if the context is correct
-        # if self.simulation_rank == 0:
-        #     print(f"{(obs[0] == 0).mean():.3f} {(obs[1] == 0).mean():.3f}")
-        return obs, reward, done, truncated, info
-
-    def close(self):
-        print("Fermeture de l'environnement...")
-        if hasattr(self, 'fifo_r') and self.fifo_r:
-            self.fifo_r.close()
-        if hasattr(self, 'fifo_w') and self.fifo_w:
-            self.fifo_w.close()
-
-        # Clearing of pipes' files
-        for i in range(n_vehicles):
-            for suffix in [f"{self.simulation_rank}_{i}toserver.pipe", f"serverto{self.simulation_rank}_{i}.pipe",
-                           f"{self.simulation_rank}_{i}tosupervisor.pipe"]:
-                pipe_path = f"/tmp/autotech/{suffix}"
-                if os.path.exists(pipe_path):
-                    os.unlink(pipe_path)
+    return ort.InferenceSession(onnx_path)
 
 
 if __name__ == "__main__":
@@ -149,11 +33,8 @@ if __name__ == "__main__":
         os.mkdir("/tmp/autotech/")
 
     os.system('if [ -n "$(ls /tmp/autotech)" ]; then rm /tmp/autotech/*; fi')
-    if B_DEBUG:
-        print("Webots started", file=open("/tmp/autotech/logs", "w"))
 
-
-    #Starting of OnnxSession
+    # Starting of OnnxSession
     try:
         ort_session = init_onnx_runtime_session(ONNX_MODEL_PATH)
         input_name = ort_session.get_inputs()[0].name
@@ -162,41 +43,48 @@ if __name__ == "__main__":
         print(f"Input Name: {input_name}, Output Name: {output_name}")
     except FileNotFoundError as e:
         print(f"ERREUR : {e}")
-        print(
-            "Veuillez vous assurer que vous avez exécuté une fois le script d'entraînement pour exporter 'model.onnx'.")
         sys.exit(1)
 
-    env = WebotsSimulationGymEnvironment(0)
-    obs,_ = env.reset()
+    env = VehicleEnv(0, 0)
+    obs, _ = env.reset()
 
     print("Début de la simulation en mode inférence...")
 
-    max_steps = 5000
     step_count = 0
 
     while True:
-        action = run_onnx_model(ort_session, obs[None])
+        # 1. On récupère les logits (probabilités) bruts de l'ONNX
+        raw_action = run_onnx_model(ort_session, obs[None])
+        logits = np.array(raw_action).flatten()
 
-        # 4. Exécuter l'action dans l'environnement
-        obs, reward, done, truncated, info = env.step(action)
+        # 2. On sépare le tableau en deux (Direction et Vitesse)
+        # On utilise n_actions_steering et n_actions_speed venant de config.py
+        steer_logits = logits[:n_actions_steering]
+        speed_logits = logits[n_actions_steering:]
 
-        step_count += 1  # Pense à incrémenter pour tes logs !
+        # 3. L'IA choisit l'action qui a le score (logit) le plus élevé
+        action_steer = np.argmax(steer_logits)
+        action_speed = np.argmax(speed_logits)
+
+        # 4. On crée le tableau final parfaitement formaté pour Webots (strictement 2 entiers)
+        action = np.array([action_steer, action_speed], dtype=np.int64)
+
+        # 5. Exécuter l'action dans l'environnement
+        next_obs, reward, done, truncated, info = env.step(action)
+
+        step_count += 1
 
         # Gestion des fins d'épisodes
         if done:
             print(f"Épisode(s) terminé(s) après {step_count} étapes.")
             step_count = 0
 
-            # AU LIEU DE FAIRE env.reset() QUI MET TOUT À ZÉRO :
-            # On récupère la toute dernière frame (qui est valide et envoyée par Webots après sa téléportation)
-            fresh_frame = obs[:, -1:]
-
-            # On vide l'historique du contexte
-            env.context = np.zeros_like(env.context)
-
-            # On replace la vraie frame valide à la fin pour que l'IA ne soit pas aveugle
+            fresh_frame = next_obs[:, -1:]
+            obs, _ = env.reset()
             env.context[:, -1:] = fresh_frame
             obs = env.context
+        else:
+            obs = next_obs
 
-    envs.close()
+    env.close()
     print("Simulation terminée. Environnements fermés.")
