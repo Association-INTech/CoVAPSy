@@ -170,7 +170,7 @@ class WebotsVehicleManager:
             done = np.True_
         elif b_collided:
             reward = np.float32(-0.5)
-            done = np.False_
+            done = np.True_
         elif b_past_checkpoint:
             reward = np.float32(1.0)
             done = np.False_
