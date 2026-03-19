@@ -6,9 +6,8 @@ import numpy as np
 import onnxruntime as ort
 import gymnasium as gym
 
-
+from simulation.config import *
 from utils import run_onnx_model
-from simulation import config
 
 from extractors import (  # noqa: F401
     CNN1DResNetExtractor,
@@ -17,7 +16,7 @@ from extractors import (  # noqa: F401
 # -------------------------------------------------------------------------
 
 def log(s: str):
-    if False:
+    if B_DEBUG:
         print(s, file=open("/tmp/autotech/logs", "a"))
 
 
@@ -43,6 +42,7 @@ class WebotsSimulationGymEnvironment(gym.Env):
     def __init__(self, simulation_rank: int):
         super().__init__()
         self.simulation_rank = simulation_rank
+        self.vehicle_rank = 0
 
         # this is only true if lidar_horizontal_resolution = camera_horizontal_resolution
         box_min = np.zeros([2, context_size, lidar_horizontal_resolution], dtype=np.float32)
@@ -56,18 +56,33 @@ class WebotsSimulationGymEnvironment(gym.Env):
 
         log(f"SERVER{simulation_rank} : {simulation_rank=}")
 
-        os.mkfifo(f"/tmp/autotech/{simulation_rank}toserver.pipe")
-        os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}.pipe")
+        for i in range(n_vehicles):
+            os.mkfifo(f"/tmp/autotech/{simulation_rank}_{i}toserver.pipe")
+            os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}_{i}.pipe")
+            # Si le superviseur en a aussi besoin :
+            os.mkfifo(f"/tmp/autotech/{simulation_rank}_{i}tosupervisor.pipe")
+
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        world_path = os.path.normpath(
+        os.path.join(current_dir, "..", "src", "webots", "worlds", f"piste{simulation_rank % n_map}.wbt"))
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
         os.system(f"""
-            webots {__file__.rsplit('/', 1)[0]}/worlds/piste{simulation_rank % n_map}.wbt --mode=fast --minimize --no-rendering --batch --stdout &
-            echo $! {simulation_rank} >>/tmp/autotech/simulationranks
-        """)
-        log(f"SERVER{simulation_rank} : {simulation_rank}toserver.pipe")
-        self.fifo_r = open(f"/tmp/autotech/{simulation_rank}toserver.pipe", "rb")
-        log(f"SERVER{simulation_rank} : serverto{simulation_rank}.pipe")
-        self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}.pipe", "wb")
+                    webots {world_path} --mode=fast --minimize --no-rendering --batch --stdout &
+                    echo $! {simulation_rank} >>/tmp/autotech/simulationranks
+                """)
+        log(f"SERVER{simulation_rank} : Ouverture des pipes en ECRITURE en premier...")
+
+        # 1. On ouvre les pipes où Webots attend de LIRE ("rb") pour le débloquer
+        self.fifo_w = open(f"/tmp/autotech/serverto{simulation_rank}_{self.vehicle_rank}.pipe", "wb")
+
+        # NOUVEAU : On ouvre le pipe du Superviseur pour le débloquer aussi !
+        self.fifo_w_sup = open(f"/tmp/autotech/{simulation_rank}_{self.vehicle_rank}tosupervisor.pipe", "wb")
+
+        log(f"SERVER{simulation_rank} : Ouverture des pipes en LECTURE...")
+        # 2. Ensuite seulement, on ouvre le pipe où Webots va ÉCRIRE ("wb")
+        self.fifo_r = open(f"/tmp/autotech/{simulation_rank}_{self.vehicle_rank}toserver.pipe", "rb")
+
         log(f"SERVER{simulation_rank} : fifo opened :D and init done")
         log("-------------------------------------------------------------------")
 
@@ -120,11 +135,13 @@ class WebotsSimulationGymEnvironment(gym.Env):
         if hasattr(self, 'fifo_w') and self.fifo_w:
             self.fifo_w.close()
 
-        # Nettoyage des fichiers pipes
-        if hasattr(self, 'pipe_name_read') and os.path.exists(self.pipe_name_read):
-            os.unlink(self.pipe_name_read)
-        if hasattr(self, 'pipe_name_write') and os.path.exists(self.pipe_name_write):
-            os.unlink(self.pipe_name_write)
+        # Clearing of pipes' files
+        for i in range(n_vehicles):
+            for suffix in [f"{self.simulation_rank}_{i}toserver.pipe", f"serverto{self.simulation_rank}_{i}.pipe",
+                           f"{self.simulation_rank}_{i}tosupervisor.pipe"]:
+                pipe_path = f"/tmp/autotech/{suffix}"
+                if os.path.exists(pipe_path):
+                    os.unlink(pipe_path)
 
 
 if __name__ == "__main__":
@@ -132,11 +149,11 @@ if __name__ == "__main__":
         os.mkdir("/tmp/autotech/")
 
     os.system('if [ -n "$(ls /tmp/autotech)" ]; then rm /tmp/autotech/*; fi')
-    if False:
+    if B_DEBUG:
         print("Webots started", file=open("/tmp/autotech/logs", "w"))
 
 
-    # 2. Initialisation de la session ONNX Runtime
+    #Starting of OnnxSession
     try:
         ort_session = init_onnx_runtime_session(ONNX_MODEL_PATH)
         input_name = ort_session.get_inputs()[0].name
