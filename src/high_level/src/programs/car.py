@@ -5,7 +5,6 @@ from threading import Thread
 from typing import Optional
 
 import numpy as np
-import onnxruntime as ort
 
 from drivers import Lidar
 from drivers.camera import Camera
@@ -107,21 +106,12 @@ class CrashCar:
 
 
 class Car:
-    def __init__(self, driving_strategy, server, model) -> None:
+    def __init__(self, driving_strategy, server) -> None:
         self.log = logging.getLogger(__name__)
         self.target_speed = 0  # Speed in millimeters per second
         self.direction = 0  # Steering angle in degrees
         self.server = server
         self.reverse_count = 0
-
-        # Initialize AI session
-        try:
-            self.ai_session = ort.InferenceSession(MODEL_PATH + "/" + model)
-            self.log.info("AI session initialized successfully")
-        except Exception as e:
-            self.log.error(f"Error initializing AI session: {e}")
-            raise
-
         self.driving = driving_strategy
 
         self.log.info("Car initialization complete")
@@ -277,9 +267,18 @@ class AIProgram(Program):
         self.driver = Driver(1, 1024)
         self.driver.load_model(model)
 
-        # self.GR86 = Car(self.driver.ai, self.server, model)
-        self.GR86 = Car(self.driver.omniscent, self.server, model)
-        # self.GR86 = Car(self.driver.simple_minded, self.server, model)
+        nb_inputs = self.driver.get_nb_inputs()
+
+        if nb_inputs == 1:
+            self.log.info("Model uses 1 input -> selecting lidar driver")
+            driving_strategy = self.driver.ai
+        elif nb_inputs == 2:
+            self.log.info("Model uses 2 inputs -> selecting lidar + camera driver")
+            driving_strategy = self.driver.omniscent
+        else:
+            raise ValueError(f"Unsupported number of model inputs: {nb_inputs}")
+
+        self.GR86 = Car(driving_strategy, self.server)
 
     def start(self, model_give: Optional[str] = None) -> None:
 
