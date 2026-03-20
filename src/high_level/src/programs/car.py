@@ -59,6 +59,7 @@ class CrashCar:
         self.server = server
         self.crashed = False
         self.state = 0
+        self.deadzone = 20
         # Load reference lidar contour once
         try:
             self.reference_lidar = np.load(
@@ -89,7 +90,9 @@ class CrashCar:
                 self.crashed = False
             else:
                 # Points that are inside the vehicle contour
-                penetration_mask = (current > 0) & (current < self.reference_lidar)
+                penetration_mask = (current > 0) & (
+                    current < self.reference_lidar + self.deadzone
+                )
 
                 penetration_count = np.sum(penetration_mask)
 
@@ -271,7 +274,7 @@ class AIProgram(Program):
                 raise
 
     def initializeai(self, model: str) -> None:
-        self.driver = Driver(128, 128)
+        self.driver = Driver(1, 1024)
         self.driver.load_model(model)
 
         # self.GR86 = Car(self.driver.ai, self.server, model)

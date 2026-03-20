@@ -5,7 +5,7 @@ import time
 
 import numpy as np
 
-from src.driver.lidar import Lidar
+from src.drivers.lidar import Lidar
 
 IP = "192.168.0.10"
 PORT = 10940

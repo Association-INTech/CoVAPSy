@@ -17,7 +17,7 @@ DEBUG_DIR = "Debug"  # Directory for debug images
 DEBUG_DIR_wayfinding = "Debug_Wayfinding"  # Directory for wayfinding debug images
 COLOUR_KEY = {"green": 1, "red": -1, "none": 0}
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
-Y_OFFSET = -80  # Offset for the y-axis in the image
+Y_OFFSET = -40  # Offset for the y-axis in the image
 
 
 class CameraProxy:
