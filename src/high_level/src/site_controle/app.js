@@ -260,6 +260,8 @@ function updateTelemetry(t) {
         t.car.tof.toFixed(2);
     document.getElementById("crash_status").textContent =
         t.car.crashed ? "CRASHED" : "OK";
+    document.getElementById("is_reverse").textContent =
+        t.car.camera_red_or_green ? "REVERSE" : "FORWARD";
     speedHistory.real.push(t.car.current_speed);
     speedHistory.demand.push(t.car.target_speed);
 
