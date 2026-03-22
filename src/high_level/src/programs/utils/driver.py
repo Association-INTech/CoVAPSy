@@ -1,6 +1,6 @@
 import logging
 import math
-from typing import Tuple, cast
+from typing import Any, Tuple, cast
 
 import numpy as np
 import onnxruntime as ort
@@ -25,6 +25,8 @@ class Driver:
         self._loaded = False
         self.ai_session: InferenceSession
         self.context: np.ndarray
+        self.input_infos = None
+        self.nb_inputs = 0
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
@@ -63,16 +65,46 @@ class Driver:
             return
         self.log.info("Loading AI model...")
         self.ai_session = ort.InferenceSession(MODEL_PATH + "/" + model)
+        self.input_infos = self.ai_session.get_inputs()
+        self.nb_inputs = 1 if len(self.input_infos[0].shape) == 2 else 2
+
+        for i, info in enumerate(self.input_infos):
+            self.log.info(
+                f"Input {i}: name={info.name}, shape={info.shape}, type={info.type}"
+            )
+        if (
+            len(self.input_infos[0].shape) == 4
+        ):  # case of ['batch_size', 2, 128, 128] for example
+            self.context_size = self.input_infos[0].shape[-2]
+            self.horizontal_size = self.input_infos[0].shape[-1]
+        elif len(self.input_infos[0].shape) == 2:  # case of ["batch_size", 1080]
+            self.context_size = 1
+            self.horizontal_size = self.input_infos[0].shape[-1]
+        print(
+            f"Model expects context size {self.context_size} and horizontal size {self.horizontal_size}"
+        )
         self.context = np.zeros(
             [2, self.context_size, self.horizontal_size], dtype=np.float32
         )
+
+        self._loaded = True
+        self.log.info(f"AI model loaded with {self.nb_inputs} input(s)")
+        # self.context = np.zeros(
+        #     [2, self.context_size, self.horizontal_size], dtype=np.float32
+        # )
         self._loaded = True
         self.log.info("AI model loaded")
+
+    def get_nb_inputs(self) -> int:
+        if not self._loaded:
+            raise RuntimeError("Driver not initialized (AI model not loaded)")
+        return self.nb_inputs
 
     def reset(self):
         self.context = np.zeros(
             [2, self.context_size, self.horizontal_size], dtype=np.float32
         )
+        pass
 
     def omniscent(
         self, lidar_data: np.ndarray, camera_data: np.ndarray

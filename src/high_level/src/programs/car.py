@@ -5,7 +5,6 @@ from threading import Thread
 from typing import Optional
 
 import numpy as np
-import onnxruntime as ort
 
 from drivers import Lidar
 from drivers.camera import Camera
@@ -27,6 +26,43 @@ from .program import Program
 from .utils import Driver
 
 
+def too_close(lidar, dir):
+    R = 0.83
+    lidar = np.asarray(lidar, dtype=np.float32)
+
+    if lidar.size == 0:
+        return True
+
+    length = len(lidar)
+    straight = lidar[length // 2]
+
+    zone = lidar[length // 2 :] if dir else lidar[: length // 2]
+
+    # We keep only valid distances (greater than 0 and finite) for the nearest calculation to avoid issues with invalid lidar readings. If there are no valid readings, we consider it as too close to be safe.
+    valid_zone = zone[np.isfinite(zone) & (zone > 0)]
+
+    if valid_zone.size == 0:
+        return True
+
+    nearest = np.min(valid_zone)
+
+    # straight can also be invalid, we consider it as too close in that case to be safe
+    if not np.isfinite(straight) or straight <= 0:
+        return True
+
+    cos = nearest / straight
+
+    # wwe never know
+    if not np.isfinite(cos):
+        return True
+
+    cos = np.clip(cos, -1.0, 1.0)
+
+    theta = np.arccos(cos)
+    L = R * (1 - np.sin(theta))
+    return nearest < L
+
+
 class Border_zone:
     ZONE1 = [0, 370]
     ZONE2 = [371, 750]
@@ -38,6 +74,8 @@ class CrashCar:
         self.log = logging.getLogger(__name__)
         self.server = server
         self.crashed = False
+        self.state = 0
+        self.deadzone = 20
         # Load reference lidar contour once
         try:
             self.reference_lidar = np.load(
@@ -68,7 +106,9 @@ class CrashCar:
                 self.crashed = False
             else:
                 # Points that are inside the vehicle contour
-                penetration_mask = (current > 0) & (current < self.reference_lidar)
+                penetration_mask = (current > 0) & (
+                    current < self.reference_lidar + self.deadzone
+                )
 
                 penetration_count = np.sum(penetration_mask)
 
@@ -83,22 +123,14 @@ class CrashCar:
 
 
 class Car:
-    def __init__(self, driving_strategy, server, model) -> None:
+    def __init__(self, driving_strategy, server) -> None:
         self.log = logging.getLogger(__name__)
         self.target_speed = 0  # Speed in millimeters per second
         self.direction = 0  # Steering angle in degrees
         self.server = server
         self.reverse_count = 0
-
-        # Initialize AI session
-        try:
-            self.ai_session = ort.InferenceSession(MODEL_PATH)
-            self.log.info("AI session initialized successfully")
-        except Exception as e:
-            self.log.error(f"Error initializing AI session: {e}")
-            raise
-
         self.driving = driving_strategy
+        self.state = 0
 
         self.log.info("Car initialization complete")
 
@@ -131,6 +163,24 @@ class Car:
         if self.server.camera_red_or_green.is_reverse:
             self.turn_around()
 
+    def back(self):
+        # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
+        lidar, cam = self.lidar.r_distance, self.camera.camera_matrix()
+        S = sum(cam)
+        dir = S > 0
+        if dir:
+            self.direction = 18
+            if too_close(lidar, dir):
+                self.target_speed = -2
+            else:
+                self.state = 0
+        else:
+            self.direction = -18
+            if too_close(lidar, dir):
+                self.target_speed = -2
+            else:
+                self.state = 0
+
     def main(self) -> None:
         # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
         if self.camera is None or self.lidar is None:
@@ -149,6 +199,13 @@ class Car:
             lidar_data_ai, self.camera.camera_matrix()
         )  # the ai takes distances in meters not in mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
+
+        if self.server.crash_car.crashed:
+            self.state = 1
+
+        if self.state == 1:
+            self.back()
+
         """
         if self.camera.is_running_in_reversed():
             self.reverse_count += 1
@@ -219,19 +276,27 @@ class AIProgram(Program):
             try:
                 if self.GR86 is not None:
                     self.GR86.main()
-                print("lolooibiiuib : " + self.running.__str__())
             except Exception as e:
                 self.log.error(f"AI error: {e}")
                 self.running = False
                 raise
 
     def initializeai(self, model: str) -> None:
-        self.driver = Driver(128, 128)
+        self.driver = Driver()
         self.driver.load_model(model)
 
-        # self.GR86 = Car(self.driver.ai, self.server, model)
-        self.GR86 = Car(self.driver.omniscent, self.server, model)
-        # self.GR86 = Car(self.driver.simple_minded, self.server, model)
+        nb_inputs = self.driver.get_nb_inputs()
+
+        if nb_inputs == 1:
+            self.log.info("Model uses 1 input -> selecting lidar driver")
+            driving_strategy = self.driver.ai
+        elif nb_inputs == 2:
+            self.log.info("Model uses 2 inputs -> selecting lidar + camera driver")
+            driving_strategy = self.driver.omniscent
+        else:
+            raise ValueError(f"Unsupported number of model inputs: {nb_inputs}")
+
+        self.GR86 = Car(driving_strategy, self.server)
 
     def start(self, model_give: Optional[str] = None) -> None:
 
