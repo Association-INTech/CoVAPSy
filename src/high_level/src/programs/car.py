@@ -28,18 +28,35 @@ from .utils import Driver
 
 def too_close(lidar, dir):
     R = 0.83
+    lidar = np.asarray(lidar, dtype=np.float32)
+
+    if lidar.size == 0:
+        return True
+
     length = len(lidar)
     straight = lidar[length // 2]
-    if dir:
-        nearest = min(lidar[length // 2 :])
-    else:
-        nearest = min(lidar[: length // 2])
+
+    zone = lidar[length // 2 :] if dir else lidar[: length // 2]
+
+    # We keep only valid distances (greater than 0 and finite) for the nearest calculation to avoid issues with invalid lidar readings. If there are no valid readings, we consider it as too close to be safe.
+    valid_zone = zone[np.isfinite(zone) & (zone > 0)]
+
+    if valid_zone.size == 0:
+        return True
+
+    nearest = np.min(valid_zone)
+
+    # straight can also be invalid, we consider it as too close in that case to be safe
+    if not np.isfinite(straight) or straight <= 0:
+        return True
 
     cos = nearest / straight
 
-    # I don't know why sometimes this happens
-    if cos < -1 or cos > 1:
+    # wwe never know
+    if not np.isfinite(cos):
         return True
+
+    cos = np.clip(cos, -1.0, 1.0)
 
     theta = np.arccos(cos)
     L = R * (1 - np.sin(theta))
@@ -113,6 +130,7 @@ class Car:
         self.server = server
         self.reverse_count = 0
         self.driving = driving_strategy
+        self.state = 0
 
         self.log.info("Car initialization complete")
 
@@ -147,7 +165,7 @@ class Car:
 
     def back(self):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
-        lidar, cam = self.lidar.r_distance, self.camera.camera_matrix
+        lidar, cam = self.lidar.r_distance, self.camera.camera_matrix()
         S = sum(cam)
         dir = S > 0
         if dir:
@@ -264,7 +282,7 @@ class AIProgram(Program):
                 raise
 
     def initializeai(self, model: str) -> None:
-        self.driver = Driver(1, 1024)
+        self.driver = Driver()
         self.driver.load_model(model)
 
         nb_inputs = self.driver.get_nb_inputs()
