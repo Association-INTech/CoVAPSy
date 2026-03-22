@@ -186,7 +186,7 @@ class Car:
         if self.camera is None or self.lidar is None:
             self.log.debug("Sensors not yet ready")
             return
-        lidar_data = self.lidar.r_distance[:1080] / 1000
+        lidar_data = self.lidar.r_distance[:1080]
         lidar_data_ai = (
             (lidar_data - 0.5)
             * (
@@ -196,7 +196,7 @@ class Car:
             )
         )  # convert to meters and add Gaussian noise. We manipulate the data provided to the AI
         self.direction, self.target_speed = self.driving(
-            lidar_data_ai, self.camera.camera_matrix()
+            lidar_data, self.camera.camera_matrix()
         )  # the ai takes distances in meters not in mm
         self.log.debug(f"Min Lidar: {min(lidar_data)}, Max Lidar: {max(lidar_data)}")
 
@@ -285,16 +285,7 @@ class AIProgram(Program):
         self.driver = Driver()
         self.driver.load_model(model)
 
-        nb_inputs = self.driver.get_nb_inputs()
-
-        if nb_inputs == 1:
-            self.log.info("Model uses 1 input -> selecting lidar driver")
-            driving_strategy = self.driver.ai
-        elif nb_inputs == 2:
-            self.log.info("Model uses 2 inputs -> selecting lidar + camera driver")
-            driving_strategy = self.driver.omniscent
-        else:
-            raise ValueError(f"Unsupported number of model inputs: {nb_inputs}")
+        driving_strategy = self.driver.omniscent
 
         self.GR86 = Car(driving_strategy, self.server)
 

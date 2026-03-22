@@ -63,37 +63,74 @@ class Driver:
     def load_model(self, model: str):
         if self._loaded:
             return
+
         self.log.info("Loading AI model...")
         self.ai_session = ort.InferenceSession(MODEL_PATH + "/" + model)
         self.input_infos = self.ai_session.get_inputs()
-        self.nb_inputs = 1 if len(self.input_infos[0].shape) == 2 else 2
+        self.nb_inputs = len(self.input_infos)
 
         for i, info in enumerate(self.input_infos):
             self.log.info(
                 f"Input {i}: name={info.name}, shape={info.shape}, type={info.type}"
             )
-        if (
-            len(self.input_infos[0].shape) == 4
-        ):  # case of ['batch_size', 2, 128, 128] for example
-            self.context_size = self.input_infos[0].shape[-2]
-            self.horizontal_size = self.input_infos[0].shape[-1]
-        elif len(self.input_infos[0].shape) == 2:  # case of ["batch_size", 1080]
+
+        first_shape = self.input_infos[0].shape
+
+        if len(first_shape) == 2:
+            self.model_kind = "lidar_only"
             self.context_size = 1
-            self.horizontal_size = self.input_infos[0].shape[-1]
-        print(
-            f"Model expects context size {self.context_size} and horizontal size {self.horizontal_size}"
-        )
-        self.context = np.zeros(
-            [2, self.context_size, self.horizontal_size], dtype=np.float32
-        )
+            self.horizontal_size = first_shape[-1]
+        elif len(first_shape) == 4 and self.nb_inputs == 1:
+            self.model_kind = "fused"
+            self.context_size = first_shape[-2]
+            self.horizontal_size = first_shape[-1]
+            self.context = np.zeros(
+                [2, self.context_size, self.horizontal_size], dtype=np.float32
+            )
+        elif self.nb_inputs == 2:
+            self.model_kind = "two_inputs"
+        else:
+            raise ValueError(
+                f"Unsupported model format: nb_inputs={self.nb_inputs}, shape={first_shape}"
+            )
 
         self._loaded = True
-        self.log.info(f"AI model loaded with {self.nb_inputs} input(s)")
+        self.log.info(f"AI model loaded with {self.nb_inputs} real input(s)")
         # self.context = np.zeros(
         #     [2, self.context_size, self.horizontal_size], dtype=np.float32
         # )
-        self._loaded = True
-        self.log.info("AI model loaded")
+
+    def _resize_1d(self, arr: np.ndarray, target_width: int) -> np.ndarray:
+        arr = np.asarray(arr, dtype=np.float32).reshape(-1)
+        if arr.size == 0:
+            return np.zeros(target_width, dtype=np.float32)
+        if arr.size == target_width:
+            return arr.astype(np.float32, copy=False)
+        zoom_factor = target_width / arr.size
+        return sp.ndimage.zoom(arr, zoom_factor, order=1).astype(np.float32, copy=False)
+
+    def _resize_lidar_like_webots(self, lidar_data_mm: np.ndarray) -> np.ndarray:
+        """
+        Like Webots:
+        convert in meters, replace nan with 0, inf with 30, and resize to horizontal_size
+        """
+        lidar_m = np.asarray(lidar_data_mm, dtype=np.float32).reshape(-1) / 1000.0
+        lidar_m = np.nan_to_num(lidar_m, nan=0.0, posinf=30.0, neginf=0.0)
+        lidar_m = np.clip(lidar_m, 0.0, 30.0)
+        lidar_m = self._resize_1d(lidar_m, self.horizontal_size)
+        return lidar_m
+
+    def _resize_camera_like_webots(self, camera_data: np.ndarray) -> np.ndarray:
+        """
+        Like Webots:
+        - float32
+        - nan -> 0, +inf -> 30
+        - resize into horizontal_size
+        """
+        cam = np.asarray(camera_data, dtype=np.float32).reshape(-1)
+        cam = np.nan_to_num(cam, nan=0.0, posinf=30.0, neginf=-30.0)
+        cam = self._resize_1d(cam, self.horizontal_size)
+        return cam
 
     def get_nb_inputs(self) -> int:
         if not self._loaded:
@@ -124,65 +161,34 @@ class Driver:
         return self.farthest_distants(lidar_data)
 
     def ai_update_lidar_camera(
-        self, lidar_data: np.ndarray, camera_data: np.ndarray
+        self, lidar_data_mm: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:
-        if not self._loaded:
+        if not self._loaded or self.input_infos is None:
             raise RuntimeError("Driver not initialized (AI model not loaded)")
 
-        # self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
+        target_width = self.horizontal_size
+        lidar_data = self._resize_lidar_like_webots(lidar_data_mm)
+        camera_data = self._resize_camera_like_webots(camera_data)
 
-        lidar_data = (
-            sp.ndimage.zoom(
-                np.array(lidar_data, dtype=np.float32), 128 / len(lidar_data)
-            )
-            / 1000
-            * 0.8
-        )
-        camera_data = sp.ndimage.zoom(
-            np.array(camera_data, dtype=np.float32), 128 / len(camera_data)
-        )
-        self.context = np.concatenate(
-            [self.context[:, 1:], [lidar_data[None], camera_data[None]]], axis=1
-        )
+        new_frame = np.stack([lidar_data, camera_data], axis=0)[:, None, :]  # (2,1,W)
 
-        # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
+        if self.context_size > 1:
+            self.context = np.concatenate([self.context[:, 1:], new_frame], axis=1)
+        else:
+            self.context = new_frame
+
+        input_name = self.input_infos[0].name
         vect = cast(
-            np.ndarray, self.ai_session.run(None, {"input": self.context[None]})[0]
+            np.ndarray,
+            self.ai_session.run(None, {input_name: self.context[None]})[0],
         )[0]
 
-        vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in 2
-        vect_dir = softmax(vect_dir)  # probability distribution
+        vect_dir, vect_prop = vect[:16], vect[16:]
+        vect_dir = softmax(vect_dir)
         vect_prop = softmax(vect_prop)
 
-        if self.log.isEnabledFor(logging.DEBUG):
-            self.log.info(f"MIN MAX lidar_data: {(min(lidar_data), max(lidar_data))}")
-            self.lidar_img.set_array(np.log(1 + self.context[0]))
-            self.camera_img.set_array(self.context[1])
-
-            for i, bar in enumerate(self.steering_bars):
-                bar.set_height(vect_dir[i].item())
-
-            for i in range(4):
-                steering_avg = (vect_dir / vect_dir.sum() * np.arange(16)).sum().item()
-                self.steering_avg[i].set_xdata([steering_avg, steering_avg])
-
-            for i, bar in enumerate(self.speed_bars):
-                bar.set_height(vect_dir[i].item())
-
-            speed_avg = (vect_dir * np.arange(16)).sum().item()
-            self.speed_avg.set_xdata([speed_avg, speed_avg])
-
-            plt.draw()
-            plt.pause(1e-8)
-
-        """
-        print(" ".join([f"{x:.1f}" for x in vect_dir]))
-        print(" ".join([f"{x:.1f}" for x in vect_prop]), flush=True)
-        """
-        angle = sum(ANGLE_LOOKUP * vect_dir)  # weighted average of angles
-        # weighted average of speeds
+        angle = sum(ANGLE_LOOKUP * vect_dir) - 8
         vitesse = sum(SPEED_LOOKUP * vect_prop)
-
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data) -> Tuple[float, float]:
