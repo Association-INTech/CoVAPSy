@@ -57,7 +57,7 @@ IP = "192.168.1.10"
 LIDAR_SOCKET_ADRESS = {"IP": "192.168.0.10", "PORT": 10940}
 CAMERA_SOCKET_ADRESS = {"IP": IP, "PORT": PORT_STREAMING_CAMERA}
 
-ANGLE_LOOKUP = np.linspace(0, MAX_ANGLE * 2, 16)
+ANGLE_LOOKUP = np.linspace(-MAX_ANGLE, MAX_ANGLE, 16)
 SPEED_LOOKUP = np.linspace(0, MAX_IA_SPEED, 16)
 
 Temperature = 0.7  # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1

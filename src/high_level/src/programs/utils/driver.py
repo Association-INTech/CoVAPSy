@@ -186,8 +186,10 @@ class Driver:
         vect_dir, vect_prop = vect[:16], vect[16:]
         vect_dir = softmax(vect_dir)
         vect_prop = softmax(vect_prop)
+        best_idx = int(np.argmax(vect_dir))
+        self.log.info(f"best_idx={best_idx}, angle={angle:.2f}")
 
-        angle = sum(ANGLE_LOOKUP * vect_dir) - 8
+        angle = sum(ANGLE_LOOKUP * vect_dir)
         vitesse = sum(SPEED_LOOKUP * vect_prop)
         return angle, vitesse
 
