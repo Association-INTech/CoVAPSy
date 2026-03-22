@@ -17,7 +17,7 @@ from fastapi.websockets import WebSocketDisconnect
 from high_level.autotech_constant import (
     BACKEND_ON_START,
     MODEL_PATH,
-    PORT_STREAMING_CAMERA,
+    CAMERA_SOCKET_ADRESS,
 )
 from programs.program import Program
 
@@ -85,7 +85,7 @@ class BackendAPI(Program):
                     <h3>CoVAPSy Control</h3>
                     <p>Frontend: <a href="/static/index.html">/static/index.html</a></p>
                     <p>Lidar: <a href="/static/lidar.html">/static/lidar.html</a></p>
-                    <p>Camera: <a href="http://{getattr(self.server, "ip", None) or "192.168.1.10"}:{PORT_STREAMING_CAMERA}/cam/">Camera Stream</a></p>
+                    <p>Camera: <a href="http://{CAMERA_SOCKET_ADRESS["IP"]}:{CAMERA_SOCKET_ADRESS["PORT"]}/cam/">Camera Stream</a></p>
                   </body>
                 </html>
                 """
@@ -164,9 +164,9 @@ class BackendAPI(Program):
         return out
 
     def _camera_stream_url(self) -> str:
-        ip = getattr(getattr(self.server, "SOCKET_ADRESS", None), "IP", None)
-        ip = getattr(self.server, "ip", None) or "192.168.1.10"
-        return f"http://{ip}:{PORT_STREAMING_CAMERA}/cam/"
+        return (
+            f"http://{CAMERA_SOCKET_ADRESS['IP']}:{CAMERA_SOCKET_ADRESS['PORT']}/cam/"
+        )
 
     def _lidar(self):
         return getattr(self.server, "lidar", None)

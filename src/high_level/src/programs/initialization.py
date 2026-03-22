@@ -5,7 +5,10 @@ from enum import Enum
 from drivers import I2CArduino, Lidar, ToF
 from .camera_proxy import CameraProxy
 
-from high_level.autotech_constant import SOCKET_ADRESS, PORT_STREAMING_CAMERA
+from high_level.autotech_constant import (
+    CAMERA_SOCKET_ADRESS,
+    LIDAR_SOCKET_ADRESS,
+)
 
 from .program import Program
 
@@ -52,7 +55,7 @@ class Initialization(Program):
     def init_camera(self) -> None:
         try:
             self.camera = CameraProxy(
-                whep_url=f"http://{SOCKET_ADRESS['IP']}:{PORT_STREAMING_CAMERA}/cam/whep"
+                whep_url=f"http://{CAMERA_SOCKET_ADRESS['IP']}:{CAMERA_SOCKET_ADRESS['PORT']}/cam/whep"
             )
             self.camera_init = ProgramState.RUNNING
             self.log.info("Camera initialized successfully")
@@ -62,7 +65,7 @@ class Initialization(Program):
 
     def init_lidar(self) -> None:
         try:
-            self.lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
+            self.lidar = Lidar(LIDAR_SOCKET_ADRESS["IP"], LIDAR_SOCKET_ADRESS["PORT"])
             self.lidar.stop()
             self.lidar.start_continuous(0, 1080)
             self.log.info("Lidar initialized successfully")
