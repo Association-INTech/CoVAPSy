@@ -12,10 +12,12 @@ from drivers.tof import ToF
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import (
+    BACKWARD_IA_SPEED,
     LIDAR_DATA_AMPLITUDE,
     LIDAR_DATA_OFFSET,
     LIDAR_DATA_SIGMA,
     MAX_ANGLE,
+    MIN_ANGLE,
     MODEL_PATH,
     LIMIT_CRASH_POINT,
     FREQUENCY_CRASH_DETECTION,
@@ -34,7 +36,9 @@ def too_close(lidar, dir):
         return True
 
     length = len(lidar)
-    straight = lidar[length // 2]
+    straight = np.average(
+        lidar[length // 2 - 10 : length // 2 + 10]
+    )  # take the average of 20 points around the middle to reduce noise
 
     zone = lidar[length // 2 :] if dir else lidar[: length // 2]
 
@@ -44,7 +48,9 @@ def too_close(lidar, dir):
     if valid_zone.size == 0:
         return True
 
-    nearest = np.min(valid_zone)
+    nearest = np.average(
+        np.sort(valid_zone)[:10]
+    )  # take the average of the 10 nearest points to reduce noise
 
     # straight can also be invalid, we consider it as too close in that case to be safe
     if not np.isfinite(straight) or straight <= 0:
@@ -169,15 +175,15 @@ class Car:
         S = sum(cam)
         dir = S > 0
         if dir:
-            self.direction = 18
+            self.direction = MAX_ANGLE  # turn to the right
             if too_close(lidar, dir):
-                self.target_speed = -2
+                self.target_speed = BACKWARD_IA_SPEED
             else:
                 self.state = 0
         else:
-            self.direction = -18
+            self.direction = MIN_ANGLE  # turn to the left
             if too_close(lidar, dir):
-                self.target_speed = -2
+                self.target_speed = BACKWARD_IA_SPEED
             else:
                 self.state = 0
 
