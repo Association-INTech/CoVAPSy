@@ -13,7 +13,7 @@ from extractors import (  # noqa: F401
 from simulation import VehicleEnv
 from utils import run_onnx_model
 
-ONNX_MODEL_PATH = c.save_dir / f"model_{c.ExtractorClass}.onnx"
+ONNX_MODEL_PATH = c.save_dir / f"model_{c.ExtractorClass.__name__}.onnx"
 
 
 def init_onnx_runtime_session(onnx_path: Path) -> ort.InferenceSession:
