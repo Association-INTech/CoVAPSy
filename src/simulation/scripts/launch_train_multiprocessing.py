@@ -30,18 +30,7 @@ if __name__ == "__main__":
         ]
     )
 
-    policy_kwargs: Dict[str, Any] = dict(
-        features_extractor_class=c.ExtractorClass,
-        # features_extractor_kwargs=dict(
-        #     device=c.device,
-        # ),
-        activation_fn=nn.ReLU,
-        net_arch=[512, 512, 512],
-    )
-
-    save_path = (
-        Path("~/.cache/autotech/checkpoints").expanduser() / c.ExtractorClass.__name__
-    )
+    save_path = c.save_dir / "checkpoints" / c.ExtractorClass.__name__
 
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -50,12 +39,12 @@ if __name__ == "__main__":
     if valid_files:
         model_path = max(valid_files, key=lambda x: int(x.name.rstrip(".zip")))
         print(f"Loading model {model_path.name}")
-        model = PPO.load(model_path, envs, **c.ppo_args, policy_kwargs=policy_kwargs)
+        model = PPO.load(model_path, envs, **c.ppo_args, policy_kwargs=c.policy_kwargs)
         i = int(model_path.name.rstrip(".zip")) + 1
         print(f"Model found, loading {model_path}")
 
     else:
-        model = PPO("MlpPolicy", envs, **c.ppo_args, policy_kwargs=policy_kwargs)
+        model = PPO("MlpPolicy", envs, **c.ppo_args, policy_kwargs=c.policy_kwargs)
 
         i = 0
         print("Model not found, creating a new one")
@@ -72,9 +61,7 @@ if __name__ == "__main__":
     while True:
         onnx_utils.export_onnx(
             model,
-            os.path.expanduser(
-                f"~/.cache/autotech/model_{c.ExtractorClass.__name__}.onnx"
-            ),
+            str(c.save_dir / f"model_{c.ExtractorClass.__name__}.onnx"),
         )
         onnx_utils.test_onnx(model)
 

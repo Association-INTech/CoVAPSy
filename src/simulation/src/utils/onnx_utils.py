@@ -54,8 +54,7 @@ def test_onnx(model: OnPolicyAlgorithm):
 
     try:
         class_name = model.policy.features_extractor.__class__.__name__
-        model_path = os.path.expanduser(f"~/.cache/autotech/model_{class_name}.onnx")
-
+        model_path = c.save_dir / f"model_{class_name}.onnx"
         session = ort.InferenceSession(model_path)
     except Exception as e:
         print(f"Error loading ONNX model: {e}")
