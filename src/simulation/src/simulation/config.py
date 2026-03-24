@@ -60,5 +60,3 @@ policy_kwargs: Dict[str, Any] = dict(
 # Logging config
 LOG_LEVEL = logging.INFO
 FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-
-B_DEBUG = False
