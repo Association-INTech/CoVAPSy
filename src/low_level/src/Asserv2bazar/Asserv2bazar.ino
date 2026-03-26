@@ -122,7 +122,8 @@ float getMeanSpeed(float dt){
 }
 
 float getSpeed(float dt){  
-  int N = count - vieuxCount; //nombre de fronts montant et descendands après chaque loop
+  long c = readCountAtomic();
+  long N = c - vieuxCount; //nombre de fronts montant et descendands après chaque loop
   vieuxCount=count;
   return ((float)N/(float)nb_trous)*distanceUnTour/(dt*1e-3); //16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm ;
 }
@@ -132,6 +133,12 @@ void blink(){ //on compte tous les fronts
   count++;
 }
 
+long readCountAtomic() {
+  noInterrupts();
+  long c = count;
+  interrupts();
+  return c;
+}
 
 float PID(float cons, float mes, float dt,float old_out) {
 
