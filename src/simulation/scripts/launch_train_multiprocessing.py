@@ -30,29 +30,7 @@ if __name__ == "__main__":
         ]
     )
 
-    policy_kwargs: Dict[str, Any] = dict(
-        features_extractor_class=c.ExtractorClass,
-        # features_extractor_kwargs=dict(
-        #     device=c.device,
-        # ),
-        activation_fn=nn.ReLU,
-        net_arch=[512, 512, 512],
-    )
-
-    ppo_args: Dict[str, Any] = dict(
-        n_steps=4096,
-        n_epochs=10,
-        batch_size=256,
-        learning_rate=3e-4,
-        gamma=0.99,
-        verbose=1,
-        normalize_advantage=True,
-        device=c.device,
-    )
-
-    save_path = (
-        Path("~/.cache/autotech/checkpoints").expanduser() / c.ExtractorClass.__name__
-    )
+    save_path = c.save_dir / "checkpoints" / c.ExtractorClass.__name__
 
     save_path.mkdir(parents=True, exist_ok=True)
 
@@ -61,12 +39,12 @@ if __name__ == "__main__":
     if valid_files:
         model_path = max(valid_files, key=lambda x: int(x.name.rstrip(".zip")))
         print(f"Loading model {model_path.name}")
-        model = PPO.load(model_path, envs, **ppo_args, policy_kwargs=policy_kwargs)
+        model = PPO.load(model_path, envs, **c.ppo_args, policy_kwargs=c.policy_kwargs)
         i = int(model_path.name.rstrip(".zip")) + 1
         print(f"Model found, loading {model_path}")
 
     else:
-        model = PPO("MlpPolicy", envs, **ppo_args, policy_kwargs=policy_kwargs)
+        model = PPO("MlpPolicy", envs, **c.ppo_args, policy_kwargs=c.policy_kwargs)
 
         i = 0
         print("Model not found, creating a new one")
@@ -83,9 +61,7 @@ if __name__ == "__main__":
     while True:
         onnx_utils.export_onnx(
             model,
-            os.path.expanduser(
-                f"~/.cache/autotech/model_{c.ExtractorClass.__name__}.onnx"
-            ),
+            str(c.save_dir / f"model_{c.ExtractorClass.__name__}.onnx"),
         )
         onnx_utils.test_onnx(model)
 
@@ -93,12 +69,12 @@ if __name__ == "__main__":
             from utils import PlotModelIO
 
             model.learn(
-                total_timesteps=500_000,
+                total_timesteps=c.total_timesteps,
                 progress_bar=False,
                 callback=PlotModelIO(),
             )
         else:
-            model.learn(total_timesteps=500_000, progress_bar=True)
+            model.learn(total_timesteps=c.total_timesteps, progress_bar=True)
 
         print("iteration over")
         # TODO: we could just use a callback to save checkpoints or export the model to onnx
