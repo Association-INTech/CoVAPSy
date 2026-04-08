@@ -96,19 +96,23 @@ class VehicleDriver(Driver):
 
         lidar_data = np.array(self.lidar.getRangeImage(), dtype=np.float32)
 
-        camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
-        # shape = (1080, 1, 3)
-        camera_data = camera_data.transpose(1, 2, 0)[0]
-        # shape = (3, 1080)
-        color = np.argmax(camera_data, axis=0)
-        camera_data = (
-            (color == 0).astype(np.float32) * -1
-            + (color == 1).astype(np.float32) * 1
-            + (color == 2).astype(np.float32) * 0
-        )
-        # red   -> -1
-        # green -> 1
-        # blue  -> 0
+        if c.camera_horizontal_resolution == 0:
+            # empty array
+            camera_data = np.zeros([0])
+        else:
+            camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
+            # shape = (camera_horizontal_resolution, 1, 3)
+            camera_data = camera_data.transpose(1, 2, 0)[0]
+            # shape = (3, 1080)
+            color = np.argmax(camera_data, axis=0)
+            camera_data = (
+                (color == 0).astype(np.float32) * -1
+                + (color == 1).astype(np.float32) * 1
+                + (color == 2).astype(np.float32) * 0
+            )
+            # red   -> -1
+            # green -> 1
+            # blue  -> 0
 
         return (sensor_data, lidar_data, camera_data)
 
