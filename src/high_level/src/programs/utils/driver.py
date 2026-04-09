@@ -16,6 +16,9 @@ from high_level.autotech_constant import (
     Temperature,
 )
 
+STEER_LOOKUP_DEG = np.rad2deg(np.linspace(-0.4, 0.4, 16, dtype=np.float32))
+SPEED_LOOKUP_MM_S = np.linspace(1.0, 9.0, 16, dtype=np.float32) * (1000.0 / 3.6)
+
 
 class Driver:
     def __init__(self, context_size=0, horizontal_size=0):
@@ -109,12 +112,12 @@ class Driver:
         zoom_factor = target_width / arr.size
         return sp.ndimage.zoom(arr, zoom_factor, order=1).astype(np.float32, copy=False)
 
-    def _resize_lidar_like_webots(self, lidar_data_mm: np.ndarray) -> np.ndarray:
+    def _resize_lidar_like_webots(self, lidar_data: np.ndarray) -> np.ndarray:
         """
         Like Webots:
         convert in meters, replace nan with 0, inf with 30, and resize to horizontal_size
         """
-        lidar_m = np.asarray(lidar_data_mm, dtype=np.float32).reshape(-1) / 1000.0
+        lidar_m = np.asarray(lidar_data, dtype=np.float32).reshape(-1)
         lidar_m = np.nan_to_num(lidar_m, nan=0.0, posinf=30.0, neginf=0.0)
         lidar_m = np.clip(lidar_m, 0.0, 30.0)
         lidar_m = self._resize_1d(lidar_m, self.horizontal_size)
@@ -128,7 +131,6 @@ class Driver:
         - resize into horizontal_size
         """
         cam = np.asarray(camera_data, dtype=np.float32).reshape(-1)
-        cam = np.nan_to_num(cam, nan=0.0, posinf=30.0, neginf=-30.0)
         cam = self._resize_1d(cam, self.horizontal_size)
         return cam
 
@@ -144,9 +146,9 @@ class Driver:
         pass
 
     def omniscent(
-        self, lidar_data: np.ndarray, camera_data: np.ndarray
+        self, lidar_data_m: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:
-        return self.ai_update_lidar_camera(lidar_data, camera_data)
+        return self.ai_update_lidar_camera(lidar_data_m, camera_data)
 
     def ai(
         self, lidar_data: np.ndarray, camera_data: np.ndarray
@@ -161,19 +163,22 @@ class Driver:
         return self.farthest_distants(lidar_data)
 
     def ai_update_lidar_camera(
-        self, lidar_data_mm: np.ndarray, camera_data: np.ndarray
+        self, lidar_data_m: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:
         if not self._loaded or self.input_infos is None:
             raise RuntimeError("Driver not initialized (AI model not loaded)")
 
         target_width = self.horizontal_size
-        lidar_data = self._resize_lidar_like_webots(lidar_data_mm)
+        lidar_data_m = self._resize_lidar_like_webots(lidar_data_m)
+        print("lidar_data_m =", lidar_data_m)
         camera_data = self._resize_camera_like_webots(camera_data)
-
-        new_frame = np.stack([lidar_data, camera_data], axis=0)[:, None, :]  # (2,1,W)
+        new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
+        camera_data = np.zeros_like(camera_data)
 
         if self.context_size > 1:
-            self.context = np.concatenate([self.context[:, 1:], new_frame], axis=1)
+            self.context = np.concatenate(
+                [self.context[:, 1:], [lidar_data_m, camera_data]], axis=1
+            )
         else:
             self.context = new_frame
 
@@ -184,20 +189,25 @@ class Driver:
         )[0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]
-        vect_dir = softmax(vect_dir)
-        vect_prop = softmax(vect_prop)
+        vect_dir, vect_prop = vect[:16], vect[16:]
 
-        angle = sum(ANGLE_LOOKUP * vect_dir)
-        vitesse = sum(SPEED_LOOKUP * vect_prop)
+        steer_idx = int(np.argmax(vect_dir))
+        speed_idx = int(np.argmax(vect_prop))
+
+        angle = float(STEER_LOOKUP_DEG[steer_idx])
+        vitesse = float(SPEED_LOOKUP_MM_S[speed_idx])
         best_idx = int(np.argmax(vect_dir))
+        # vitesse = sum(SPEED_LOOKUP * vect_prop)
+
         self.log.info(f"best_idx={best_idx}, angle={angle:.2f}")
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data) -> Tuple[float, float]:
         if not self._loaded:
             raise RuntimeError("Driver not initialized (AI model not loaded)")
-        lidar_data = np.array(lidar_data, dtype=np.float32) * 1.6
+        lidar_data = np.array(lidar_data, dtype=np.float32)
         # 2 vectors direction and speed. direction is between hard left at index 0 and hard right at index 1. speed is between min speed at index 0 and max speed at index 1
+
         vect = cast(
             np.ndarray, self.ai_session.run(None, {"input": lidar_data[None]})[0]
         )[0]
