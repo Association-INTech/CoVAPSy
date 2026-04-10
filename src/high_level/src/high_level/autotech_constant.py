@@ -3,7 +3,7 @@ import numpy as np
 import logging
 
 # Car control
-MAX_IA_SPEED = 2000  # maximum speed for ia in millimeter per second
+MAX_IA_SPEED = 4000  # maximum speed for ia in millimeter per second
 BACKWARD_IA_SPEED = -2000  # minimum speed for ia in millimeter per second
 MAX_CONTROL_SPEED = 3  # maximum speed for controling devices in meters per second
 MIN_CONTROL_SPEED = -2  # minimum speed for controlig devices in meters per second
@@ -61,7 +61,7 @@ CAMERA_SOCKET_ADRESS = {"IP": IP, "PORT": PORT_STREAMING_CAMERA}
 ANGLE_LOOKUP = np.linspace(-MAX_ANGLE, MAX_ANGLE, 16)
 SPEED_LOOKUP = np.linspace(1000, MAX_IA_SPEED, 16)
 
-Temperature = 0.7  # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
+Temperature = 1  # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
 # the higher the temperature the more unprobalbe actions become probable, the lower the temperature the more probable actions become probable.
 # In our case Higher temperature means less agressive driving and lower temperature means more aggressive driving.
 
@@ -81,7 +81,8 @@ LIDAR_STREAM_ON_START = (
 LIMIT_CRASH_POINT = 10  # number of lidar points that must be under the crash border distance to consider that the car is in a crash situation,
 FREQUENCY_CRASH_DETECTION = 0.1  # in seconds, the time between two crash detection
 
-FREQUENCY_REVERSE_DETECTION = 0.5  # in seconds, the time between two reverse detection
-LIMIT_REVERSE_COUNT = 3  # number of reverse detection before considering that the car is in reverse and must turn around
+FREQUENCY_REVERSE_DETECTION = 0.05  # in seconds, the time between two reverse detection
+LIMIT_REVERSE_COUNT = 6  # number of reverse detection before considering that the car is in reverse and must turn around
+LIMIT_COUNT_WINDOW = 10  # number of reverse detection to keep in memory to calculate the reverse count, should be higher than LIMIT_REVERSE_COUNT
 # Backend
 SITE_DIR_BACKEND = "/home/intech/CoVAPSy/src/high_level/src/site_controle"  # the directory where the backend will look for the site to serve

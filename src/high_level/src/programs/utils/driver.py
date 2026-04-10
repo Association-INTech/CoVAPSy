@@ -171,11 +171,11 @@ class Driver:
 
         target_width = self.horizontal_size
 
-        lidar_data_m = self._resize_lidar_like_webots(lidar_data_m)
-        print("lidar_data_m =", lidar_data_m)
+        lidar_data_m = self._resize_lidar_like_webots(lidar_data_m)[::-1]
+        # print("lidar_data_m =", lidar_data_m)
         camera_data = self._resize_camera_like_webots(camera_data)
-        new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
         camera_data = np.zeros_like(camera_data)
+        new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
 
         if self.context_size > 1:
             self.context = np.concatenate(
@@ -188,31 +188,32 @@ class Driver:
         # print(lidar_data_m.tolist())
         # print(len(np.where(lidar_data_m == 0)[0]))
         lidar_data_m[np.where(lidar_data_m == 0)] = 30
-        print(
-            "min_lidar",
-            np.min(lidar_data_m),
-            "max_lidar",
-            np.max(lidar_data_m),
-            "mean_lidar",
-            np.mean(lidar_data_m),
-        )
+        # print(
+        #     "min_lidar",
+        #     np.min(lidar_data_m),
+        #     "max_lidar",
+        #     np.max(lidar_data_m),
+        #     "mean_lidar",
+        #     np.mean(lidar_data_m),
+        # )
         vect = cast(
             np.ndarray,
             self.ai_session.run(None, {input_name: self.context[None]})[0],
         )[0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]
-        vect_dir, vect_prop = vect[:16], vect[16:]
-
-        steer_idx = int(np.argmax(vect_dir))
-        speed_idx = int(np.argmax(vect_prop))
-
-        angle = float(STEER_LOOKUP_DEG[steer_idx])
-        vitesse = float(SPEED_LOOKUP_MM_S[speed_idx])
-        best_idx = int(np.argmax(vect_dir))
-        # vitesse = sum(SPEED_LOOKUP * vect_prop)
-
-        self.log.info(f"best_idx={best_idx}, angle={angle:.2f}")
+        vect_dir = softmax(vect_dir / Temperature)  # probability distribution
+        vect_prop = softmax(vect_prop)
+        # steer_idx = int(np.argmax(vect_dir))
+        # speed_idx = int(np.argmax(vect_prop))
+        # print("vect_dir =" ,  vect_dir)
+        # print(" vect_prop = ", vect_prop )
+        # #angle = float(ANGLE_LOOKUP[steer_idx])
+        # vitesse = float(SPEED_LOOKUP[speed_idx])
+        # best_idx = int(np.argmax(vect_dir))
+        vitesse = sum(SPEED_LOOKUP * vect_prop)
+        angle = sum(ANGLE_LOOKUP * vect_dir)
+        # self.log.info(f"best_idx={best_idx}, angle={angle:.2f}")
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data) -> Tuple[float, float]:
@@ -260,7 +261,7 @@ class Driver:
             if sum_values > max_value:
                 max_value = sum_values
                 max_index = i
-        print("max_value =", max_value, "max_index =", max_index)
+        # print("max_value =", max_value, "max_index =", max_index)
 
         # Calculate the average distance and find the closest object
         for i in range(-45, 45):

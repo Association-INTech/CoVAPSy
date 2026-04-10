@@ -71,10 +71,10 @@ def too_close(lidar_m, dir):
 
 
 class Border_zone:
-    ZONE1 = [0, 370]
-    ZONE2 = [371, 540]
-    ZONE3 = [541, 750]
-    ZONE4 = [751, 1080]
+    ZONE1 = [750, 1080]
+    ZONE2 = [540, 749]
+    ZONE3 = [330, 540]
+    ZONE4 = [0, 330]
 
 
 class CrashCar:
@@ -83,7 +83,7 @@ class CrashCar:
         self.server = server
         self.crashed = False
         self.state = 0
-        self.deadzone = 20
+        self.deadzone = 40  # mm Distance under which the car considers that it is in a crash situation even if the lidar contour is not penetrated, to avoid issues with the lidar contour not being perfectly accurate and to add a safety margin
         # Load reference lidar contour once
         try:
             self.reference_lidar = np.load(
@@ -172,19 +172,18 @@ class Car:
         if self.server.camera_red_or_green.is_reverse:
             self.turn_around()
 
-    def back(self, lidar_m, cam) -> tuple[float, float]:
+    def back(self, lidar_m, cam):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
         # turn to the right
-        print("self.tof.distance =", self.tof.distance)
         if self.tof.distance < 20:
             self.log.info("Obstacle detected by ToF")
             self.state = 0
             return 0, 0
-        S = sum(cam)
-        zone1 = np.average(cam[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]])
-        zone2 = np.average(cam[Border_zone.ZONE2[0] : Border_zone.ZONE2[1]])
-        zone3 = np.average(cam[Border_zone.ZONE3[0] : Border_zone.ZONE3[1]])
-        zone4 = np.average(cam[Border_zone.ZONE4[0] : Border_zone.ZONE4[1]])
+
+        zone1 = np.average(lidar_m[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]])
+        zone2 = np.average(lidar_m[Border_zone.ZONE2[0] : Border_zone.ZONE2[1]])
+        zone3 = np.average(lidar_m[Border_zone.ZONE3[0] : Border_zone.ZONE3[1]])
+        zone4 = np.average(lidar_m[Border_zone.ZONE4[0] : Border_zone.ZONE4[1]])
 
         zones = [zone1, zone2, zone3, zone4]
 
@@ -199,19 +198,17 @@ class Car:
         if id_min_zone == 1:
             dir = sum(cam[: len(cam) // 2]) > 0
             if dir:
-                self.reverse_car()
-                return MAX_ANGLE, BACKWARD_IA_SPEED
+                return MIN_ANGLE, BACKWARD_IA_SPEED
 
             if too_close(lidar_m, dir):
-                return MAX_ANGLE, BACKWARD_IA_SPEED
+                return MIN_ANGLE, BACKWARD_IA_SPEED
             else:
                 self.state = 0
-                return MIN_ANGLE, BACKWARD_IA_SPEED
+                return MAX_ANGLE, BACKWARD_IA_SPEED
 
         if id_min_zone == 2:
             dir = sum(cam[: len(cam) // 2]) > 0
             if not dir:
-                self.reverse_car()
                 return MAX_ANGLE, BACKWARD_IA_SPEED
 
             if too_close(lidar_m, dir):
@@ -219,31 +216,34 @@ class Car:
             else:
                 self.state = 0
                 return MIN_ANGLE, BACKWARD_IA_SPEED
+        return 0, 0
 
-        dir = S > 0
-        self.log.info("je suis en arriere")
-        if dir:
-            # turn to the right
-            if too_close(lidar_m, dir):
-                return MAX_ANGLE, BACKWARD_IA_SPEED
-            else:
-                self.state = 0
-                return (
-                    MAX_ANGLE,
-                    BACKWARD_IA_SPEED,
-                )  # the ai takes distances in meters not in mm
-        else:
-            if too_close(lidar_m, dir):
-                return MIN_ANGLE, BACKWARD_IA_SPEED
-            else:
-                self.state = 0
-                return MIN_ANGLE, BACKWARD_IA_SPEED
+        # S = sum(cam)
+
+        # dir = S > 0
+        # self.log.info("je suis en arriere")
+        # if dir:
+        #     # turn to the right
+        #     if too_close(lidar_m, dir):
+        #         return MAX_ANGLE, BACKWARD_IA_SPEED
+        #     else:
+        #         self.state = 0
+        #         return (
+        #             MAX_ANGLE,
+        #             BACKWARD_IA_SPEED,
+        #         )  # the ai takes distances in meters not in mm
+        # else:
+        #     if too_close(lidar_m, dir):
+        #         return MIN_ANGLE, BACKWARD_IA_SPEED
+        #     else:
+        #         self.state = 0
+        #         return MIN_ANGLE, BACKWARD_IA_SPEED
 
     def reverse_car(self):
-        zone_droite = self.lidar.r_distance[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]]
-        zone_droite_valid = zone_droite[np.isfinite(zone_droite) & (zone_droite > 0)]
-        zone_gauche = self.lidar.r_distance[Border_zone.ZONE3[0] : Border_zone.ZONE3[1]]
+        zone_gauche = self.lidar.r_distance[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]]
         zone_gauche_valid = zone_gauche[np.isfinite(zone_gauche) & (zone_gauche > 0)]
+        zone_droite = self.lidar.r_distance[Border_zone.ZONE3[0] : Border_zone.ZONE3[1]]
+        zone_droite_valid = zone_droite[np.isfinite(zone_droite) & (zone_droite > 0)]
         nearest_droite = np.average(
             np.sort(zone_droite_valid)[:10]
         )  # take the average of the 10 nearest points to reduce noise
@@ -267,9 +267,9 @@ class Car:
             "reversing for 1.5 seconds or until an obstacle is detected behind the car"
         )
         while (
-            time.time() - t < 3 and self.tof.distance > 20 and ok
+            time.time() - t < 2 and self.tof.distance > 20 and ok
         ):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car
-            if time.time() - t > 2 and self.server.arduino_I2C.current_speed == 0:
+            if time.time() - t > 1 and self.server.arduino_I2C.current_speed == 0:
                 ok = False
 
         self.log.info("Stopped reversing after 1.5 seconds")
@@ -284,7 +284,7 @@ class Car:
             ]
         )
         while (
-            time.time() - t < 3 and straight_mm > 50
+            time.time() - t < 1 and straight_mm > 50
         ):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car
             straight_mm = np.average(
                 self.lidar.r_distance[
@@ -301,14 +301,21 @@ class Car:
         if self.camera is None or self.lidar is None:
             self.log.debug("Sensors not yet ready")
             return
-        lidar_data_m = self.lidar.r_distance.copy()  # convert to meters
+        lidar_data = self.lidar.r_distance.copy()  # convert to meters
         # print(
         #     "len(np.where(lidar_data == 0)[0]) =", len(np.where(lidar_data_m == 0)[0])
         # )
-        lidar_data_m = lidar_data_m / 1000
+        lidar_data_m = lidar_data / 1000
         # convert to meters and add Gaussian noise. We manipulate the data provided to the AI
-        camera_data = self.camera.camera_matrix() * 0  # retrieve camera data
-        if self.server.crash_car.crashed:
+        camera_data = self.camera.camera_matrix()  # retrieve camera data
+
+        if self.server.camera_red_or_green.is_reverse:
+            self.reverse_car()
+
+        if (
+            self.server.crash_car.crashed
+            and self.server.arduino_I2C.current_speed < 1000
+        ):
             self.crash_time = time.time()
             self.state = 1
 
@@ -323,9 +330,6 @@ class Car:
         self.log.debug(
             f"Min Lidar: {min(lidar_data_m)}, Max Lidar: {max(lidar_data_m)}"
         )
-
-        if self.server.camera_red_or_green.is_reverse:
-            self.reverse_car()
 
         """
         if self.camera.is_running_in_reversed():

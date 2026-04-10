@@ -18,9 +18,11 @@ from aiortc import (
     VideoStreamTrack,
 )
 from av import VideoFrame
+from collections import deque
 from high_level.autotech_constant import (
     FREQUENCY_REVERSE_DETECTION,
     LIMIT_REVERSE_COUNT,
+    LIMIT_COUNT_WINDOW,
 )
 
 N_IMAGES = 100  # Number of images to capture
@@ -41,6 +43,7 @@ class Camera_red_or_green:
         self.server = server
         self.log = logging.getLogger(__name__)
         self.is_reverse = False
+        self.reverse_history = deque(maxlen=LIMIT_COUNT_WINDOW)
 
         threading.Thread(target=self.thread_check_reverse, daemon=True).start()
 
@@ -111,7 +114,6 @@ class Camera_red_or_green:
         """
         Thread function to continuously check if the car is running in reverse and update the server state.
         """
-        temp = 0
         while self.server.camera is None:
             time.sleep(1)  # Wait until the camera is initialized
         while True:
@@ -119,16 +121,17 @@ class Camera_red_or_green:
                 image = self.server.camera.get_last_image()
 
                 result = self.is_running_in_reversed(image=image)
+                # Ajout dans l'historique
+                self.reverse_history.append(result)
 
-                if result:
-                    temp += 1
-                else:
-                    temp = 0
+                # Comptage des True dans la fenêtre
+                reverse_count = sum(self.reverse_history)
 
-                if temp >= LIMIT_REVERSE_COUNT and not self.is_reverse:
+                if reverse_count >= LIMIT_REVERSE_COUNT and not self.is_reverse:
                     self.log.info("Car is running in reverse")
                     self.is_reverse = True
-                elif temp == 0 and self.is_reverse:
+
+                elif reverse_count < LIMIT_REVERSE_COUNT and self.is_reverse:
                     self.log.info("Car is no longer running in reverse")
                     self.is_reverse = False
             except Exception as e:

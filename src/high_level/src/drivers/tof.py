@@ -5,6 +5,7 @@ import logging
 import threading
 import time
 
+
 class ToF:
     """
     Class representing a Time of Flight (ToF) sensor.
@@ -16,7 +17,7 @@ class ToF:
         self.vl53 = VL53L1X(i2c)
         self.distance = 0
         threading.Thread(target=self.get_tof_distance, daemon=True).start()
-        
+
     def get_tof_distance(self):
         """
         Get the distance from the rear ToF sensor.
@@ -29,12 +30,11 @@ class ToF:
                 if self.vl53.data_ready:
                     distance = self.vl53.distance
                     if distance is None:
-                        self.distance = 0 # en cm
+                        self.distance = 9999  # en cm ça sort de mon chapeau
                     else:
-                        self.distance = distance # en cm
+                        self.distance = distance  # en cm
                     self.vl53.clear_interrupt()
                 time.sleep(0.05)
             except Exception as e:
                 self.log.error(f"Error reading rear ToF sensor: {e}")
                 return None
-        
