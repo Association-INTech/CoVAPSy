@@ -3,9 +3,9 @@ import numpy as np
 import logging
 
 # Car control
-MAX_IA_SPEED = 1000  # maximum speed for ia in millimeter per second
+MAX_IA_SPEED = 2000  # maximum speed for ia in millimeter per second
 BACKWARD_IA_SPEED = -2000  # minimum speed for ia in millimeter per second
-MAX_CONTROL_SPEED = 2  # maximum speed for controling devices in meters per second
+MAX_CONTROL_SPEED = 3  # maximum speed for controling devices in meters per second
 MIN_CONTROL_SPEED = -2  # minimum speed for controlig devices in meters per second
 MAX_ANGLE = 18  # angle from the center to the right direction in degree
 MIN_ANGLE = -MAX_ANGLE  # angle from the center to the left direction in degree
@@ -59,7 +59,7 @@ LIDAR_SOCKET_ADRESS = {"IP": "192.168.0.10", "PORT": 10940}
 CAMERA_SOCKET_ADRESS = {"IP": IP, "PORT": PORT_STREAMING_CAMERA}
 
 ANGLE_LOOKUP = np.linspace(-MAX_ANGLE, MAX_ANGLE, 16)
-SPEED_LOOKUP = np.linspace(0, MAX_IA_SPEED, 16)
+SPEED_LOOKUP = np.linspace(1000, MAX_IA_SPEED, 16)
 
 Temperature = 0.7  # Temperature parameter for softmax function, used to control the sharpness of the distribution resols around 1
 # the higher the temperature the more unprobalbe actions become probable, the lower the temperature the more probable actions become probable.

@@ -117,6 +117,7 @@ class Driver:
         Like Webots:
         convert in meters, replace nan with 0, inf with 30, and resize to horizontal_size
         """
+        # print("len(np.where(lidar_data == 0)[0]) =", len(np.where(lidar_data == 0)[0]))
         lidar_m = np.asarray(lidar_data, dtype=np.float32).reshape(-1)
         lidar_m = np.nan_to_num(lidar_m, nan=0.0, posinf=30.0, neginf=0.0)
         lidar_m = np.clip(lidar_m, 0.0, 30.0)
@@ -169,6 +170,7 @@ class Driver:
             raise RuntimeError("Driver not initialized (AI model not loaded)")
 
         target_width = self.horizontal_size
+
         lidar_data_m = self._resize_lidar_like_webots(lidar_data_m)
         print("lidar_data_m =", lidar_data_m)
         camera_data = self._resize_camera_like_webots(camera_data)
@@ -183,6 +185,17 @@ class Driver:
             self.context = new_frame
 
         input_name = self.input_infos[0].name
+        # print(lidar_data_m.tolist())
+        # print(len(np.where(lidar_data_m == 0)[0]))
+        lidar_data_m[np.where(lidar_data_m == 0)] = 30
+        print(
+            "min_lidar",
+            np.min(lidar_data_m),
+            "max_lidar",
+            np.max(lidar_data_m),
+            "mean_lidar",
+            np.mean(lidar_data_m),
+        )
         vect = cast(
             np.ndarray,
             self.ai_session.run(None, {input_name: self.context[None]})[0],
