@@ -29,7 +29,11 @@ N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
 DEBUG_DIR = "Debug"  # Directory for debug images
 DEBUG_DIR_wayfinding = "Debug_Wayfinding"  # Directory for wayfinding debug images
-COLOUR_KEY = {"green": 1, "red": -1, "none": 0}
+COLOUR_KEY = {
+    "green": 1,
+    "red": -1,
+    "none": 0,
+}  # do not change if you want change in camera_proxy
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -80  # Offset for the y-axis in the image
 

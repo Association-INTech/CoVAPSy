@@ -13,7 +13,8 @@ from high_level.autotech_constant import (
     ANGLE_LOOKUP,
     MODEL_PATH,
     SPEED_LOOKUP,
-    Temperature,
+    Temperature_steer,
+    Temperature_vitesse,
 )
 
 STEER_LOOKUP_DEG = np.rad2deg(np.linspace(-0.4, 0.4, 16, dtype=np.float32))
@@ -202,8 +203,8 @@ class Driver:
         )[0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]
-        vect_dir = softmax(vect_dir / Temperature)  # probability distribution
-        vect_prop = softmax(vect_prop)
+        vect_dir = softmax(vect_dir / Temperature_steer)  # probability distribution
+        vect_prop = softmax(vect_prop / Temperature_vitesse)
         # steer_idx = int(np.argmax(vect_dir))
         # speed_idx = int(np.argmax(vect_prop))
         # print("vect_dir =" ,  vect_dir)

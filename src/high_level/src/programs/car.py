@@ -144,6 +144,7 @@ class Car:
         self.stuck = 0
         self.not_working = False
         self.log.info("Car initialization complete")
+        self.id_worst_zone = 0
 
     # dynamic access to sensors
     @property
@@ -175,52 +176,49 @@ class Car:
             self.turn_around()
 
     def back(self, lidar_m, cam):
-        # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
-        # turn to the right
-        if self.tof.distance < 20:
+        # sécurité arrière
+        if self.tof.distance < 9:
             self.log.info("Obstacle detected by ToF")
             self.state = 0
             return 0, 0
 
-        zone1 = np.average(lidar_m[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]])
-        zone2 = np.average(lidar_m[Border_zone.ZONE2[0] : Border_zone.ZONE2[1]])
-        zone3 = np.average(lidar_m[Border_zone.ZONE3[0] : Border_zone.ZONE3[1]])
-        zone4 = np.average(lidar_m[Border_zone.ZONE4[0] : Border_zone.ZONE4[1]])
+        # conversion en mm pour matcher reference_lidar
+        id_worst_zone = self.id_worst_zone
+        self.log.info(f"Worst intrusion zone: {id_worst_zone}")
 
-        zones = [zone1, zone2, zone3, zone4]
-
-        id_min_zone = np.argmin(zones)
-        # print("id_min_zone =", id_min_zone)
-
-        if id_min_zone == 0:
+        # On garde ta logique de direction, mais basée sur la vraie zone "dangereuse"
+        if id_worst_zone == 0:
+            # obstacle surtout dans ZONE1
             self.state = 0
             return MAX_ANGLE, 2000
 
-        if id_min_zone == 3:
+        if id_worst_zone == 3:
+            # obstacle surtout dans ZONE4
             self.state = 0
             return MIN_ANGLE, 2000
 
-        if id_min_zone == 1:
+        if id_worst_zone == 1:
+            # zone intermédiaire gauche/droite selon ta convention caméra
             dir = sum(cam[: len(cam) // 2]) > 0
             if not too_close(lidar_m, dir):
                 self.state = 0
                 return 0, 0
-            if dir:
-                return MAX_ANGLE, BACKWARD_IA_SPEED
+            return (
+                (MAX_ANGLE, BACKWARD_IA_SPEED)
+                if dir
+                else (MIN_ANGLE, BACKWARD_IA_SPEED)
+            )
 
-            else:
-                return MIN_ANGLE, BACKWARD_IA_SPEED
-
-        if id_min_zone == 2:
+        if id_worst_zone == 2:
             dir = sum(cam[len(cam) // 2 :]) > 0
             if not too_close(lidar_m, dir):
                 self.state = 0
                 return 0, 0
-            if dir:
-                return MAX_ANGLE, BACKWARD_IA_SPEED
-
-            else:
-                return MIN_ANGLE, BACKWARD_IA_SPEED
+            return (
+                (MAX_ANGLE, BACKWARD_IA_SPEED)
+                if dir
+                else (MIN_ANGLE, BACKWARD_IA_SPEED)
+            )
 
         return 0, 0
 
@@ -244,6 +242,39 @@ class Car:
         #     else:
         #         self.state = 0
         #         return MIN_ANGLE, BACKWARD_IA_SPEED
+
+    def _zone_penetration_score(self, current_mm, ref_mm, start, end):
+        current_zone = np.asarray(current_mm[start:end], dtype=np.float32)
+        ref_zone = np.asarray(ref_mm[start:end], dtype=np.float32)
+
+        valid = (
+            np.isfinite(current_zone)
+            & np.isfinite(ref_zone)
+            & (current_zone > 0)
+            & (ref_zone > 0)
+        )
+
+        if not np.any(valid):
+            return 0.0, 0, 0.0
+
+        current_zone = current_zone[valid]
+        ref_zone = ref_zone[valid]
+
+        # même logique que CrashCar
+        penetration = (ref_zone + self.server.crash_car.deadzone) - current_zone
+        penetration = penetration[penetration > 0]
+
+        if penetration.size == 0:
+            return 0.0, 0, 0.0
+
+        penetration_count = penetration.size
+        penetration_sum = float(np.sum(penetration))
+        penetration_max = float(np.max(penetration))
+
+        # score simple et robuste
+        score = penetration_sum
+
+        return score, penetration_count, penetration_max
 
     def reverse_car(self):
         zone_gauche = self.lidar.r_distance[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]]
@@ -327,37 +358,67 @@ class Car:
         if self.server.arduino_I2C.current_speed > 0:
             self.not_working = False
 
-        if self.not_working and time.time() - self.times_not_working > 3:
-            self.log.info("Car seems to be stuck, trying to reverse")
+        # if self.not_working and time.time() - self.times_not_working > 3:
+        #     self.log.info("Car seems to be stuck, trying to reverse")
 
-            if self.stuck == 0:
-                self.direction = MIN_ANGLE
-                self.target_speed = MAX_IA_SPEED
-            elif self.stuck == 1:
-                self.direction = MAX_ANGLE
-                self.target_speed = MAX_IA_SPEED
-            elif self.stuck == 2:
-                self.direction = 0
-                self.target_speed = MAX_IA_SPEED
-            elif self.stuck == 3:
-                self.direction = MIN_ANGLE
-                self.target_speed = BACKWARD_IA_SPEED
-            elif self.stuck == 1:
-                self.direction = MAX_ANGLE
-                self.target_speed = BACKWARD_IA_SPEED
-            elif self.stuck == 2:
-                self.direction = 0
-                self.target_speed = BACKWARD_IA_SPEED
+        #     if self.stuck == 0:
+        #         self.direction = MIN_ANGLE
+        #         self.target_speed = MAX_IA_SPEED
+        #     elif self.stuck == 1:
+        #         self.direction = MAX_ANGLE
+        #         self.target_speed = MAX_IA_SPEED
+        #     elif self.stuck == 2:
+        #         self.direction = 0
+        #         self.target_speed = MAX_IA_SPEED
+        #     elif self.stuck == 3:
+        #         self.direction = MIN_ANGLE
+        #         self.target_speed = BACKWARD_IA_SPEED
+        #     elif self.stuck == 1:
+        #         self.direction = MAX_ANGLE
+        #         self.target_speed = BACKWARD_IA_SPEED
+        #     elif self.stuck == 2:
+        #         self.direction = 0
+        #         self.target_speed = BACKWARD_IA_SPEED
 
         if self.server.camera_red_or_green.is_reverse:
             self.reverse_car()
-
+        self.ancien_state = self.state
         if (
             self.server.crash_car.crashed
             and self.server.arduino_I2C.current_speed < 1000
         ):
             self.crash_time = time.time()
             self.state = 1
+
+        if self.ancien_state == 0 and self.state == 1:
+            lidar_mm = np.asarray(lidar_data_m, dtype=np.float32) * 1000.0
+
+            ref = self.server.crash_car.reference_lidar
+
+            zone_bounds = [
+                Border_zone.ZONE1,
+                Border_zone.ZONE2,
+                Border_zone.ZONE3,
+                Border_zone.ZONE4,
+            ]
+
+            zone_scores = []
+            zone_counts = []
+            zone_max_pen = []
+
+            for start, end in zone_bounds:
+                score, count, max_pen = self._zone_penetration_score(
+                    lidar_mm, ref, start, end
+                )
+                zone_scores.append(score)
+                zone_counts.append(count)
+                zone_max_pen.append(max_pen)
+
+            self.log.debug(
+                f"Back zone scores={zone_scores}, counts={zone_counts}, max_pen={zone_max_pen}"
+            )
+
+            self.id_worst_zone = int(np.argmax(zone_scores))
 
         if self.state == 1:
             self.direction, self.target_speed = self.back(lidar_data_m, camera_data)
