@@ -140,9 +140,7 @@ class Car:
         self.driving = driving_strategy
         self.state = 0
         self.crash_time = time.time()
-        self.times_not_working = time.time()
-        self.stuck = 0
-        self.not_working = False
+
         self.log.info("Car initialization complete")
 
     # dynamic access to sensors
@@ -202,10 +200,7 @@ class Car:
             if dir:
                 return MIN_ANGLE, BACKWARD_IA_SPEED
 
-            if (
-                too_close(lidar_m, dir)
-                and self.server.camera_red_or_green.is_not_reverse
-            ):
+            if too_close(lidar_m, dir):
                 return MIN_ANGLE, BACKWARD_IA_SPEED
             else:
                 self.state = 0
@@ -216,10 +211,7 @@ class Car:
             if not dir:
                 return MAX_ANGLE, BACKWARD_IA_SPEED
 
-            if (
-                too_close(lidar_m, dir)
-                and self.server.camera_red_or_green.is_not_reverse
-            ):
+            if too_close(lidar_m, dir):
                 return MAX_ANGLE, BACKWARD_IA_SPEED
             else:
                 self.state = 0
@@ -275,10 +267,7 @@ class Car:
             "reversing for 1.5 seconds or until an obstacle is detected behind the car"
         )
         while (
-            time.time() - t < 2
-            and self.tof.distance > 20
-            and ok
-            and not self.server.camera_red_or_green.is_not_reverse
+            time.time() - t < 2 and self.tof.distance > 20 and ok
         ):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car
             if time.time() - t > 1 and self.server.arduino_I2C.current_speed == 0:
                 ok = False
@@ -295,9 +284,7 @@ class Car:
             ]
         )
         while (
-            time.time() - t < 1
-            and straight_mm > 50
-            and not self.server.camera_red_or_green.is_not_reverse
+            time.time() - t < 1 and straight_mm > 50
         ):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car
             straight_mm = np.average(
                 self.lidar.r_distance[
@@ -321,35 +308,6 @@ class Car:
         lidar_data_m = lidar_data / 1000
         # convert to meters and add Gaussian noise. We manipulate the data provided to the AI
         camera_data = self.camera.camera_matrix()  # retrieve camera data
-
-        if self.server.arduino_I2C.current_speed == 0 and not self.not_working:
-            self.times_not_working = time.time()
-            self.not_working = True
-
-        if self.server.arduino_I2C.current_speed > 0:
-            self.not_working = False
-
-        if self.not_working and time.time() - self.times_not_working > 3:
-            self.log.info("Car seems to be stuck, trying to reverse")
-
-            if self.stuck == 0:
-                self.direction = MIN_ANGLE
-                self.target_speed = MAX_IA_SPEED
-            elif self.stuck == 1:
-                self.direction = MAX_ANGLE
-                self.target_speed = MAX_IA_SPEED
-            elif self.stuck == 2:
-                self.direction = 0
-                self.target_speed = MAX_IA_SPEED
-            elif self.stuck == 3:
-                self.direction = MIN_ANGLE
-                self.target_speed = BACKWARD_IA_SPEED
-            elif self.stuck == 1:
-                self.direction = MAX_ANGLE
-                self.target_speed = BACKWARD_IA_SPEED
-            elif self.stuck == 2:
-                self.direction = 0
-                self.target_speed = BACKWARD_IA_SPEED
 
         if self.server.camera_red_or_green.is_reverse:
             self.reverse_car()

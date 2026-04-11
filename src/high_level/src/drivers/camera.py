@@ -43,6 +43,7 @@ class Camera_red_or_green:
         self.server = server
         self.log = logging.getLogger(__name__)
         self.is_reverse = False
+        self.is_not_reverse = True
         self.reverse_history = deque(maxlen=LIMIT_COUNT_WINDOW)
 
         threading.Thread(target=self.thread_check_reverse, daemon=True).start()
