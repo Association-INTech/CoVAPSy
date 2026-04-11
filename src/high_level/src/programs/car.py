@@ -193,37 +193,35 @@ class Car:
         # print("id_min_zone =", id_min_zone)
 
         if id_min_zone == 0:
-            return MAX_ANGLE, MAX_IA_SPEED
+            self.state = 0
+            return MAX_ANGLE, 2000
+
         if id_min_zone == 3:
-            return MIN_ANGLE, MAX_IA_SPEED
+            self.state = 0
+            return MIN_ANGLE, 2000
 
         if id_min_zone == 1:
             dir = sum(cam[: len(cam) // 2]) > 0
-            if dir:
-                return MIN_ANGLE, BACKWARD_IA_SPEED
-
-            if (
-                too_close(lidar_m, dir)
-                and self.server.camera_red_or_green.is_not_reverse
-            ):
-                return MIN_ANGLE, BACKWARD_IA_SPEED
-            else:
+            if not too_close(lidar_m, dir):
                 self.state = 0
+                return 0, 0
+            if dir:
                 return MAX_ANGLE, BACKWARD_IA_SPEED
+
+            else:
+                return MIN_ANGLE, BACKWARD_IA_SPEED
 
         if id_min_zone == 2:
-            dir = sum(cam[: len(cam) // 2]) > 0
-            if not dir:
+            dir = sum(cam[len(cam) // 2 :]) > 0
+            if not too_close(lidar_m, dir):
+                self.state = 0
+                return 0, 0
+            if dir:
                 return MAX_ANGLE, BACKWARD_IA_SPEED
 
-            if (
-                too_close(lidar_m, dir)
-                and self.server.camera_red_or_green.is_not_reverse
-            ):
-                return MAX_ANGLE, BACKWARD_IA_SPEED
             else:
-                self.state = 0
                 return MIN_ANGLE, BACKWARD_IA_SPEED
+
         return 0, 0
 
         # S = sum(cam)
@@ -259,7 +257,7 @@ class Car:
             np.sort(zone_gauche_valid)[:10]
         )  # take the average of the 10 nearest points to reduce noise
 
-        if nearest_droite < nearest_gauche:
+        if nearest_droite > nearest_gauche:
             direction_1 = MIN_ANGLE
             direction_2 = MAX_ANGLE
         else:
@@ -285,7 +283,7 @@ class Car:
 
         self.log.info("Stopped reversing after 1.5 seconds")
 
-        self.target_speed = MAX_IA_SPEED
+        self.target_speed = 1000
         self.direction = direction_2
         t = time.time()
         straight_mm = np.average(

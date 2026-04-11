@@ -45,71 +45,40 @@ class Camera_red_or_green:
         self.is_reverse = False
         self.is_not_reverse = True
         self.reverse_history = deque(maxlen=LIMIT_COUNT_WINDOW)
+        self.not_reverse_history = deque(maxlen=LIMIT_COUNT_WINDOW)
 
         threading.Thread(target=self.thread_check_reverse, daemon=True).start()
 
-    def is_running_in_reversed(
-        self, image: Optional[np.ndarray] = None, LEFT_IS_GREEN: bool = True
-    ) -> bool:
-        """
-        Check if the car is running in reverse.
-        If the car is in reverse, green will be on the right side of the image and red on the left.
-        """
+    def is_running_in_reversed(self, image: Optional[np.ndarray] = None):
         if image is None:
             image = self.server.camera.get_last_image()
+
         matrix = self.server.camera.camera_matrix(image=image)
+
+        # Vérifie qu'on a bien les deux couleurs
         if COLOUR_KEY["green"] not in matrix or COLOUR_KEY["red"] not in matrix:
-            # If there are no green or no red pixels, return False
-            return False
-        green_indices = (matrix == COLOUR_KEY["green"]) * np.arange(1, len(matrix) + 1)
-        average_green_index = np.mean(
-            green_indices[green_indices > 0]
-        )  # Average index of green
+            return False, False
 
-        red_indices = (matrix == COLOUR_KEY["red"]) * np.arange(1, len(matrix) + 1)
-        average_red_index = np.mean(
-            red_indices[red_indices > 0]
-        )  # Average index of redcolor is red
+        indices = np.arange(len(matrix))
 
-        if LEFT_IS_GREEN and average_red_index > average_green_index:
-            """
-            if self.log.isEnabledFor(logging.DEBUG):
-                self.log.debug(
-                    f"green: {average_green_index}, red: {average_red_index}"
-                )
-                vector_size = 128
-                self.debug_counter += 1
-                height, width, _ = image.shape
-                sliced_image = image[
-                    height // 2 - height // 40 + Y_OFFSET : height // 2
-                    + height // 40
-                    + Y_OFFSET,
-                    :,
-                    :,
-                ]
+        green_indices = indices[matrix == COLOUR_KEY["green"]]
+        red_indices = indices[matrix == COLOUR_KEY["red"]]
 
-                # Ensure the width of the sliced image is divisible by vector_size
-                adjusted_width = (width // vector_size) * vector_size
-                sliced_image = sliced_image[:, :adjusted_width, :]
-                debug_slice_image = self.server.camera.recreate_image_from_matrix(
-                    sliced_image, matrix, adjusted_width, vector_size
-                )
+        # Sécurité parano (tu devrais aimer)
+        if len(green_indices) == 0 or len(red_indices) == 0:
+            return False, False
 
-                debug_slice_image.save(
-                    os.path.join(
-                        DEBUG_DIR_wayfinding,
-                        f"wrong_direction_{self.debug_counter}_slice.jpg",
-                    )
-                )
-                Image.fromarray(image).convert("RGB").save(
-                    os.path.join(
-                        DEBUG_DIR_wayfinding, f"wrong_direction{self.debug_counter}.jpg"
-                    )
-                )"""
-            return True
-        elif not LEFT_IS_GREEN and average_green_index > average_red_index:
-            return True
-        return False
+        avg_green = np.mean(green_indices)
+        avg_red = np.mean(red_indices)
+
+        if avg_red < avg_green:
+            # rouge à gauche, vert à droite
+            return False, True  # reverse
+        elif avg_green < avg_red:
+            # vert à gauche, rouge à droite
+            return True, False  # not reverse
+        else:
+            return False, False
 
     def thread_check_reverse(self) -> Never:
         """
@@ -121,12 +90,17 @@ class Camera_red_or_green:
             try:
                 image = self.server.camera.get_last_image()
 
-                result = self.is_running_in_reversed(image=image)
+                result_reverse, result_not_reverse = self.is_running_in_reversed(
+                    image=image
+                )
                 # Ajout dans l'historique
-                self.reverse_history.append(result)
+                self.reverse_history.append(result_reverse)
+
+                self.not_reverse_history.append(result_not_reverse)
 
                 # Comptage des True dans la fenêtre
                 reverse_count = sum(self.reverse_history)
+                not_reverse_count = sum(self.not_reverse_history)
 
                 if reverse_count >= LIMIT_REVERSE_COUNT and not self.is_reverse:
                     self.log.info("Car is running in reverse")
@@ -135,6 +109,14 @@ class Camera_red_or_green:
                 elif reverse_count < LIMIT_REVERSE_COUNT and self.is_reverse:
                     self.log.info("Car is no longer running in reverse")
                     self.is_reverse = False
+
+                if not_reverse_count >= LIMIT_REVERSE_COUNT and not self.is_not_reverse:
+                    self.log.info("Car is no longer running in reverse")
+                    self.is_not_reverse = True
+
+                elif reverse_count < LIMIT_REVERSE_COUNT and self.is_not_reverse:
+                    self.is_not_reverse = False
+
             except Exception as e:
                 self.log.error(f"Error checking reverse: {e}")
             time.sleep(FREQUENCY_REVERSE_DETECTION)
