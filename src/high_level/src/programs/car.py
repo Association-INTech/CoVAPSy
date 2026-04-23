@@ -7,9 +7,7 @@ from typing import Optional
 import numpy as np
 import onnxruntime as ort
 
-from drivers import Lidar
-from drivers.camera import Camera
-from drivers.tof import ToF
+from drivers import Lidar, Camera, ToF
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import (
