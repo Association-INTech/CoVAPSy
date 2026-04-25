@@ -98,7 +98,7 @@ class VehicleDriver(Driver):
 
         if c.camera_horizontal_resolution == 0:
             # empty array
-            camera_data = np.zeros([0])
+            camera_data = np.zeros([0], dtype=np.float32)
         else:
             camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
             # shape = (camera_horizontal_resolution, 1, 3)
