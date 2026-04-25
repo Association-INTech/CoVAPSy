@@ -46,7 +46,7 @@ class VehicleEnv(gym.Env):
         self.vehicle_rank = vehicle_rank
 
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
@@ -143,7 +143,7 @@ class VehicleEnv(gym.Env):
         self.fifo_w.flush()
 
         # communication with the supervisor
-        self.log.debug("trying to get info from supervisor")
+        self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
         cur_state = np.frombuffer(
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize

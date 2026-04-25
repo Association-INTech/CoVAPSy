@@ -69,11 +69,11 @@ class VehicleDriver(Driver):
 
         # Logger
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
-            f"CLIENT_{self.simulation_rank}_{self.vehicle_rank}"
+            f"VEHICLE_{self.simulation_rank}_{self.vehicle_rank}"
         )
         self.log.setLevel(level=c.LOG_LEVEL)
         self.log.addHandler(self.handler)
@@ -146,7 +146,7 @@ class VehicleDriver(Driver):
         self.fifo_w.write(np.concatenate(obs).tobytes())
         self.fifo_w.flush()
 
-        self.log.debug("Trying to read action from the server")
+        self.log.info(f"Waiting for an action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
         action = np.frombuffer(
             self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64
         )

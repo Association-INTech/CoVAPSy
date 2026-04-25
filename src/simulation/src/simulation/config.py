@@ -15,8 +15,8 @@ from extractors import (  # noqa: F401
 
 # Webots environments config
 n_map = 3
-n_simulations = 2
-n_vehicles = 2
+n_simulations = 1
+n_vehicles = 1
 n_stupid_vehicles = 0
 n_actions_steering = 16
 n_actions_speed = 16
