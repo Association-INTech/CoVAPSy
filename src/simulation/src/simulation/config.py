@@ -9,13 +9,14 @@ from torch.cuda import is_available
 from extractors import (  # noqa: F401
     CNN1DExtractor,
     CNN1DResNetExtractor,
+    CNN1DResNetNoCamExtractor,
     TemporalResNetExtractor,
 )
 
 # Webots environments config
-n_map = 2
+n_map = 3
 n_simulations = 1
-n_vehicles = 2
+n_vehicles = 1
 n_stupid_vehicles = 0
 n_actions_steering = 16
 n_actions_speed = 16
@@ -41,12 +42,19 @@ ppo_args: Dict[str, Any] = dict(
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = TemporalResNetExtractor
+ExtractorClass = CNN1DResNetNoCamExtractor
 context_size = ExtractorClass.context_size
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
 n_sensors = ExtractorClass.n_sensors
 
+if (
+    lidar_horizontal_resolution != camera_horizontal_resolution
+    and camera_horizontal_resolution != 0
+):
+    raise NotImplementedError(
+        "Unhomogenous lidar and camera shape is only supported if camera_horizontal_resolution == 0"
+    )
 
 # Architecture of the model
 policy_kwargs: Dict[str, Any] = dict(
