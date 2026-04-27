@@ -25,7 +25,7 @@ def send_data():
 direction = 0
 target_speed = 0
 
-max_target_speed = 2
+max_target_speed = 7
 min_target_speed = -2
 angle_degree_max = 18
 
