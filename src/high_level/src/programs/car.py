@@ -475,6 +475,7 @@ class AIProgram(Program):
         self.GR86 = None
         self.running = False
         self.controls_car = True
+        self.control_site = False
         try:
             self.models = [
                 model for model in os.listdir(MODEL_PATH) if model.endswith(".onnx")
@@ -509,6 +510,7 @@ class AIProgram(Program):
 
     def initializeai(self, model: str) -> None:
         self.driver = Driver()
+        self.model = model
         self.driver.load_model(model)
 
         driving_strategy = self.driver.omniscent
@@ -526,7 +528,9 @@ class AIProgram(Program):
         if model_give is not None:
             self.initializeai(model_give)
             self.log.info(f"Starting AI with model {model_give}")
-        else:
+            self.control_site = True
+            return
+        elif not self.control_site:  # if the site is not controlling the car, we select the model ourselves else we wait for the site to select the model to avoid conflicts
             try:
                 self.id_model = (self.id_model + 1) % (self.nb_models)
                 self.log.info(f"Selected model: {self.models[self.id_model]}")
@@ -555,7 +559,7 @@ class AIProgram(Program):
 
         else:
             for model in self.models:
-                if model == self.models[self.id_model]:
+                if model == self.models[self.id_model % self.nb_models]:
                     text += f"\n -> {model[:8]}..."
                 else:
                     text += f"\n   {model[:8]}..."

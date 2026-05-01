@@ -263,7 +263,7 @@ class BackendAPI(Program):
             }
 
         @self.app.post("/api/ai/start")
-        async def start_ai_with_model(req: Request) -> dict[str, Any]:
+        async def load_ai_model(req: Request) -> dict[str, Any]:
             body = await req.json()
             model = body.get("model")
 
