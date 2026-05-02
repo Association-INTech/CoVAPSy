@@ -9,18 +9,20 @@ from luma.core.render import canvas
 from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
-from actionneur_capteur.camera import Camera
-from actionneur_capteur.lidar import Lidar
-from actionneur_capteur.master_i2c import I2CArduino
-from actionneur_capteur.tof import ToF
+from drivers.camera import Camera, Camera_red_or_green
+from drivers.lidar import Lidar
+from drivers.master_i2c import I2CArduino
+from drivers.tof import ToF
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
-from programs.car import AIProgram
+from programs.camera_proxy import CameraProxy
+from programs.car import AIProgram, CrashCar
 from programs.initialization import Initialization
 from programs.poweroff import Poweroff
 from programs.ps4_controller_program import PS4ControllerProgram
 from programs.remote_control import RemoteControl
 from programs.ssh_program import SshProgram
 from programs.utils.ssh import check_ssh_connections
+from programs import Test_recule
 
 from .backend import BackendAPI
 
@@ -28,6 +30,7 @@ from .backend import BackendAPI
 class Server:
     def __init__(self):
         self.log = logging.getLogger(__name__)
+        self._stop_flag = False
         # initialization of different modules
         self.log.info("Server initialization")
 
@@ -55,18 +58,23 @@ class Server:
         self.process = None
         self.temp = None
 
-        self.initialization_module = Initialization(self)
-
         self.programs = [
             SshProgram(),
-            self.initialization_module,
+            Initialization(self),
             AIProgram(self),
             PS4ControllerProgram(),
             RemoteControl(),
             # ProgramStreamCamera(self),
             BackendAPI(self, host="0.0.0.0", port=8001, site_dir=SITE_DIR_BACKEND),
             Poweroff(),
+            Test_recule(self),
         ]
+        self.initialization_module = self.programs[
+            1
+        ]  # the initialization program is the second in the list
+        self.crash_car = CrashCar(self)
+        self.camera_red_or_green = Camera_red_or_green(self)
+
         self.log.debug("Programs ready: %s", [type(p).__name__ for p in self.programs])
 
         # screen data
@@ -75,28 +83,34 @@ class Server:
         self.scroll_offset = 3
 
     @property
-    def camera(self) -> Camera:
+    def camera(self) -> CameraProxy | None:
         return self.initialization_module.camera
 
     @property
-    def lidar(self) -> Lidar:
+    def lidar(self) -> Lidar | None:
         return self.initialization_module.lidar
 
     @property
-    def tof(self) -> ToF:
+    def tof(self) -> ToF | None:
         return self.initialization_module.tof
 
     @property
-    def arduino_I2C(self) -> I2CArduino:
+    def arduino_I2C(self) -> I2CArduino | None:
         return self.initialization_module.arduino_I2C
 
     @property
     def target_speed(self) -> float:
-        return self.programs[self.last_program_control].target_speed
+        try:
+            return self.programs[self.last_program_control].target_speed
+        except (IndexError, AttributeError):
+            return 0.0
 
     @property
     def direction(self) -> float:
-        return self.programs[self.last_program_control].direction
+        try:
+            return self.programs[self.last_program_control].direction
+        except (IndexError, AttributeError):
+            return 0.0
 
     # -----------------------------------------------------------------------------------------------------
     # Screen display functions
@@ -187,7 +201,7 @@ class Server:
     # Processus
     # ---------------------------------------------------------------------------------------------------
 
-    def start_process(self, number_program):
+    def start_process(self, number_program, attr=None) -> None:
         """Starts the program referenced by its number:
         if it is a program that controls the car, it kills the old program that was controlling,
         otherwise the program is started or stopped depending on whether it was already running or stopped before"""
@@ -212,7 +226,10 @@ class Server:
 
         elif self.programs[number_program].controls_car:
             self.programs[self.last_program_control].kill()
-            self.programs[number_program].start()
+            if attr is not None:
+                self.programs[number_program].start(attr)
+            else:
+                self.programs[number_program].start()
             self.log.warning(
                 "Car control changed: %s -> %s",
                 type(self.programs[self.last_program_control]).__name__,
@@ -226,12 +243,114 @@ class Server:
     # ---------------------------------------------------------------------------------------------------
     # car function
     # ---------------------------------------------------------------------------------------------------
+    def cleanup_gpio(self):
+        """Libère proprement les ressources GPIO / OLED / I2C du serveur."""
+        self.log.info("Cleaning up GPIO and display...")
+
+        # 1) désactiver les callbacks des boutons
+        try:
+            self.bp_next.when_pressed = None
+        except Exception as e:
+            self.log.warning("bp_next callback cleanup failed: %s", e)
+
+        try:
+            self.bp_entre.when_pressed = None
+        except Exception as e:
+            self.log.warning("bp_entre callback cleanup failed: %s", e)
+
+        # 2) mettre les sorties dans un état sûr
+        try:
+            self.led1.off()
+        except Exception as e:
+            self.log.warning("led1 off failed: %s", e)
+
+        try:
+            self.led2.off()
+        except Exception as e:
+            self.log.warning("led2 off failed: %s", e)
+
+        try:
+            self.buzzer.off()
+        except Exception as e:
+            self.log.warning("buzzer off failed: %s", e)
+
+        # 3) effacer l'écran OLED
+        try:
+            with canvas(self.device) as draw:
+                pass
+        except Exception as e:
+            self.log.warning("OLED clear failed: %s", e)
+
+        # 4) fermer proprement les objets gpiozero
+        for name in ("bp_next", "bp_entre", "led1", "led2", "buzzer"):
+            obj = getattr(self, name, None)
+            if obj is not None:
+                try:
+                    obj.close()
+                except Exception as e:
+                    self.log.warning("%s close failed: %s", name, e)
+
+        # 5) fermer le bus SMBus du serveur
+        # attention: si I2CArduino utilise aussi /dev/i2c-1, il vaut mieux l'avoir stoppé avant
+        try:
+            if hasattr(self, "bus") and self.bus is not None:
+                self.bus.close()
+        except Exception as e:
+            self.log.warning("Server SMBus close failed: %s", e)
+
+        # 6) fermer l'interface OLED si possible
+        # selon les libs, close() peut ne pas exister, donc on protège
+        for name in ("device", "serial"):
+            obj = getattr(self, name, None)
+            if obj is not None and hasattr(obj, "close"):
+                try:
+                    obj.close()
+                except Exception as e:
+                    self.log.warning("%s close failed: %s", name, e)
+
+        self.log.info("GPIO and display cleanup finished")
+
+    def stop(self):
+        """Stop the car by killing the program that controls it and starting the crash car program"""
+        self.log.info("Server stopping...")
+        self.programs[self.last_program_control].kill()
+
+        self._stop_flag = True
+
+        for p in self.programs:
+            if p.running:
+                p.kill()
+
+        # camera
+        try:
+            if self.camera is not None:
+                self.camera.stop()
+        except Exception as e:
+            self.log.warning("Camera stop failed: %s", e)
+
+        # I2C
+        try:
+            if self.arduino_I2C is not None:
+                self.arduino_I2C.stop()
+        except Exception as e:
+            self.log.warning("I2C stop failed: %s", e)
+
+        try:
+            self.cleanup_gpio()
+        except Exception as e:
+            self.log.warning("GPIO cleanup failed: %s", e)
+
+        self.log.info("Server stopped")
 
     def main(self):
         self.bp_next.when_pressed = self.bouton_next
         self.bp_entre.when_pressed = self.bouton_entre
 
-        self.log.info("Server main loop started")
-
-        while True:
-            self.idle()
+        try:
+            self.log.info("Server main loop started")
+            while not self._stop_flag:
+                self.idle()
+        except KeyboardInterrupt:
+            self.log.info("KeyboardInterrupt received in server main")
+        finally:
+            self.stop()

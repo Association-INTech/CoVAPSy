@@ -144,6 +144,77 @@ function drawSteering(directionDeg) {
 }
 
 
+/* -------- Camera Matrix Debug (raw output of the camera matrix) -------- */
+let cameraMatrixWS = null;
+
+async function startCameraMatrix() {
+    await fetch("/api/camera_matrix/start", { method: "POST" });
+
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    cameraMatrixWS = new WebSocket(proto + "://" + location.host + "/api/camera_matrix/ws");
+
+    cameraMatrixWS.onmessage = (e) => {
+        const payload = JSON.parse(e.data);
+        const matrix = decodeCameraMatrix(payload.data, payload.n);
+        renderCameraMatrix(matrix);
+    };
+}
+
+async function stopCameraMatrix() {
+    await fetch("/api/camera_matrix/stop", { method: "POST" });
+
+    if (cameraMatrixWS) {
+        cameraMatrixWS.close();
+        cameraMatrixWS = null;
+    }
+}
+
+function renderCameraMatrix(matrix) {
+    const canvas = document.getElementById("cameraMatrixCanvas");
+    const ctx = canvas.getContext("2d");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const widthPerCell = canvas.width / matrix.length;
+
+    matrix.forEach((val, i) => {
+        if (val === 1) ctx.fillStyle = "green";
+        else if (val === -1) ctx.fillStyle = "red";
+        else ctx.fillStyle = "gray";
+
+        ctx.fillRect(i * widthPerCell, 0, widthPerCell, canvas.height);
+    });
+}
+
+function decodeCameraMatrix(b64, n) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+
+    for (let i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i);
+    }
+
+    const result = new Array(n);
+    let index = 0;
+
+    for (let b of bytes) {
+        for (let shift = 6; shift >= 0; shift -= 2) {
+            if (index >= n) break;
+
+            const bits = (b >> shift) & 0b11;
+
+            if (bits === 0b00) result[index] = -1;
+            else if (bits === 0b01) result[index] = 0;
+            else if (bits === 0b10) result[index] = 1;
+            else result[index] = 0;
+
+            index++;
+        }
+    }
+
+    return result;
+}
+
 async function fetchStatus() {
     const res = await fetch(`${API}/api/status`);
     if (!res.ok) {
@@ -187,6 +258,10 @@ function updateTelemetry(t) {
         t.car.car_control ?? "None";
     document.getElementById("tof").textContent =
         t.car.tof.toFixed(2);
+    document.getElementById("crash_status").textContent =
+        t.car.crashed ? "CRASHED" : "OK";
+    document.getElementById("is_reverse").textContent =
+        t.car.camera_red_or_green ? "REVERSE" : "FORWARD";
     speedHistory.real.push(t.car.current_speed);
     speedHistory.demand.push(t.car.target_speed);
 
@@ -298,8 +373,6 @@ async function fetchLidarInit() {
 function initLidar(info, retryDelay = 1000) {
     const theta = decodeBase64ToFloat32Array(info.xTheta);
     const carBorder = info.car_border ? decodeBase64ToFloat32Array(info.car_border) : null;
-    console.log("Lidar theta:", theta);
-    console.log("Car border:", carBorder);
     const canvas = document.getElementById("lidar");
     if (!canvas) return;
 
@@ -501,7 +574,6 @@ async function init() {
 
         if (camEl && camLink) {
             camEl.src = camUrl;
-            camLink.href = camUrl;
 
         } else {
             console.warn("Element #camera not found at initialization");

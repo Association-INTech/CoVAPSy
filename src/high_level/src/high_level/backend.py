@@ -17,7 +17,7 @@ from fastapi.websockets import WebSocketDisconnect
 from high_level.autotech_constant import (
     BACKEND_ON_START,
     MODEL_PATH,
-    PORT_STREAMING_CAMERA,
+    CAMERA_SOCKET_ADRESS,
 )
 from programs.program import Program
 
@@ -78,18 +78,24 @@ class BackendAPI(Program):
             @self.app.get("/", response_class=HTMLResponse)
             def index():
                 # the frontend is served at /static/index.html
-                return """
+                return f"""
                 <html>
                   <head><meta charset="utf-8"><title>CoVAPSy</title></head>
                   <body>
                     <h3>CoVAPSy Control</h3>
                     <p>Frontend: <a href="/static/index.html">/static/index.html</a></p>
                     <p>Lidar: <a href="/static/lidar.html">/static/lidar.html</a></p>
+                    <p>Camera: <a href="http://{CAMERA_SOCKET_ADRESS["IP"]}:{CAMERA_SOCKET_ADRESS["PORT"]}/cam/">Camera Stream</a></p>
                   </body>
                 </html>
                 """
 
         self._setup_routes()
+
+        self._camera_matrix_thread: Optional[threading.Thread] = None
+        self._camera_matrix_running = False
+        self._camera_matrix_lock = threading.Lock()
+        self._camera_matrix_data: Optional[np.ndarray] = None
 
         time.sleep(1)  # litle delay to ensure server is ready
         if BACKEND_ON_START:
@@ -117,7 +123,6 @@ class BackendAPI(Program):
 
         target_speed = float(getattr(self.server, "target_speed", 0.0))
         direction = float(getattr(self.server, "direction", 0.0))
-
         return {
             "battery": {"lipo": voltage_lipo, "nimh": voltage_nimh},
             "car": {
@@ -127,6 +132,8 @@ class BackendAPI(Program):
                 "car_control": prog_name,
                 "program_id": last_ctrl,
                 "tof": self.server.tof.distance,
+                "crashed": self.server.crash_car.crashed,
+                "camera_red_or_green": self.server.camera_red_or_green.is_reverse,
             },
             "timestamp": time.time(),
         }
@@ -157,9 +164,9 @@ class BackendAPI(Program):
         return out
 
     def _camera_stream_url(self) -> str:
-        ip = getattr(getattr(self.server, "SOCKET_ADRESS", None), "IP", None)
-        ip = getattr(self.server, "ip", None) or "192.168.1.10"
-        return f"http://{ip}:{PORT_STREAMING_CAMERA}/cam/"
+        return (
+            f"http://{CAMERA_SOCKET_ADRESS['IP']}:{CAMERA_SOCKET_ADRESS['PORT']}/cam/"
+        )
 
     def _lidar(self):
         return getattr(self.server, "lidar", None)
@@ -197,6 +204,47 @@ class BackendAPI(Program):
             self.logger.error("Car border not found")
             return None
 
+    def _camera_matrix_loop(self):
+        self.logger.info("Camera matrix thread started")
+
+        while self._camera_matrix_running:
+            try:
+                matrix = self.server.camera.camera_matrix()
+                with self._camera_matrix_lock:
+                    self._camera_matrix_data = matrix
+            except Exception as e:
+                self.logger.warning("Camera matrix error: %s", e)
+
+            time.sleep(0.1)
+
+        self.logger.info("Camera matrix thread stopped")
+
+    def _compress_camera_matrix(self, matrix: np.ndarray) -> str:
+        """
+        Compress matrix (-1,0,1) into 2-bit packed bytes + base64.
+        """
+        mapping = {-1: 0b00, 0: 0b01, 1: 0b10}
+
+        packed = bytearray()
+        byte = 0
+        bits_filled = 0
+
+        for v in matrix:
+            bits = mapping[int(v)]
+            byte = (byte << 2) | bits
+            bits_filled += 2
+
+            if bits_filled == 8:
+                packed.append(byte)
+                byte = 0
+                bits_filled = 0
+
+        if bits_filled > 0:
+            byte = byte << (8 - bits_filled)
+            packed.append(byte)
+
+        return base64.b64encode(bytes(packed)).decode("ascii")
+
     # ----------------------------
     # Routes
     # ----------------------------
@@ -215,7 +263,7 @@ class BackendAPI(Program):
             }
 
         @self.app.post("/api/ai/start")
-        async def start_ai_with_model(req: Request) -> dict[str, Any]:
+        async def load_ai_model(req: Request) -> dict[str, Any]:
             body = await req.json()
             model = body.get("model")
 
@@ -225,22 +273,27 @@ class BackendAPI(Program):
             programs = getattr(self.server, "programs", [])
 
             ai_prog = next(
-                (p for p in programs if type(p).__name__ == "AIProgram"), None
+                (
+                    i
+                    for i in range(len(programs))
+                    if type(programs[i]).__name__ == "AIProgram"
+                ),
+                None,
             )
 
             if ai_prog is None:
                 raise HTTPException(status_code=404, detail="AI program not found")
 
-            ai_prog.start(model_give=model)
+            self.server.start_process(ai_prog, attr=model)
 
             return {"status": "ok", "model": model}
 
         @self.app.get("/api/programs")
-        def programs():
+        def programs() -> List[Dict[str, Any]]:
             return self._list_programs()
 
         @self.app.post("/api/programs/{prog_id}/toggle")
-        def toggle_program(prog_id: int):
+        def toggle_program(prog_id: int) -> dict[str, Any]:
             programs = getattr(self.server, "programs", [])
             if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
@@ -254,7 +307,7 @@ class BackendAPI(Program):
             }
 
         @self.app.post("/api/programs/{prog_id}/start")
-        def start_program(prog_id: int):
+        def start_program(prog_id: int) -> dict[str, Any]:
             programs = getattr(self.server, "programs", [])
             if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
@@ -267,7 +320,7 @@ class BackendAPI(Program):
             return {"status": "ok", "program_id": prog_id}
 
         @self.app.post("/api/programs/{prog_id}/kill")
-        def kill_program(prog_id: int):
+        def kill_program(prog_id: int) -> dict[str, Any]:
             programs = getattr(self.server, "programs", [])
             if not isinstance(programs, list) or not (0 <= prog_id < len(programs)):
                 raise HTTPException(status_code=404, detail="Unknown program id")
@@ -281,19 +334,19 @@ class BackendAPI(Program):
             return {"status": "ok", "program_id": prog_id}
 
         @self.app.get("/api/stream/camera")
-        def camera_stream():
+        def camera_stream() -> dict[str, str]:
             # give the URL.
             return {"url": self._camera_stream_url()}
 
         @self.app.get("/api/lidar")
-        def lidar_snapshot():
+        def lidar_snapshot() -> dict[str, Any]:
             data = self._get_lidar_ranges()
             if data is None:
                 raise HTTPException(status_code=503, detail="Lidar not available")
             return data
 
         @self.app.get("/api/lidar_init")
-        def lidar_init():
+        def lidar_init() -> dict[str, Any]:
             lidar = self._lidar()
             if not lidar:
                 raise HTTPException(status_code=503, detail="Lidar not available")
@@ -314,7 +367,7 @@ class BackendAPI(Program):
             }
 
         @self.app.websocket("/api/lidar/ws")
-        async def lidar_ws(ws: WebSocket):
+        async def lidar_ws(ws: WebSocket) -> None:
             await ws.accept()
             self.logger.info("Lidar WS client connected")
 
@@ -340,10 +393,50 @@ class BackendAPI(Program):
             except WebSocketDisconnect:
                 self.logger.info("Telemetry WS client disconnected")
 
+        @self.app.post("/api/camera_matrix/start")
+        def start_camera_matrix() -> dict[str, str]:
+            if self._camera_matrix_running:
+                return {"status": "already_running"}
+
+            self._camera_matrix_running = True
+            self._camera_matrix_thread = threading.Thread(
+                target=self._camera_matrix_loop,
+                daemon=True,
+            )
+            self._camera_matrix_thread.start()
+
+            return {"status": "started"}
+
+        @self.app.post("/api/camera_matrix/stop")
+        def stop_camera_matrix() -> dict[str, str]:
+            self._camera_matrix_running = False
+            return {"status": "stopped"}
+
+        @self.app.websocket("/api/camera_matrix/ws")
+        async def camera_matrix_ws(ws: WebSocket):
+            await ws.accept()
+            self.logger.info("Camera matrix WS connected")
+
+            try:
+                while True:
+                    if self._camera_matrix_running:
+                        with self._camera_matrix_lock:
+                            matrix = self._camera_matrix_data
+
+                        if matrix is not None:
+                            compressed = self._compress_camera_matrix(matrix)
+
+                            await ws.send_json({"data": compressed, "n": len(matrix)})
+
+                    await asyncio.sleep(0.1)
+
+            except WebSocketDisconnect:
+                self.logger.info("Camera matrix WS disconnected")
+
     # ----------------------------
     # Program interface
     # ----------------------------
-    def start(self):
+    def start(self) -> None:
         if self.running:
             return
         self.running = True
@@ -354,7 +447,7 @@ class BackendAPI(Program):
         )
         self._uvicorn_server = uvicorn.Server(config)
 
-        def _run():
+        def _run() -> None:
             try:
                 self.logger.info("BackendAPI starting on %s:%d", self.host, self.port)
                 assert self._uvicorn_server is not None
@@ -363,19 +456,32 @@ class BackendAPI(Program):
                 self.logger.error("BackendAPI crashed: %s", e, exc_info=True)
             finally:
                 self.running = False
-                self.logger.warning("BackendAPI stopped")
 
         self._thread = threading.Thread(target=_run, daemon=True)
         self._thread.start()
 
-    def kill(self):
+    def kill(self) -> None:
         if not self.running:
             return
-        self.running = False
-        if self._uvicorn_server:
-            self._uvicorn_server.should_exit = True
-        self.logger.info("BackendAPI kill requested")
+        self.logger.info("BackendAPI stopping...")
 
-    def display(self):
+        self._camera_matrix_running = False
+
+        if (
+            self._camera_matrix_thread is not None
+            and self._camera_matrix_thread.is_alive()
+        ):
+            self._camera_matrix_thread.join(timeout=1.0)
+
+        if self._uvicorn_server is not None:
+            self._uvicorn_server.should_exit = True
+
+        if self._thread is not None and self._thread.is_alive():
+            self._thread.join(timeout=3.0)
+
+        self.running = False
+        self.logger.info("BackendAPI stopped")
+
+    def display(self) -> str:
         name = self.__class__.__name__
         return f"{name}\n(running)" if self.running else name

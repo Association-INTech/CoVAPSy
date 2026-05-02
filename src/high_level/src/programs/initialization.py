@@ -2,8 +2,13 @@ import logging
 import threading
 from enum import Enum
 
-from actionneur_capteur import Camera, I2CArduino, Lidar, ToF
-from high_level.autotech_constant import SOCKET_ADRESS
+from drivers import I2CArduino, Lidar, ToF
+from .camera_proxy import CameraProxy
+
+from high_level.autotech_constant import (
+    CAMERA_SOCKET_ADRESS,
+    LIDAR_SOCKET_ADRESS,
+)
 
 from .program import Program
 
@@ -17,11 +22,17 @@ class ProgramState(Enum):
 class Initialization(Program):
     def __init__(self, server) -> None:
         super().__init__()
+        self.running = True
         self.log = logging.getLogger(__name__)
         self.arduino_I2C_init = ProgramState.INITIALIZATION
         self.camera_init = ProgramState.INITIALIZATION
         self.lidar_init = ProgramState.INITIALIZATION
         self.tof_init = ProgramState.INITIALIZATION
+
+        self.arduino_I2C = None
+        self.camera = None
+        self.lidar = None
+        self.tof = None
 
         threading.Thread(target=self.init_camera, daemon=True).start()
         threading.Thread(target=self.init_lidar, daemon=True).start()
@@ -43,7 +54,9 @@ class Initialization(Program):
 
     def init_camera(self) -> None:
         try:
-            self.camera = Camera()
+            self.camera = CameraProxy(
+                whep_url=f"http://{CAMERA_SOCKET_ADRESS['IP']}:{CAMERA_SOCKET_ADRESS['PORT']}/cam/whep"
+            )
             self.camera_init = ProgramState.RUNNING
             self.log.info("Camera initialized successfully")
         except Exception as e:
@@ -52,7 +65,7 @@ class Initialization(Program):
 
     def init_lidar(self) -> None:
         try:
-            self.lidar = Lidar(SOCKET_ADRESS["IP"], SOCKET_ADRESS["PORT"])
+            self.lidar = Lidar(LIDAR_SOCKET_ADRESS["IP"], LIDAR_SOCKET_ADRESS["PORT"])
             self.lidar.stop()
             self.lidar.start_continuous(0, 1080)
             self.log.info("Lidar initialized successfully")
@@ -65,7 +78,7 @@ class Initialization(Program):
         try:
             self.tof = ToF()
             self.tof_init = ProgramState.RUNNING
-            self.log.info("Camera initialized successfully")
+            self.log.info("Tof initialized successfully")
         except Exception as e:
             self.tof_init = ProgramState.STOPPED
             self.log.error("Tof init error : " + str(e))
