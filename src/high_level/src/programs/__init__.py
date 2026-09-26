@@ -5,6 +5,7 @@ from .poweroff import Poweroff
 from .program import Program  # in first because other programs depend on it
 from .remote_control import RemoteControl
 from .ssh_program import SshProgram
+from .test_recule import Test_recule
 
 __all__ = [
     "Program",
@@ -18,4 +19,6 @@ __all__ = [
     "StreamHandler",
     "StreamOutput",
     "frame_buffer",
+    "CrashCar",
+    "Test_recule",
 ]

@@ -155,5 +155,5 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("Program stop")
-        controller.stop = True
+        # controller.stop()
         exit(0)

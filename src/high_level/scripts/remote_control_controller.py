@@ -2,7 +2,7 @@ import socket
 import struct
 import time
 from threading import Thread
-
+from high_level.autotech_constant import IP
 import pygame
 
 ###################################################
@@ -15,7 +15,7 @@ def send_data():
     global target_speed, direction
     while True:
         packet = struct.pack("ff", target_speed, direction)
-        sock.sendto(packet, ("192.168.1.10", 5556))
+        sock.sendto(packet, (IP, 5556))
         time.sleep(0.05)
 
 
@@ -25,7 +25,7 @@ def send_data():
 direction = 0
 target_speed = 0
 
-max_target_speed = 2
+max_target_speed = 7
 min_target_speed = -2
 angle_degree_max = 18
 

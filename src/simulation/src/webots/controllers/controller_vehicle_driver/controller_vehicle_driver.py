@@ -69,11 +69,11 @@ class VehicleDriver(Driver):
 
         # Logger
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
-            f"CLIENT_{self.simulation_rank}_{self.vehicle_rank}"
+            f"VEHICLE_{self.simulation_rank}_{self.vehicle_rank}"
         )
         self.log.setLevel(level=c.LOG_LEVEL)
         self.log.addHandler(self.handler)
@@ -96,19 +96,23 @@ class VehicleDriver(Driver):
 
         lidar_data = np.array(self.lidar.getRangeImage(), dtype=np.float32)
 
-        camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
-        # shape = (1080, 1, 3)
-        camera_data = camera_data.transpose(1, 2, 0)[0]
-        # shape = (3, 1080)
-        color = np.argmax(camera_data, axis=0)
-        camera_data = (
-            (color == 0).astype(np.float32) * -1
-            + (color == 1).astype(np.float32) * 1
-            + (color == 2).astype(np.float32) * 0
-        )
-        # red   -> -1
-        # green -> 1
-        # blue  -> 0
+        if c.camera_horizontal_resolution == 0:
+            # empty array
+            camera_data = np.zeros([0], dtype=np.float32)
+        else:
+            camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
+            # shape = (camera_horizontal_resolution, 1, 3)
+            camera_data = camera_data.transpose(1, 2, 0)[0]
+            # shape = (3, 1080)
+            color = np.argmax(camera_data, axis=0)
+            camera_data = (
+                (color == 0).astype(np.float32) * -1
+                + (color == 1).astype(np.float32) * 1
+                + (color == 2).astype(np.float32) * 0
+            )
+            # red   -> -1
+            # green -> 1
+            # blue  -> 0
 
         return (sensor_data, lidar_data, camera_data)
 
@@ -142,7 +146,7 @@ class VehicleDriver(Driver):
         self.fifo_w.write(np.concatenate(obs).tobytes())
         self.fifo_w.flush()
 
-        self.log.debug("Trying to read action from the server")
+        self.log.info(f"Waiting for an action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
         action = np.frombuffer(
             self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64
         )

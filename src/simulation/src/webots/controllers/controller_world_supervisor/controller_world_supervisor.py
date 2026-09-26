@@ -76,7 +76,7 @@ class WebotsVehicleManager:
         self.simulation_rank = get_simulation_rank()
 
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
@@ -105,7 +105,7 @@ class WebotsVehicleManager:
     # returns the lidar data of all vehicles
     def observe(self):
         # gets from Vehicle
-        self.log.debug("trying to observe")
+        self.log.info(f"Waiting for obs from VEHICLE_{self.simulation_rank}_{self.vehicle_rank}")
         obs = np.frombuffer(
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
@@ -200,6 +200,8 @@ def main():
 
     while supervisor.step() != -1:
         for e in envs:
+            e.log.info("starting new step")
+
             obs, reward, done, truncated, info = e.step()
             if done:
                 obs, info = e.reset()
@@ -213,6 +215,8 @@ def main():
             e.log.info(f"sending {truncated=}")
             e.fifo_w.write(truncated.tobytes())
             e.fifo_w.flush()
+
+            e.log.info("finished sending everything")
 
         for i in range(c.n_stupid_vehicles):
             tr_field = supervisor.getFromDef(f"TT02_{c.n_vehicles + i}").getField(

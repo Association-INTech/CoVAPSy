@@ -46,7 +46,7 @@ class VehicleEnv(gym.Env):
         self.vehicle_rank = vehicle_rank
 
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/Voiture_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
@@ -57,15 +57,24 @@ class VehicleEnv(gym.Env):
 
         self.log.info("Initialisation started")
 
-        # this is only true if lidar_horizontal_resolution = camera_horizontal_resolution
+        # 2 channels if camera_horizontal_resolution != 0
+        # 1 channel otherwise
         box_min = np.zeros(
-            [2, c.context_size, c.lidar_horizontal_resolution], dtype=np.float32
+            [
+                1 + (c.camera_horizontal_resolution != 0),
+                c.context_size,
+                c.lidar_horizontal_resolution,
+            ],
+            dtype=np.float32,
         )
-        box_max = (
-            np.ones(
-                [2, c.context_size, c.lidar_horizontal_resolution], dtype=np.float32
-            )
-            * 30
+        box_max = np.full(
+            [
+                1 + (c.camera_horizontal_resolution != 0),
+                c.context_size,
+                c.lidar_horizontal_resolution,
+            ],
+            30,
+            dtype=np.float32,
         )
 
         self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
@@ -91,6 +100,7 @@ class VehicleEnv(gym.Env):
                     "--mode=fast",
                     "--minimize",
                     "--batch",
+                    # "--no-rendering",
                 ]
             )
 
@@ -111,11 +121,17 @@ class VehicleEnv(gym.Env):
     def reset(self, seed: int | None = None, **options) -> Tuple[ObsType, Dict]:
         # basically useless function
 
-        # lidar data
-        # this is true for lidar_horizontal_resolution = camera_horizontal_resolution
+        # 2 channels if camera_horizontal_resolution != 0
+        # 1 channel otherwise
         self.context = obs = np.zeros(
-            [2, c.context_size, c.lidar_horizontal_resolution], dtype=np.float32
+            [
+                1 + (c.camera_horizontal_resolution != 0),
+                c.context_size,
+                c.lidar_horizontal_resolution,
+            ],
+            dtype=np.float32,
         )
+
         info = {}
         self.log.info("reset finished\n")
         return obs, info
@@ -127,7 +143,7 @@ class VehicleEnv(gym.Env):
         self.fifo_w.flush()
 
         # communication with the supervisor
-        self.log.debug("trying to get info from supervisor")
+        self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
         cur_state = np.frombuffer(
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
@@ -159,9 +175,14 @@ class VehicleEnv(gym.Env):
         lidar_obs = cur_state[: c.lidar_horizontal_resolution]
         camera_obs = cur_state[c.lidar_horizontal_resolution :]
 
-        self.context = obs = np.concatenate(
-            [self.context[:, 1:], [lidar_obs[None], camera_obs[None]]], axis=1
-        )
+        if c.camera_horizontal_resolution == 0:
+            self.context = obs = np.concatenate(
+                [self.context[:, 1:], lidar_obs[None, None]], axis=1
+            )
+        else:
+            self.context = obs = np.concatenate(
+                [self.context[:, 1:], [lidar_obs[None], camera_obs[None]]], axis=1
+            )
 
         self.log.info("step over")
 
