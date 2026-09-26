@@ -14,8 +14,8 @@ from extractors import (  # noqa: F401
 )
 
 # Webots environments config
-n_map = 3
-n_simulations = 1
+n_map = 4
+n_simulations = 4
 n_vehicles = 1
 n_stupid_vehicles = 0
 n_actions_steering = 16
@@ -27,12 +27,12 @@ respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 # Training config
 device = "cuda" if is_available() else "cpu"
 save_dir = Path("~/.cache/autotech").expanduser()
-total_timesteps = 500_000
+total_timesteps = 100_000
 ppo_args: Dict[str, Any] = dict(
-    n_steps=4096,
+    n_steps=1024,
     n_epochs=10,
     batch_size=256,
-    learning_rate=3e-4,
+    learning_rate=1e-3,
     gamma=0.99,
     verbose=1,
     normalize_advantage=True,
