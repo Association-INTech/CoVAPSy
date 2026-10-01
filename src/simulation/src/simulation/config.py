@@ -16,8 +16,8 @@ from extractors import (  # noqa: F401
 # Webots environments config
 n_map = 4
 n_simulations = 4
-n_vehicles = 1
-n_stupid_vehicles = 0
+n_vehicles = 2
+n_stupid_vehicles = 1
 n_actions_steering = 16
 n_actions_speed = 16
 lidar_max_range = 12.0
@@ -27,9 +27,9 @@ respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 # Training config
 device = "cuda" if is_available() else "cpu"
 save_dir = Path("~/.cache/autotech").expanduser()
-total_timesteps = 100_000
+total_timesteps = 1_000
 ppo_args: Dict[str, Any] = dict(
-    n_steps=1024,
+    n_steps=512,
     n_epochs=10,
     batch_size=256,
     learning_rate=1e-3,
@@ -66,5 +66,5 @@ policy_kwargs: Dict[str, Any] = dict(
 
 
 # Logging config
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.WARNING
 FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")

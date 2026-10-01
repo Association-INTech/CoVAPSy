@@ -25,6 +25,8 @@ def init_onnx_runtime_session(onnx_path: Path) -> ort.InferenceSession:
 
 
 if __name__ == "__main__":
+    temperature = 0.5
+
     if not os.path.exists("/tmp/autotech/"):
         os.mkdir("/tmp/autotech/")
 
@@ -52,11 +54,19 @@ if __name__ == "__main__":
         raw_action = run_onnx_model(ort_session, obs[None])
         logits = np.array(raw_action).flatten()
 
-        steer_logits = logits[: c.n_actions_steering]
-        speed_logits = logits[c.n_actions_steering :]
+        steer_prob = logits[: c.n_actions_steering]
+        speed_prob = logits[c.n_actions_steering :]
 
-        action_steer = np.argmax(steer_logits)
-        action_speed = np.argmax(speed_logits)
+        action_steer_prob = np.exp(steer_prob / temperature)
+        action_speed_prob = np.exp(speed_prob / temperature)
+        action_steer_prob /= action_steer_prob.sum()
+        action_speed_prob /= action_speed_prob.sum()
+        print(
+            f"max steer prob: {action_steer_prob.max()}, max steer prob: {steer_prob}"
+        )
+
+        action_steer = np.random.choice(c.n_actions_steering, p=action_steer_prob)
+        action_speed = np.random.choice(c.n_actions_speed, p=action_speed_prob)
 
         action = np.array([action_steer, action_speed], dtype=np.int64)
 

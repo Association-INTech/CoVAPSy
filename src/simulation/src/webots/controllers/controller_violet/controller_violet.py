@@ -102,4 +102,4 @@ while driver.step() != -1:
         angle = 0.3 * avg_color[0] - 0.3 * avg_color[1]
 
     driver.setCruisingSpeed(speed)
-    driver.setSteeringAngle(angle)
+    driver.setSteeringAngle(angle)iu fzaig cui a z
