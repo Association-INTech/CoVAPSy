@@ -13,11 +13,6 @@ class DAVE2Extractor(BaseFeaturesExtractor):
     5-wide strided kernels, then 64/64 with 3-wide kernels, then dense
     100 -> 50 -> 10), but convolutions are 1D over the horizontal axis.
 
-    Expected observation shape: [batch_size, n_sensors, context_size, horizontal_resolution].
-    The class attributes below drive the environment config; the network
-    itself is sized from the actual observation space. The sensors and the
-    context (stacked frames) are merged into the channel axis.
-
     The final steering neuron of the paper is NOT included: the 10-dimensional
     output is the feature vector, and the SB3 policy / value heads sit on top.
     """
