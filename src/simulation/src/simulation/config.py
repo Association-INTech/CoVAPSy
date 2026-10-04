@@ -11,6 +11,7 @@ from extractors import (  # noqa: F401
     CNN1DResNetExtractor,
     CNN1DResNetNoCamExtractor,
     TemporalResNetExtractor,
+    DAVE2Extractor,
 )
 
 # Webots environments config
@@ -24,10 +25,14 @@ lidar_max_range = 12.0
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 
 
+# Speed reward
+speed_window = 5     # average the speed over the last 5 checkpoints
+speed_bonus = 0.05    # extra reward at reference speed (the checkpoint reward is 1.0)
+
 # Training config
 device = "cuda" if is_available() else "cpu"
 save_dir = Path("~/.cache/autotech").expanduser()
-total_timesteps = 100_000
+total_timesteps = 500_000
 ppo_args: Dict[str, Any] = dict(
     n_steps=1024,
     n_epochs=10,
@@ -40,9 +45,10 @@ ppo_args: Dict[str, Any] = dict(
 )
 
 
+
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = CNN1DResNetNoCamExtractor
+ExtractorClass = CNN1DResNetExtractor
 context_size = ExtractorClass.context_size
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution

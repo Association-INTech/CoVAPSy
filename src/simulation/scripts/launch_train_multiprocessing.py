@@ -11,6 +11,9 @@ from simulation import VehicleEnv
 from simulation import config as c
 from utils import onnx_utils
 
+os.environ["__NV_PRIME_RENDER_OFFLOAD"] = "1"
+os.environ["__GLX_VENDOR_LIBRARY_NAME"] = "nvidia"
+
 if __name__ == "__main__":
     if not os.path.exists("/tmp/autotech/"):
         os.mkdir("/tmp/autotech/")

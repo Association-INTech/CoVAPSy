@@ -12,6 +12,8 @@ from webots.controllers.controller_world_supervisor import (
     checkpoints,
 )
 
+from collections import deque
+
 supervisor = Supervisor()
 
 checkpoint_positions = [
@@ -102,6 +104,10 @@ class WebotsVehicleManager:
             f"TT02_{self.vehicle_rank}"
         ).getField("rotation")  # may cause access issues ...
 
+        # (time, x, y) at each checkpoint passed; window of N checkpoints = N intervals
+        self.passed = deque(maxlen=c.speed_window + 1)
+        self.v_ref = self.v_max / 3.6   # km/h -> m/s, the top speed the car can command
+
     # returns the lidar data of all vehicles
     def observe(self):
         # gets from Vehicle
@@ -138,6 +144,8 @@ class WebotsVehicleManager:
             self.rotation_field.setSFRotation(rot)
             self.checkpoint_manager.update()
 
+            self.passed.clear()
+
             vehicle.resetPhysics()
             self.log.info("vehicle reset done")
 
@@ -149,6 +157,17 @@ class WebotsVehicleManager:
         )
         info = {}
         return obs, info
+
+
+    def speed_bonus(self):
+        """Average speed (m/s) over the last checkpoints, mapped to [0, 1.5] * c.speed_bonus"""
+        if len(self.passed) < 2:
+            return 0.0
+        pts = np.array(self.passed)                       # shape (n, 3): t, x, y
+        dt = pts[-1, 0] - pts[0, 0]
+        dist = np.linalg.norm(np.diff(pts[:, 1:], axis=0), axis=1).sum()
+        v = dist / max(dt, 1e-3)
+        return c.speed_bonus * float(np.clip(v / self.v_ref, 0.0, 1.5))
 
     # step function of the gym environment
     def step(self):
@@ -162,6 +181,9 @@ class WebotsVehicleManager:
         truncated = np.False_
 
         x, y, z = self.translation_field.getSFVec3f()
+        t = supervisor.getTime()
+        if not self.passed:                      # first step after a reset: start the window at the spawn point
+                self.passed.append((t, x, y))
         b_past_checkpoint = self.checkpoint_manager.update(x, y)
         (b_collided,) = sensor_data  # unpack sensor data
 
@@ -172,10 +194,11 @@ class WebotsVehicleManager:
             reward = np.float32(-0.5)
             done = np.bool(c.respawn_on_crash)
         elif b_past_checkpoint:
-            reward = np.float32(1.0)
+            self.passed.append((t, x, y))
+            reward = np.float32(1.0 + self.speed_bonus())
             done = np.False_
         else:
-            reward = np.float32(0.05)
+            reward = np.float32(0.0)
             done = np.False_
 
         return obs, reward, done, truncated, {}

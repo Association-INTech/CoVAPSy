@@ -5,6 +5,8 @@ from threading import Thread
 from high_level.autotech_constant import IP
 import pygame
 
+IP = "192.168.1.20"
+
 ###################################################
 # Init ZMQ
 ###################################################
@@ -25,7 +27,7 @@ def send_data():
 direction = 0
 target_speed = 0
 
-max_target_speed = 7
+max_target_speed = 2
 min_target_speed = -2
 angle_degree_max = 18
 
