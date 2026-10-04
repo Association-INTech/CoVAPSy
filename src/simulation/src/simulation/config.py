@@ -16,8 +16,8 @@ from extractors import (  # noqa: F401
 
 # Webots environments config
 n_map = 4
-n_simulations = 4
-n_vehicles = 1
+n_simulations = 10
+n_vehicles = 5
 n_stupid_vehicles = 0
 n_actions_steering = 16
 n_actions_speed = 16
@@ -25,9 +25,13 @@ lidar_max_range = 12.0
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 
 
-# Speed reward
+# Rewards
 speed_window = 5     # average the speed over the last 5 checkpoints
 speed_bonus = 0.05    # extra reward at reference speed (the checkpoint reward is 1.0)
+collision_reward = -0.5  # penalty for colliding with another vehicle or obstacle
+step_reward = 0.0  # reward for taking a step 
+checkpoint_reward = 1.0  # reward for passing a checkpoint
+
 
 # Training config
 device = "cuda" if is_available() else "cpu"
@@ -48,7 +52,7 @@ ppo_args: Dict[str, Any] = dict(
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = CNN1DResNetExtractor
+ExtractorClass = DAVE2Extractor
 context_size = ExtractorClass.context_size
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
