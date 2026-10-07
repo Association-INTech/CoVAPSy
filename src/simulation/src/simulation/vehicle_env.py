@@ -173,6 +173,8 @@ class VehicleEnv(gym.Env):
         cur_state = np.nan_to_num(cur_state[c.n_sensors :], nan=0.0, posinf=30.0)
 
         lidar_obs = cur_state[: c.lidar_horizontal_resolution]
+        lidar_obs = np.clip(lidar_obs, 0.0, c.lidar_max_range)
+        lidar_obs = lidar_obs / c.lidar_max_range                       # normalize to [0, 1]
         camera_obs = cur_state[c.lidar_horizontal_resolution :]
 
         if c.camera_horizontal_resolution == 0:
