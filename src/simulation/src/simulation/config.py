@@ -33,6 +33,10 @@ step_reward = 0.0  # reward for taking a step
 checkpoint_reward = 1.0  # reward for passing a checkpoint
 
 
+# Camera config
+camera_refresh_rate_divider = 4  # the camera is refreshed every sensorTime / camera
+
+
 # Training config
 device = "cuda" if is_available() else "cpu"
 save_dir = Path("~/.cache/autotech").expanduser()
@@ -56,6 +60,7 @@ ExtractorClass = DAVE2Extractor
 context_size = ExtractorClass.context_size
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
+camera__vertical_resolution = ExtractorClass.camera_vertical_resolution
 n_sensors = ExtractorClass.n_sensors
 
 if (

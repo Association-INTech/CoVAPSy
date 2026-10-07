@@ -8,6 +8,7 @@ class CNN1DExtractor(BaseFeaturesExtractor):
     context_size = 1
     lidar_horizontal_resolution = 1080
     camera_horizontal_resolution = 1080
+    camera_vertical_resolution = 1
     n_sensors = 1
 
     # just an alias to avoid confusion because

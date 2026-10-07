@@ -15,6 +15,7 @@ PROTO TT02_2023b [
   field SFColor    color           0.69 0.0 1.0            # Is `Material.diffuseColor`.
   field SFInt32    lidar_horizontal_resolution 1080         # Is `Lidar.horizontalResolution`.
   field SFInt32    camera_horizontal_resolution 1640        # Is `Camera.horizontalResolution`.
+  field SFInt32    camera_vertical_resolution 1232          # Is `Camera.verticalResolution`.
 ]
 {
   Car {
@@ -80,7 +81,7 @@ PROTO TT02_2023b [
         name "RASPI_Camera_V2"
         fieldOfView            1.085594794740473
         width                  IS camera_horizontal_resolution
-        height                 1
+        height                 IS camera_vertical_resolution
       }
       TouchSensor {
         translation 0.14 0 0.005

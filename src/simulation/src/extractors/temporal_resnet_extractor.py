@@ -8,6 +8,7 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
     context_size = 128
     lidar_horizontal_resolution = 128
     camera_horizontal_resolution = 128
+    camera_vertical_resolution = 1
     n_sensors = 1
 
     # just an alias to avoid confusion because

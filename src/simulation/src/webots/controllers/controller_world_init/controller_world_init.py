@@ -35,6 +35,7 @@ def create_nodes():
             color 0.0 0.0 1.0
             lidar_horizontal_resolution {c.lidar_horizontal_resolution}
             camera_horizontal_resolution {c.camera_horizontal_resolution or 1}
+            camera_vertical_resolution {c.camera_vertical_resolution or 1}
         }}
         """
         root_children_field.importMFNodeFromString(-1, proto_string)
@@ -47,6 +48,7 @@ def create_nodes():
             color 0.0 0.0 0.0
             lidar_horizontal_resolution {c.lidar_horizontal_resolution}
             camera_horizontal_resolution {c.camera_horizontal_resolution or 1}
+            camera_vertical_resolution {c.camera_vertical_resolution or 1}
         }}
         """
         root_children_field.importMFNodeFromString(-1, proto_string)

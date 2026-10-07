@@ -59,7 +59,7 @@ class VehicleDriver(Driver):
 
         # Camera
         self.camera = cast(Camera, self.getDevice("RASPI_Camera_V2"))
-        self.camera.enable(self.sensorTime)
+        self.camera.enable(self.sensorTime // c.camera_refresh_rate_divider)
 
         # Checkpoint sensor
         self.touch_sensor = cast(TouchSensor, self.getDevice("touch_sensor"))

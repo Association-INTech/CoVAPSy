@@ -8,6 +8,7 @@ class CNN1DResNetNoCamExtractor(BaseFeaturesExtractor):
     context_size = 1
     lidar_horizontal_resolution = 1024
     camera_horizontal_resolution = 0
+    camera_vertical_resolution = 0
     n_sensors = 1
 
     # just an alias to avoid confusion because
