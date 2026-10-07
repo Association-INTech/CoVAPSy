@@ -7,7 +7,7 @@ import pygame
 
 from high_level.autotech_constant import IP
 
-IP = "192.168.1.239"
+IP = "192.168.1.21"
 
 ###################################################
 # UDP communication
@@ -32,7 +32,7 @@ def send_data():
 ###################################################
 # Vehicle configuration
 ###################################################
-max_target_speed = 3  # m/s
+max_target_speed = 2  # m/s
 min_target_speed = -2  # m/s
 angle_degree_max = 18  # degrees
 

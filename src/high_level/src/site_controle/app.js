@@ -583,4 +583,16 @@ async function init() {
     }
 }
 
+// Curseur
+const slider = document.getElementById('range-slider');
+const output = document.getElementById('slider-value');
+
+function mettreAJourValeur() {
+    output.textContent = slider.value
+}
+
+mettreAJourValeur();
+
+slider.addEventListener('input',mettreAJourValeur)
+
 window.addEventListener("DOMContentLoaded", init);
