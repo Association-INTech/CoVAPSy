@@ -350,7 +350,7 @@ Task tasks[] = {
 void loop() {
   unsigned long now = millis();
 
-  if(now - dernier_input < 150){ // on vérifie si on a recue une commande dans les 100 dernières millisecondes sinon on arrête
+  if(now - dernier_input < 150){ // on vérifie si on a reçu une commande dans les 100 dernières millisecondes sinon on arrête
     for (auto &t : tasks) {
       if (now - t.last >= t.period) {
         t.last = now;
