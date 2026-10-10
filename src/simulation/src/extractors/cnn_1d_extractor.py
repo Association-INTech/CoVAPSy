@@ -5,7 +5,6 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
 class CNN1DExtractor(BaseFeaturesExtractor):
-    context_size = 1
     lidar_horizontal_resolution = 1080
     camera_horizontal_resolution = 1080
     camera_vertical_resolution = 1
@@ -58,6 +57,4 @@ class CNN1DExtractor(BaseFeaturesExtractor):
         self.net = cnn
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        # strip the context out
-        observations = observations[..., 0, :]
         return self.net(observations)

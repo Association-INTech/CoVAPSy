@@ -20,15 +20,16 @@ from high_level.autotech_constant import (
 STEER_LOOKUP_DEG = np.rad2deg(np.linspace(-0.4, 0.4, 16, dtype=np.float32))
 SPEED_LOOKUP_MM_S = np.linspace(1.0, 9.0, 16, dtype=np.float32) * (1000.0 / 3.6)
 
+model_types = ["LiDAR", "LiDAR_Camera", "Camera"]
 
 class Driver:
-    def __init__(self, context_size=0, horizontal_size=0):
+    def __init__(self, vertical_size = 0, horizontal_size=0, model_type="lidar_only"):
         self.log = logging.getLogger(__name__)
-        self.context_size = context_size
+        self.vertical_size = vertical_size
         self.horizontal_size = horizontal_size
+        self.model_type = model_type
         self._loaded = False
         self.ai_session: InferenceSession
-        self.context: np.ndarray
         self.input_infos = None
         self.nb_inputs = 0
 
@@ -80,16 +81,14 @@ class Driver:
 
         first_shape = self.input_infos[0].shape
 
-        if len(first_shape) == 2:
-            self.model_kind = "lidar_only"
-            self.context_size = 1
+        if self.model_kind == "lidar_only":
             self.horizontal_size = first_shape[-1]
+
         elif len(first_shape) == 4 and self.nb_inputs == 1:
             self.model_kind = "fused"
-            self.context_size = first_shape[-2]
             self.horizontal_size = first_shape[-1]
             self.context = np.zeros(
-                [2, self.context_size, self.horizontal_size], dtype=np.float32
+                [2, self.horizontal_size], dtype=np.float32
             )
         elif self.nb_inputs == 2:
             self.model_kind = "two_inputs"
@@ -100,9 +99,6 @@ class Driver:
 
         self._loaded = True
         self.log.info(f"AI model loaded with {self.nb_inputs} real input(s)")
-        # self.context = np.zeros(
-        #     [2, self.context_size, self.horizontal_size], dtype=np.float32
-        # )
 
     def _resize_1d(self, arr: np.ndarray, target_width: int) -> np.ndarray:
         arr = np.asarray(arr, dtype=np.float32).reshape(-1)
@@ -143,7 +139,7 @@ class Driver:
 
     def reset(self):
         self.context = np.zeros(
-            [2, self.context_size, self.horizontal_size], dtype=np.float32
+            [2, self.horizontal_size], dtype=np.float32
         )
         pass
 
@@ -177,13 +173,7 @@ class Driver:
         camera_data = self._resize_camera_like_webots(camera_data)
         camera_data = np.zeros_like(camera_data)
         new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
-
-        if self.context_size > 1:
-            self.context = np.concatenate(
-                [self.context[:, 1:], [lidar_data_m, camera_data]], axis=1
-            )
-        else:
-            self.context = new_frame
+        self.context = new_frame
 
         input_name = self.input_infos[0].name
         # print(lidar_data_m.tolist())

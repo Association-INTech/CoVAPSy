@@ -25,7 +25,6 @@ def export_onnx(sb_model: OnPolicyAlgorithm, path: str):
     example_input = torch.randn(
         1,
         1 + (c.camera_horizontal_resolution != 0),
-        c.context_size,
         c.lidar_horizontal_resolution,
     )
 
@@ -58,7 +57,6 @@ def test_onnx(model: OnPolicyAlgorithm):
     x = torch.randn(
         1000,
         1 + (c.camera_horizontal_resolution != 0),
-        c.context_size,
         c.lidar_horizontal_resolution,
     )
 

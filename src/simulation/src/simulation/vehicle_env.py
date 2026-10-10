@@ -62,7 +62,6 @@ class VehicleEnv(gym.Env):
         box_min = np.zeros(
             [
                 1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
                 c.lidar_horizontal_resolution,
             ],
             dtype=np.float32,
@@ -70,7 +69,6 @@ class VehicleEnv(gym.Env):
         box_max = np.full(
             [
                 1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
                 c.lidar_horizontal_resolution,
             ],
             30,
@@ -126,7 +124,6 @@ class VehicleEnv(gym.Env):
         self.context = obs = np.zeros(
             [
                 1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
                 c.lidar_horizontal_resolution,
             ],
             dtype=np.float32,
@@ -178,13 +175,9 @@ class VehicleEnv(gym.Env):
         camera_obs = cur_state[c.lidar_horizontal_resolution :]
 
         if c.camera_horizontal_resolution == 0:
-            self.context = obs = np.concatenate(
-                [self.context[:, 1:], lidar_obs[None, None]], axis=1
-            )
+            self.context = obs = lidar_obs[None, :]
         else:
-            self.context = obs = np.concatenate(
-                [self.context[:, 1:], [lidar_obs[None], camera_obs[None]]], axis=1
-            )
+            self.context = obs = np.stack([lidar_obs, camera_obs], axis=0)
 
         self.log.info("step over")
 

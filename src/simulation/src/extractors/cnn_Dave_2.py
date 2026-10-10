@@ -19,7 +19,6 @@ class DAVE2Extractor(BaseFeaturesExtractor):
 
     # Read by config.py on the class itself (before any instance exists) to
     # build the environment's observation space, same as in the template.
-    context_size = 1
     lidar_horizontal_resolution = 1024
     camera_horizontal_resolution = 1024
     camera_vertical_resolution = 1
@@ -38,11 +37,11 @@ class DAVE2Extractor(BaseFeaturesExtractor):
         fc_dropout: float = 0.3,
         device: str = "cpu",
     ):
-        n_sensors, context_size, horizontal_resolution = space.shape
-        in_channels = n_sensors * context_size
+        n_sensors, horizontal_resolution = space.shape
+        in_channels = n_sensors
 
         conv = nn.Sequential(
-            # shape = [batch_size, n_sensors * context_size, 1024]
+            # shape = [batch_size, n_sensors, 1024]
             nn.Conv1d(in_channels, 24, kernel_size=5, stride=2, device=device),
             nn.ReLU(),
             # shape = [batch_size, 24, 510]
@@ -95,9 +94,7 @@ class DAVE2Extractor(BaseFeaturesExtractor):
         self.net.train()
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        # [batch_size, n_sensors, context_size, W] -> [batch_size, n_sensors * context_size, W]
-        x = observations.flatten(start_dim=1, end_dim=2)
-        return self.net(x)
+        return self.net(observations)
 
 
 # Usage with SB3:
