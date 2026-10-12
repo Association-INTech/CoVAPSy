@@ -1,7 +1,8 @@
 retourner la nano sur la voiture 1
-rassembler le code de la voiture 2 avec des #ifdef
 s'arranger pour retirer la boite chiante du circuit de la voiture 1
-refaire les PCB parce que ya des ports qui servent a rien et reorga des cables + wtf les condensateurs
-interrupteur sur le lidar
+refaire les PCB parce que ya des ports qui servent a rien et du courant qui passe la ou il faut pas et reorga des cables + wtf les condensateurs
+interrupteur sur le lidar / ameliorer la circuiterie pour permettre de tout couper
 ajouter un BMS
 coder le buzzer
+strap pour la batterie
+
