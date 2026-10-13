@@ -121,7 +121,7 @@ class VehicleEnv(gym.Env):
 
         # 2 channels if camera_horizontal_resolution != 0
         # 1 channel otherwise
-        self.context = obs = np.zeros(
+        obs = np.zeros(
             [
                 1 + (c.camera_horizontal_resolution != 0),
                 c.lidar_horizontal_resolution,
@@ -175,9 +175,9 @@ class VehicleEnv(gym.Env):
         camera_obs = cur_state[c.lidar_horizontal_resolution :]
 
         if c.camera_horizontal_resolution == 0:
-            self.context = obs = lidar_obs[None, :]
+            obs = lidar_obs[None, :]
         else:
-            self.context = obs = np.stack([lidar_obs, camera_obs], axis=0)
+            obs = np.stack([lidar_obs, camera_obs], axis=0)
 
         self.log.info("step over")
 
