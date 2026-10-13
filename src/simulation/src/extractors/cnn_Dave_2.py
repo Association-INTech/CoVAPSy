@@ -33,8 +33,6 @@ class DAVE2Extractor(BaseFeaturesExtractor):
     def __init__(
         self,
         space: spaces.Box,
-        conv_dropout: float = 0.2,
-        fc_dropout: float = 0.3,
         device: str = "cpu",
     ):
         n_sensors, horizontal_resolution = space.shape
@@ -47,19 +45,15 @@ class DAVE2Extractor(BaseFeaturesExtractor):
             # shape = [batch_size, 24, 510]
             nn.Conv1d(24, 36, kernel_size=5, stride=2, device=device),
             nn.ReLU(),
-            nn.Dropout1d(conv_dropout),
             # shape = [batch_size, 36, 253]
             nn.Conv1d(36, 48, kernel_size=5, stride=2, device=device),
             nn.ReLU(),
-            nn.Dropout1d(conv_dropout),
             # shape = [batch_size, 48, 125]
             nn.Conv1d(48, 64, kernel_size=3, device=device),
             nn.ReLU(),
-            nn.Dropout1d(conv_dropout),
             # shape = [batch_size, 64, 123]
             nn.Conv1d(64, 64, kernel_size=3, device=device),
             nn.ReLU(),
-            nn.Dropout1d(conv_dropout),
             # shape = [batch_size, 64, 121]
             nn.Flatten(),
             # shape = [batch_size, 64 * 121 = 7744]
@@ -76,11 +70,9 @@ class DAVE2Extractor(BaseFeaturesExtractor):
         fc = nn.Sequential(
             nn.Linear(n_flatten, 100, device=device),
             nn.ReLU(),
-            nn.Dropout(fc_dropout),
             # shape = [batch_size, 100]
             nn.Linear(100, 50, device=device),
             nn.ReLU(),
-            nn.Dropout(fc_dropout),
             # shape = [batch_size, 50]
             nn.Linear(50, self.features_dim_out, device=device),
             nn.ReLU(),
