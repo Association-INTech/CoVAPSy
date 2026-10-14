@@ -10,6 +10,8 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
     camera_vertical_resolution = 1
     n_sensors = 1
 
+    input_type = "LiDAR+Camera"
+
     # just an alias to avoid confusion because
     # the lidar and camera have the same resolution
     horizontal_resolution = 1024

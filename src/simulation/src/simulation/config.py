@@ -59,6 +59,7 @@ ExtractorClass = DAVE2Extractor  # CNN1DExtractor ,CNN1DResNetExtractor, CNN1DRe
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
 camera_vertical_resolution = ExtractorClass.camera_vertical_resolution
+input_type = ExtractorClass.input_type
 n_sensors = ExtractorClass.n_sensors
 
 if (

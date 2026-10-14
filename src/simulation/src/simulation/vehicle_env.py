@@ -57,23 +57,33 @@ class VehicleEnv(gym.Env):
 
         self.log.info("Initialisation started")
 
+        if c.model_type != "image":
         # 2 channels if camera_horizontal_resolution != 0
         # 1 channel otherwise
-        box_min = np.zeros(
-            [
-                1 + (c.camera_horizontal_resolution != 0),
-                c.lidar_horizontal_resolution,
-            ],
-            dtype=np.float32,
-        )
-        box_max = np.full(
-            [
-                1 + (c.camera_horizontal_resolution != 0),
-                c.lidar_horizontal_resolution,
-            ],
-            30,
-            dtype=np.float32,
-        )
+        
+            box_min = np.zeros(
+                [
+                    1 + (c.camera_horizontal_resolution != 0),
+                    c.lidar_horizontal_resolution,
+                ],
+                dtype=np.float32,
+            )
+            box_max = np.full(
+                [
+                    1 + (c.camera_horizontal_resolution != 0),
+                    c.lidar_horizontal_resolution,
+                ],
+                1,
+                dtype=np.float32,
+            )
+
+            self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
+        else :
+            shape = (1,c.camera_vertical_resolution,c.camera_horizontal_resolution)
+            self.observation_space = gym.spaces.Box(0.0,1.0,shape = shape, dtype=np.float32)
+            
+
+        
 
         self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
         self.action_space = gym.spaces.MultiDiscrete(
@@ -172,6 +182,7 @@ class VehicleEnv(gym.Env):
         lidar_obs = cur_state[: c.lidar_horizontal_resolution]
         lidar_obs = np.clip(lidar_obs, 0.0, c.lidar_max_range)
         lidar_obs = lidar_obs / c.lidar_max_range                       # normalize to [0, 1]
+
         camera_obs = cur_state[c.lidar_horizontal_resolution :]
 
         if c.camera_horizontal_resolution == 0:

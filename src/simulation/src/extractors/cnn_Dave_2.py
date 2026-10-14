@@ -30,6 +30,8 @@ class DAVE2Extractor(BaseFeaturesExtractor):
 
     features_dim_out = 10
 
+    input_type = "LiDAR+Camera"
+
     def __init__(
         self,
         space: spaces.Box,
