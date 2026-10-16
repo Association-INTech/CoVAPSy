@@ -587,12 +587,31 @@ async function init() {
 const slider = document.getElementById('range-slider');
 const output = document.getElementById('slider-value');
 
-function mettreAJourValeur() {
+
+async function sendJSON() {
     output.textContent = slider.value
+
+    const val_max_ai = slider.value
+
+    const data = { 
+        val_max_ai: val_max_ai;
+    }
+    try {
+        const response = await fetch(
+            "/data",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type":"application/json"
+                },
+                body: JSON.stringify(data)
+            }
+        );
+    }
 }
 
-mettreAJourValeur();
 
-slider.addEventListener('input',mettreAJourValeur)
+slider.addEventListener('input',sendJSON)
 
 window.addEventListener("DOMContentLoaded", init);
