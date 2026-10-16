@@ -593,9 +593,7 @@ async function sendJSON() {
 
     const val_max_ai = slider.value
 
-    const data = { 
-        val_max_ai: val_max_ai;
-    }
+    const data = {val_max_ai: val_max_ai}
     try {
         const response = await fetch(
             "/data",
@@ -612,6 +610,6 @@ async function sendJSON() {
 }
 
 
-slider.addEventListener('input',sendJSON)
+slider.addEventListener('chang',sendJSON)
 
 window.addEventListener("DOMContentLoaded", init);
