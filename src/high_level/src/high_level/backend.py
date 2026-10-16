@@ -21,7 +21,7 @@ from high_level.autotech_constant import (
 )
 from programs.program import Program
 
-from flask import Flask, request, jsonify
+
 import configparser 
 
 class BackendAPI(Program):
@@ -440,16 +440,21 @@ class BackendAPI(Program):
         # Get a JSON file and change autoconfig.ini
         app = Flask(__name__)
 
-        file_path = '/home/intech/CoVAPSy/src/high_level/src/high_level/autoconfig.ini'
 
-        @self.app.route("/data", methods=['POST'])
+        @self.app.post("/data")
 
-        def get_and_write():
+        async def get_and_write(data: dict):
 
-            data = request.get_json()
-            ge
+            data = data.get()
+            
             if data is None:
                 return jsonify({"error": "Request body must be JSON"}), 400
+
+            import configparser
+            import os
+
+            file_path = '/home/intech/CoVAPSy/src/high_level/src/high_level/autoconfig.ini'
+
 
             val_max_ai = data.get("val_max_ai")
 
@@ -461,7 +466,7 @@ class BackendAPI(Program):
             with open(file_path, 'w') as configfile:
                 config.write(configfile)
 
-            return jsonify({"status": "success","new_value": val_max_ai}), 200
+            return {"status": "success","new_value": val_max_ai}
 
     # ----------------------------
     # Program interface
