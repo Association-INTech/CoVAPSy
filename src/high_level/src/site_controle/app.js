@@ -606,10 +606,12 @@ async function sendJSON() {
                 body: JSON.stringify(data)
             }
         );
-    }
+    } catch (error) {
+        console.error("Erreur lors de l'envoi :", error);
+    } 
 }
 
 
-slider.addEventListener('chang',sendJSON)
+slider.addEventListener('change',sendJSON)
 
 window.addEventListener("DOMContentLoaded", init);
