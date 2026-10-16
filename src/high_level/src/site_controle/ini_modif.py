@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify
 import configparser 
+import loggin
 app = Flask(__name__)
+
 
 file_path = '/home/intech/CoVAPSy/src/high_level/src/high_level/autoconfig.ini'
 
@@ -9,7 +11,7 @@ file_path = '/home/intech/CoVAPSy/src/high_level/src/high_level/autoconfig.ini'
 def get_and_write():
 
 	data = request.get_json()
-
+	
 	if data is None:
 		return jsonify({"error": "Request body must be JSON"}), 400
 
