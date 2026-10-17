@@ -438,28 +438,21 @@ class BackendAPI(Program):
                 self.logger.info("Camera matrix WS disconnected")
 
         # Get a JSON file and change autoconfig.ini
-        app = Flask(__name__)
 
 
         @self.app.post("/data")
 
         async def get_and_write(data: dict):
-
-            data = data.get()
             
-            if data is None:
-                return jsonify({"error": "Request body must be JSON"}), 400
-
+            val_max_ai = data.get("val_max_ai")
+    
             import configparser
             import os
 
             file_path = '/home/intech/CoVAPSy/src/high_level/src/high_level/autoconfig.ini'
 
-
-            val_max_ai = data.get("val_max_ai")
-
             config = configparser.ConfigParser()
-            config.read('config.ini')
+            config.read(file_path)
 
             config['CarControl']['MAX_IA_SPEED'] = str(val_max_ai)
 
