@@ -9,15 +9,26 @@ from vehicle import Driver
 from simulation import config as c
 from utils.simulation_rank import get_simulation_rank
 
+FOV_DEG = 270
+WIDTH_LIDAR_CAR = 0.2 # TODO : mesurer
+LENGTH_LIDAR_CAR = 0.2 # TODO : mesurer
+ANGLE_TOLERANCE_CRASH = 5 # TODO : mesurer (en degre)
 
 CALIB_STEPS = 150 
 WRONG_STEPS = 50      
 UTURN_OK_STEPS = 30   
-SCORE_MIN = 0.05      
+SCORE_MIN = 0.05
+
 V_MIN = 1
-V_MAX = 9
+V_MAX = 5
 V_BACK = -2
 V_UTURN = 2
+
+
+class State(Enum):
+    AI = auto()
+    BACK = auto()
+    UTURN = auto()
 
 
 def track_score(cam):
@@ -27,14 +38,10 @@ def track_score(cam):
         return 0.0
     h = len(cam) // 2
     return float((cam[h:].sum() - cam[:h].sum()) / len(cam))
-
-class State(Enum):
-    AI = auto()
-    BACK = auto()
-    UTURN = auto()
+    
 
 def too_close(lidar, dir):
-    R = 0.83 # Minimum circle radius for the car to turn
+    R = 2 # Minimum circle radius for the car to turn
     length = len(lidar)
     straight = lidar[length // 2]
     if dir:
@@ -71,6 +78,9 @@ class VehicleDriver(Driver):
         self.v_max = V_MAX
         self.step_count = 0
 
+        self.crash_distance = np.sqrt(WIDTH_LIDAR_CAR**2 + LENGTH_LIDAR_CAR**2) + 0.05 # TODO : mesurer la marge d'erreur
+        self.crash_angle = np.degrees(np.arctan2(WIDTH_LIDAR_CAR, LENGTH_LIDAR_CAR)) 
+        
         self.vehicle_rank = int(self.getName().split("_")[-1])
         # Lidar
         self.lidar = cast(Lidar, self.getDevice("Hokuyo"))
@@ -172,7 +182,7 @@ class VehicleDriver(Driver):
             case State.UTURN:
                 # TODO: this is a very poor fix and not a definitive solution
                 # we HAVE to remove this line and properly manage the communication
-                # in State.BACK so that the ai doesn't train the data during that
+                # in State.UTURN so that the ai doesn't train the data during that
                 # period to make sure that the training is not polluted
                 self.ai()
                 self.uturn()
@@ -181,7 +191,8 @@ class VehicleDriver(Driver):
 
     def ai(self):
         self.log.info("Starting step")
-        obs = self.observe()
+        sensor_data, lidar_data, camera_data = self.observe()
+        obs = (sensor_data, lidar_data, camera_data)
         self.last_obs = obs
         self.log.info(f"Observe {obs=}")
         self.fifo_w.write(np.concatenate(obs).tobytes())
@@ -215,8 +226,31 @@ class VehicleDriver(Driver):
         self.setSteeringAngle(float(action_steering))
         self.setCruisingSpeed(float(action_speed))
 
-        if self.touch_sensor.getValue() and self.state == State.AI: # TODO : To be checked for the state.AI
+        if self.crash() and self.state == State.AI: # TODO : Vérifier si le STATE.AI est utile ou non
+            self.log.info("Crash détécté")
             self.state = State.BACK
+
+    def crash(self):
+        # Touch sensor
+        if self.last_obs[0][0] > 0:
+            return True
+
+        # Lidar for the two front corners of the car
+        lidar = np.clip(self.last_obs[1], 0, 10)
+        n = len(lidar)
+
+        def idx(angle_from_front):
+            # Calculate the index in the lidar array of the point that is on the angle angle_from_front
+            return int(round((FOV_DEG / 2 + angle_from_front) / FOV_DEG * (n - 1)))
+
+        tol = int(n * ANGLE_TOLERANCE_CRASH / FOV_DEG) + 1
+        i_g, i_d = idx(-self.crash_angle), idx(self.crash_angle)
+
+        zones = np.concatenate((
+            lidar[max(0, i_g - tol):i_g + tol + 1],
+            lidar[max(0, i_d - tol):i_d + tol + 1],
+        ))
+        return zones.min() <= self.crash_distance       
 
     def back(self):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
