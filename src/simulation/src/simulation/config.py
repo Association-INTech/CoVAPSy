@@ -27,7 +27,7 @@ respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 
 # Rewards
 speed_window = 10     # average the speed over the last 10 checkpoints
-speed_bonus = 0.2    # extra reward at reference speed (the checkpoint reward is 1.0)
+speed_bonus = 0.0    # extra reward at reference speed (the checkpoint reward is 1.0)
 collision_reward = -2.0  # penalty for colliding with another vehicle or obstacle
 step_reward = 0.0  # reward for taking a step 
 checkpoint_reward = 1.0  # reward for passing a checkpoint
@@ -56,16 +56,24 @@ ppo_args: Dict[str, Any] = dict(
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = DAVE2Extractor  # CNN1DExtractor ,CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor
+ExtractorClass = CameraOnlyExtractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
 camera_vertical_resolution = ExtractorClass.camera_vertical_resolution
 input_type = ExtractorClass.input_type
 n_sensors = ExtractorClass.n_sensors
 
+camera_data_size = (
+    camera_horizontal_resolution * camera_vertical_resolution * 3
+    if input_type == "image"
+    else camera_horizontal_resolution
+)
+observation_data_size = n_sensors + lidar_horizontal_resolution + camera_data_size
+
 if (
     lidar_horizontal_resolution != camera_horizontal_resolution
     and camera_horizontal_resolution != 0
+    and input_type != "image"
 ):
     raise NotImplementedError(
         "Unhomogenous lidar and camera shape is only supported if camera_horizontal_resolution == 0"
@@ -78,6 +86,9 @@ policy_kwargs: Dict[str, Any] = dict(
     # Architecture of the MLP heads for the Value and Policy networks
     net_arch=[512, 512, 512],
 )
+
+
+#TODO Fix debug mode
 
 
 # Logging config

@@ -110,19 +110,10 @@ class WebotsVehicleManager:
 
     # returns the lidar data of all vehicles
     def observe(self):
-        # gets from Vehicle
+        expected_bytes = np.dtype(np.float32).itemsize * c.observation_data_size
         self.log.info(f"Waiting for obs from VEHICLE_{self.simulation_rank}_{self.vehicle_rank}")
-        obs = np.frombuffer(
-            self.fifo_r.read(
-                np.dtype(np.float32).itemsize
-                * (
-                    c.n_sensors
-                    + c.lidar_horizontal_resolution
-                    + c.camera_horizontal_resolution
-                )
-            ),
-            dtype=np.float32,
-        )
+        obs_bytes = self.fifo_r.read(expected_bytes)
+        obs = np.frombuffer(obs_bytes, dtype=np.float32)
         self.log.debug(f"observing {obs=}")
         return obs
 
@@ -149,12 +140,7 @@ class WebotsVehicleManager:
             vehicle.resetPhysics()
             self.log.info("vehicle reset done")
 
-        obs = np.zeros(
-            c.n_sensors
-            + c.lidar_horizontal_resolution
-            + c.camera_horizontal_resolution,
-            dtype=np.float32,
-        )
+        obs = np.zeros(c.observation_data_size, dtype=np.float32)
         info = {}
         return obs, info
 
@@ -230,7 +216,8 @@ def main():
                 obs, info = e.reset()
 
             e.log.info(f"sending {obs=}")
-            e.fifo_w.write(obs.tobytes())
+            obs_bytes = obs.tobytes()
+            e.fifo_w.write(obs_bytes)
             e.log.info(f"sending {reward=}")
             e.fifo_w.write(reward.tobytes())
             e.log.info(f"sending {done=}")

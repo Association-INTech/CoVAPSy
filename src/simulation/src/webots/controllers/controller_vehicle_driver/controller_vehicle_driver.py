@@ -100,24 +100,30 @@ class VehicleDriver(Driver):
             # empty array
             camera_data = np.zeros([0], dtype=np.float32)
         else:
-            camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
-            # shape = (camera_horizontal_resolution, 1, 3)
-            camera_data = camera_data.transpose(1, 2, 0)[0]
-            # shape = (3, 1080)
-            color = np.argmax(camera_data, axis=0)
-            camera_data = (
-                (color == 0).astype(np.float32) * -1
-                + (color == 1).astype(np.float32) * 1
-                + (color == 2).astype(np.float32) * 0
-            )
-            # red   -> -1
-            # green -> 1
-            # blue  -> 0
+            #camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
+            ## shape = (camera_horizontal_resolution, 1, 3)
+            #camera_data = camera_data.transpose(1, 2, 0)[0]
+            ## shape = (3, 1080)
+            #color = np.argmax(camera_data, axis=0)
+            #camera_data = (
+            #    (color == 0).astype(np.float32) * -1
+            #    + (color == 1).astype(np.float32) * 1
+            #    + (color == 2).astype(np.float32) * 0
+            #)
+            ## red   -> -1
+            ## green -> 1
+            ## blue  -> 0
+
+            camera_data = np.array(self.camera.getImageArray(), dtype = np.float32)
+            #shape = (camera_horizontal_resolution, camera_vertical_resolution, 3)
+            camera_data = camera_data.transpose(1, 0, 2).reshape(-1)
+            #shape = (camera_horizontal_resolution * camera_vertical_resolution * 3)
+
 
         return (sensor_data, lidar_data, camera_data)
 
         # except:
-        #     # In case of no lidar return
+        #     # In case of no lidar returncamera_horizontal_resolution, camera_v
         #     return (
         #         np.array(self.touch_sensor.getValue(), dtype=np.float32),
         #         np.zeros(self.lidar.getNumberOfPoints(), dtype=np.float32),
@@ -125,6 +131,8 @@ class VehicleDriver(Driver):
 
     # Step function of the GYM environment
     def step(self):
+        result = super().step()
+
         match self.state:
             case State.AI:
                 self.ai()
@@ -137,18 +145,20 @@ class VehicleDriver(Driver):
 
                 self.back()
 
-        return super().step()
+        return result
 
     def ai(self):
         self.log.info("Starting step")
         obs = self.observe()
         self.log.info(f"Observe {obs=}")
-        self.fifo_w.write(np.concatenate(obs).tobytes())
+        observation_bytes = np.concatenate(obs).tobytes()
+        self.fifo_w.write(observation_bytes)
         self.fifo_w.flush()
 
         self.log.info(f"Waiting for an action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
+        action_bytes = self.fifo_r.read(np.dtype(np.int64).itemsize * 2)
         action = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64
+            action_bytes, dtype=np.int64
         )
         self.log.info(f"received {action=}")
 
