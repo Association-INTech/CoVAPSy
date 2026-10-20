@@ -11,6 +11,7 @@ from extractors import (  # noqa: F401
     CNN1DResNetExtractor,
     CNN1DResNetNoCamExtractor,
     DAVE2Extractor,
+    CameraOnlyExtractor,
 )
 
 # Webots environments config
