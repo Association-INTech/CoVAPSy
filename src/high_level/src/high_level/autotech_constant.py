@@ -1,9 +1,13 @@
 import os
 import numpy as np
 import logging
+import configparser 
+
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 # Car control
-MAX_IA_SPEED = 4000  # maximum speed for ia in millimeter per second
+MAX_IA_SPEED = config['Car_control']['max_ia_speed']  # maximum speed for ia in millimeter per second
 BACKWARD_IA_SPEED = -2000  # minimum speed for ia in millimeter per second
 MAX_CONTROL_SPEED = 3  # maximum speed for controling devices in meters per second
 MIN_CONTROL_SPEED = -2  # minimum speed for controlig devices in meters per second
