@@ -2,6 +2,7 @@ import os
 from typing import List
 
 import numpy as np
+from simulation.generation import creer_checkpoint
 from controller import Supervisor
 
 from . import Checkpoint
@@ -166,7 +167,6 @@ piste1 = [  # piste1.wbt
     Checkpoint(1.57, 5.52, -3.25),
     Checkpoint(1.57, 5.52, -4.25),
 ]
-
 checkpoints = [
     piste0,
     piste1,

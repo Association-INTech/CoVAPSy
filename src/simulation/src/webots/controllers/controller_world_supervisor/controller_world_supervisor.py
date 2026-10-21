@@ -1,3 +1,4 @@
+import json
 import logging
 
 import numpy as np
@@ -7,7 +8,9 @@ from simulation import config as c
 from utils.simulation_rank import get_simulation_rank
 
 # I cannot use relative imports because the file is directly launched by webots
+from webots import webots_path
 from webots.controllers.controller_world_supervisor import (
+    Checkpoint,
     CheckpointManager,
     checkpoints,
 )
@@ -51,6 +54,18 @@ checkpoint_positions = [
 simulation_rank = get_simulation_rank()
 
 
+def get_checkpoints():
+    """
+    Piste générée : checkpoints écrits par generation.creer_world_wbt dans
+    worlds/generated_{rank}.json. Sinon : checkpoints codés en dur de piste{rank % n_map}.
+    """
+    if c.use_generated_map:
+        with open(f"{webots_path}/worlds/generated_{simulation_rank}.json") as f:
+            data = json.load(f)
+        return [Checkpoint(theta, x, y) for theta, x, y in data["checkpoints"]]
+    return checkpoints[simulation_rank % c.n_map]
+
+
 class WebotsVehicleManager:
     """
     One environment for each vehicle
@@ -62,7 +77,7 @@ class WebotsVehicleManager:
     def __init__(self, vehicle_rank: int):
         self.vehicle_rank = vehicle_rank
         self.checkpoint_manager = CheckpointManager(
-            supervisor, checkpoints[simulation_rank % c.n_map], vehicle_rank
+            supervisor, get_checkpoints(), vehicle_rank
         )
 
         self.v_min = 1

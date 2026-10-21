@@ -227,3 +227,6 @@ Debug_Wayfinding
 .venv
 checkpoints
 *.wbproj
+
+# Mondes Webots générés (generation.py)
+src/simulation/src/webots/worlds/generated_*

@@ -14,7 +14,9 @@ from extractors import (  # noqa: F401
 )
 
 # Webots environments config
-n_map = 4
+use_generated_map = True 
+map_seed = None  # None: random seed
+n_map = 2
 n_simulations = 4
 n_vehicles = 1
 n_stupid_vehicles = 0
@@ -66,5 +68,5 @@ policy_kwargs: Dict[str, Any] = dict(
 
 
 # Logging config
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.WARNING
 FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
