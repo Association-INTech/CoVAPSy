@@ -1,5 +1,7 @@
 #VRML_SIM R2023b utf8
 
+# Technical sheet : https://www.hokuyo-aut.jp/dl/UST-10LX_Specification.pdf
+
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/appearances/protos/MattePaint.proto"
 
 PROTO Hokuyo [
@@ -63,7 +65,7 @@ PROTO Hokuyo [
     maxFrequency 40
     minRange 0.100000
     maxRange 30.000000
-    noise 0.000833
+    noise 0.035        # Before : 0.000833
     resolution 0.010000
     type "fixed"
   }

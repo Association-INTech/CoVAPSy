@@ -14,7 +14,7 @@ PROTO TT02_2023b [
   field SFBool     synchronization TRUE                    # Is `Robot.synchronization`.
   field SFColor    color           0.69 0.0 1.0            # Is `Material.diffuseColor`.
   field SFInt32    lidar_horizontal_resolution 1080         # Is `Lidar.horizontalResolution`.
-  field SFInt32    camera_horizontal_resolution 1640        # Is `Camera.horizontalResolution`.
+  field SFInt32    camera_horizontal_resolution 1640        # Is `Camera.horizontalResolution`. TODO : à vérifier
 ]
 {
   Car {
@@ -26,11 +26,11 @@ PROTO TT02_2023b [
     controllerArgs IS controllerArgs
     window IS window
     synchronization IS synchronization
-    trackFront                     0.15
-    trackRear                      0.15
-    wheelbase                      0.257
-    minSteeringAngle               -0.5 # formerly -0.35
-    maxSteeringAngle               0.5 # formerly 0.35
+    trackFront                     0.156                    # Before : 0.15
+    trackRear                      0.156                    # Before : 0.15
+    wheelbase                      0.258                    # Before : 0.257
+    minSteeringAngle               -0.5 # formerly -0.35  TODO : verifier (attention : pas le meme sur les deux voitures)
+    maxSteeringAngle               0.5 # formerly 0.35  TODO : verifier (attention : pas le meme sur les deux voitures)
     suspensionFrontSpringConstant  100000
     suspensionFrontDampingConstant 4000
     suspensionRearSpringConstant   100000
@@ -65,40 +65,40 @@ PROTO TT02_2023b [
         name "TT02_receiver"
       }
       Speaker {
-        translation 0.257 0 0
+        translation 0.258 0 0            # Before : 0.257 0 0
         name "TT02_speaker"
       }
       Hokuyo {
-        translation 0.22 0 0.095
+        translation 0.195 0 0.065      # Before : 0.22 0 0.095        
         rotation 0 0 1 0
         name "Hokuyo"
         horizontalResolution IS lidar_horizontal_resolution
       }
       Camera {
-        translation 0.11 0 0.11
+        translation 0.1 0 0.153         # Before : 0.11 0 0.11
         rotation 0 0 1 0
         name "RASPI_Camera_V2"
-        fieldOfView            1.085594794740473
+        fieldOfView            1.085594794740473        # TODO : à vérifier
         width                  IS camera_horizontal_resolution
         height                 1
       }
       TouchSensor {
-        translation 0.14 0 0.005
+        translation 0.1275 0 0.04     # Before : 0.14 0 0.005
         name "touch_sensor"
         type "bumper"
         boundingObject Pose {
-          translation -0.015 0 0.035
+          translation 0 0 0           # Before : -0.015 0 0.035
           children [
             Box {
-              size 0.5 0.2 0.1
+              size 0.395 0.186 0.131  # Before : 0.5 0.2 0.1
             }
           ]
         }
       }
       Transform {
-        translation 0.127 0 -0.02
+        translation 0.1277 0 -0.02      # Before : 0.127 0 -0.02
         rotation 0 0 1 0
-        scale 1 1 1
+        scale 0.887 0.855 1             # Before : 1 1 1
         children [
           Shape {
             appearance PBRAppearance {
@@ -119,10 +119,10 @@ PROTO TT02_2023b [
     boundingObject Group {
       children [
         Pose {
-          translation 0.119 0 0.04
+          translation 0.1275 0 0.04      # Before : 0.119 0 0.04
           children [
             Box {
-              size 0.44 0.195 0.131
+              size 0.395 0.186 0.131     # Before : 0.44 0.195 0.131
             }
           ]
         }
