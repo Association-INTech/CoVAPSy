@@ -6,6 +6,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 from simulation import config as c
 
 steering_true = (c.n_actions_steering + 1) // 2
+SENSOR_PLOT_HEIGHT = 64
 
 
 class PlotModelIO(BaseCallback):
@@ -40,33 +41,63 @@ class PlotModelIO(BaseCallback):
         self.ax[1].set_ylim(0, 1)  # Probabilities range from 0 to 1
         self.ax[1].set_title("Speed Action Probabilities")
 
-        # LiDAR img
-        self.lidar_img = self.ax[2].imshow(
-            np.zeros((c.lidar_horizontal_resolution, c.lidar_horizontal_resolution)),
-            cmap="gray",
-            vmin=0,
-            vmax=np.log(31),
-        )
-        self.ax[2].set_title("LiDAR Image")
+        if c.input_type != "image" :
+
+            # LiDAR img
+            self.lidar_img = self.ax[2].imshow(
+                np.zeros((SENSOR_PLOT_HEIGHT, c.lidar_horizontal_resolution)),
+                cmap="gray",
+                vmin=0.0,
+                vmax=1.0,
+                aspect="auto",
+            )
+            self.ax[2].set_title("LiDAR Image")
 
         # Camera img
-        self.camera_img = self.ax[3].imshow(
-            np.zeros(
-                (c.camera_horizontal_resolution, c.camera_horizontal_resolution, 3)
-            ),
-            cmap="RdYlGn",
-            vmin=-1,
-            vmax=1,
-        )
-        self.ax[3].set_title("Camera Image")
+        if c.camera_horizontal_resolution:
+            if c.input_type == "image":
+                self.camera_img = self.ax[3].imshow(
+                    np.zeros(
+                        (
+                            c.camera_vertical_resolution,
+                            c.camera_horizontal_resolution,
+                            3,
+                        )
+                    ),
+                    aspect="auto",
+                )
+            else:
+                self.camera_img = self.ax[3].imshow(
+                    np.zeros(
+                        (SENSOR_PLOT_HEIGHT, c.camera_horizontal_resolution)
+                    ),
+                    cmap="RdYlGn",
+                    vmin=-1.0,
+                    vmax=1.0,
+                    aspect="auto",
+                )
+            self.ax[3].set_title("Camera Image")
 
     def _on_step(self) -> bool:
         global steering_true
 
         obs = self.locals["obs_tensor"].clone().detach()
 
-        self.lidar_img.set_array(np.log(1 + obs[0, 0, :, :].cpu().numpy()))
-        self.camera_img.set_array(obs[0, 1, :, :].cpu().numpy())
+
+        if c.input_type != "image":
+            lidar_data = obs[0, 0, :].cpu().numpy()
+            lidar_strip = np.repeat(lidar_data[np.newaxis, :], SENSOR_PLOT_HEIGHT, axis=0)
+            self.lidar_img.set_data(lidar_strip)
+
+            if c.camera_horizontal_resolution:
+                camera_data = obs[0, 1, :].cpu().numpy()
+                camera_strip = np.repeat(
+                    camera_data[np.newaxis, :], SENSOR_PLOT_HEIGHT, axis=0
+                )
+                self.camera_img.set_data(camera_strip)
+        elif c.input_type == "image":
+            camera_data = obs[0].permute(1, 2, 0).cpu().numpy()
+            self.camera_img.set_data(camera_data)
         with torch.no_grad():
             latent = self.model.policy.features_extractor(obs)
             extracted = self.model.policy.mlp_extractor.policy_net(latent)

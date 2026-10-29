@@ -101,9 +101,8 @@ class VehicleDriver(Driver):
             camera_data = np.zeros([0], dtype=np.float32)
         else:
             if c.input_type == "image":
-                camera_data = np.array(self.camera.getImageArray(), dtype = np.float32)
-                #shape = (camera_horizontal_resolution, camera_vertical_resolution, 3)
-                camera_data = camera_data.transpose(1, 0, 2).reshape(-1)
+                camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
+                camera_data = camera_data.reshape(-1)
                 #shape = (camera_horizontal_resolution * camera_vertical_resolution * 3)
             else :
                 camera_data = np.array(self.camera.getImageArray(), dtype=np.float32)
