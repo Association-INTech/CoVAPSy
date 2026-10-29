@@ -111,10 +111,14 @@ class WebotsVehicleManager:
     # returns the lidar data of all vehicles
     def observe(self):
         expected_bytes = np.dtype(np.float32).itemsize * c.observation_data_size
-        self.log.info(f"Waiting for obs from VEHICLE_{self.simulation_rank}_{self.vehicle_rank}")
+        self.log.info(
+            "Waiting for obs from VEHICLE_%s_%s",
+            self.simulation_rank,
+            self.vehicle_rank,
+        )
         obs_bytes = self.fifo_r.read(expected_bytes)
         obs = np.frombuffer(obs_bytes, dtype=np.float32)
-        self.log.debug(f"observing {obs=}")
+        self.log.debug("observing obs=%r", obs)
         return obs
 
     # reset the gym environment reset
@@ -160,7 +164,7 @@ class WebotsVehicleManager:
         # we should add a beacon sensor pointing upwards to detect the beacon
         self.log.debug("getting observation")
         obs = self.observe()
-        self.log.info(f"observed {obs=}")
+        self.log.info("observed obs=%r", obs)
         sensor_data = obs[: c.n_sensors]
         reward = 0
         done = np.False_
@@ -215,14 +219,14 @@ def main():
             if done:
                 obs, info = e.reset()
 
-            e.log.info(f"sending {obs=}")
+            e.log.info("sending obs=%r", obs)
             obs_bytes = obs.tobytes()
             e.fifo_w.write(obs_bytes)
-            e.log.info(f"sending {reward=}")
+            e.log.info("sending reward=%r", reward)
             e.fifo_w.write(reward.tobytes())
-            e.log.info(f"sending {done=}")
+            e.log.info("sending done=%r", done)
             e.fifo_w.write(done.tobytes())
-            e.log.info(f"sending {truncated=}")
+            e.log.info("sending truncated=%r", truncated)
             e.fifo_w.write(truncated.tobytes())
             e.fifo_w.flush()
 

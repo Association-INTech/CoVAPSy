@@ -150,17 +150,21 @@ class VehicleDriver(Driver):
     def ai(self):
         self.log.info("Starting step")
         obs = self.observe()
-        self.log.info(f"Observe {obs=}")
+        self.log.info("Observe obs=%r", obs)
         observation_bytes = np.concatenate(obs).tobytes()
         self.fifo_w.write(observation_bytes)
         self.fifo_w.flush()
 
-        self.log.info(f"Waiting for an action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
+        self.log.info(
+            "Waiting for an action from SERVER_%s_%s",
+            self.simulation_rank,
+            self.vehicle_rank,
+        )
         action_bytes = self.fifo_r.read(np.dtype(np.int64).itemsize * 2)
         action = np.frombuffer(
             action_bytes, dtype=np.int64
         )
-        self.log.info(f"received {action=}")
+        self.log.info("received action=%r", action)
 
         # Simulation step
 

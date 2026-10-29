@@ -56,7 +56,7 @@ ppo_args: Dict[str, Any] = dict(
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = DAVE2Extractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor, CameraOnlyExtractor
+ExtractorClass = CameraOnlyExtractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor, CameraOnlyExtractor
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
 camera_vertical_resolution = ExtractorClass.camera_vertical_resolution
@@ -92,5 +92,5 @@ policy_kwargs: Dict[str, Any] = dict(
 
 
 # Logging config
-LOG_LEVEL = logging.DEBUG  # Available levels: DEBUG, INFO, WARNING, ERROR, CRITICAL, NOTSET
+LOG_LEVEL = logging.ERROR  # Available levels: DEBUG, INFO, WARNING, ERROR, CRITICAL, NOTSET
 FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")

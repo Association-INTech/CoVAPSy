@@ -156,13 +156,17 @@ class VehicleEnv(gym.Env):
 
     def step(self, action: ActType):
         self.log.info("Starting step")
-        self.log.info(f"sending {action=}")
+        self.log.info("sending action=%r", action)
         action_bytes = action.tobytes()
         self.fifo_w.write(action_bytes)
         self.fifo_w.flush()
 
         # communication with the supervisor
-        self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
+        self.log.info(
+            "Waiting for (obs, reward, done, truncated) from SUPERVISOR_%s_%s",
+            self.simulation_rank,
+            self.vehicle_rank,
+        )
         observation_bytes = self.fifo_r.read(
             np.dtype(np.float32).itemsize * c.observation_data_size
         )
@@ -170,19 +174,19 @@ class VehicleEnv(gym.Env):
             observation_bytes,
             dtype=np.float32,
         )
-        self.log.info(f"received {cur_state=}")
+        self.log.info("received cur_state=%r", cur_state)
         reward = np.frombuffer(
             self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32
         )[0]  # scalar
-        self.log.info(f"received {reward=}")
+        self.log.info("received reward=%r", reward)
         done = np.frombuffer(
             self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
         )[0]  # scalar
-        self.log.info(f"received {done=}")
+        self.log.info("received done=%r", done)
         truncated = np.frombuffer(
             self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
         )[0]  # scalar
-        self.log.info(f"received {truncated=}")
+        self.log.info("received truncated=%r", truncated)
         info = {}
 
         cur_state = np.nan_to_num(cur_state[c.n_sensors :], nan=0.0, posinf=1.0)
