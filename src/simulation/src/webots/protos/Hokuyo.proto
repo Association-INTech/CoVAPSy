@@ -8,7 +8,7 @@ PROTO Hokuyo [
   field SFVec3f    translation   0 0 0.031
   field SFRotation rotation      0 0 1 0
   field SFString   name          "Hokuyo"
-  field SFInt32    horizontalResolution 1080
+  field SFInt32    horizontalResolution 1081    # Before : 1080
 ]
 {
   Lidar {
