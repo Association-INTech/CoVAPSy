@@ -12,6 +12,7 @@ from extractors import (  # noqa: F401
     CNN1DResNetNoCamExtractor,
     DAVE2Extractor,
     CameraOnlyExtractor,
+    TemporalResNetExtractor,
 )
 
 # Webots environments config
@@ -56,7 +57,8 @@ ppo_args: Dict[str, Any] = dict(
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = CameraOnlyExtractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor, CameraOnlyExtractor
+ExtractorClass = DAVE2Extractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor, CameraOnlyExtractor, TemporalResNetExtractor
+context_size = getattr(ExtractorClass, "context_size", 1)
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
 camera_vertical_resolution = ExtractorClass.camera_vertical_resolution

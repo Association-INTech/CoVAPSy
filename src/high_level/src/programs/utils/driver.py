@@ -27,6 +27,9 @@ class Driver:
         self.log = logging.getLogger(__name__)
         self.vertical_size = vertical_size
         self.horizontal_size = horizontal_size
+        self.context_size = 1
+        self.context: np.ndarray | None = None
+        self.model_kind = None
         self._loaded = False
         self.ai_session: InferenceSession
         self.input_infos = None
@@ -85,7 +88,13 @@ class Driver:
             self.horizontal_size = first_shape[-1]
         elif len(first_shape) == 4 and self.nb_inputs == 1:
             self.model_kind = "fused"
+            self.context_size = (
+                first_shape[-2] if isinstance(first_shape[-2], int) else 1
+            )
             self.horizontal_size = first_shape[-1]
+            self.context = np.zeros(
+                [2, self.context_size, self.horizontal_size], dtype=np.float32
+            )
         elif self.nb_inputs == 2:
             self.model_kind = "two_inputs"
         else:
@@ -134,8 +143,10 @@ class Driver:
         return self.nb_inputs
 
     def reset(self):
-        
-        pass
+        if self.model_kind == "fused":
+            self.context = np.zeros(
+                [2, self.context_size, self.horizontal_size], dtype=np.float32
+            )
 
     def omniscent(
         self, lidar_data_m: np.ndarray, camera_data: np.ndarray
@@ -167,6 +178,14 @@ class Driver:
         camera_data = self._resize_camera_like_webots(camera_data)
         camera_data = np.zeros_like(camera_data)
         new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
+        if self.context_size > 1:
+            if self.context is None:
+                raise RuntimeError("Temporal model context has not been initialized")
+            self.context = np.concatenate(
+                [self.context[:, 1:, :], new_frame], axis=1
+            )
+        else:
+            self.context = new_frame
 
         input_name = self.input_infos[0].name
         # print(lidar_data_m.tolist())
@@ -182,7 +201,7 @@ class Driver:
         # )
         vect = cast(
             np.ndarray,
-            self.ai_session.run(None, {input_name: new_frame[None]})[0],
+            self.ai_session.run(None, {input_name: self.context[None]})[0],
         )[0]
 
         vect_dir, vect_prop = vect[:16], vect[16:]

@@ -83,18 +83,33 @@ class PlotModelIO(BaseCallback):
 
         obs = self.locals["obs_tensor"].clone().detach()
 
-
         if c.input_type != "image":
-            lidar_data = obs[0, 0, :].cpu().numpy()
-            lidar_strip = np.repeat(lidar_data[np.newaxis, :], SENSOR_PLOT_HEIGHT, axis=0)
-            self.lidar_img.set_data(lidar_strip)
+            lidar_data = (
+                obs[0, 0, :, :].cpu().numpy()
+                if c.context_size > 1
+                else obs[0, 0, :].cpu().numpy()
+            )
+            if c.context_size > 1:
+                self.lidar_img.set_data(lidar_data)
+            else:
+                lidar_strip = np.repeat(
+                    lidar_data[np.newaxis, :], SENSOR_PLOT_HEIGHT, axis=0
+                )
+                self.lidar_img.set_data(lidar_strip)
 
             if c.camera_horizontal_resolution:
-                camera_data = obs[0, 1, :].cpu().numpy()
-                camera_strip = np.repeat(
-                    camera_data[np.newaxis, :], SENSOR_PLOT_HEIGHT, axis=0
+                camera_data = (
+                    obs[0, 1, :, :].cpu().numpy()
+                    if c.context_size > 1
+                    else obs[0, 1, :].cpu().numpy()
                 )
-                self.camera_img.set_data(camera_strip)
+                if c.context_size > 1:
+                    self.camera_img.set_data(camera_data)
+                else:
+                    camera_strip = np.repeat(
+                        camera_data[np.newaxis, :], SENSOR_PLOT_HEIGHT, axis=0
+                    )
+                    self.camera_img.set_data(camera_strip)
         elif c.input_type == "image":
             camera_data = obs[0].permute(1, 2, 0).cpu().numpy()
             self.camera_img.set_data(camera_data)

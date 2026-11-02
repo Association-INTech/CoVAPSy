@@ -67,8 +67,6 @@ if __name__ == "__main__":
             print(f"Episode(s) finished after {step_count} steps.")
             step_count = 0
 
-            fresh_frame = next_obs[:, -1:]
             obs, _ = env.reset()
-            obs = fresh_frame
         else:
             obs = next_obs

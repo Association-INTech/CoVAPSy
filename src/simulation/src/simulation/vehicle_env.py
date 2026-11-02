@@ -60,21 +60,19 @@ class VehicleEnv(gym.Env):
         if c.input_type != "image":
             # 2 channels if camera_horizontal_resolution != 0
             # 1 channel otherwise
+            observation_shape = [
+                1 + (c.camera_horizontal_resolution != 0),
+                c.lidar_horizontal_resolution,
+            ]
+            if c.context_size > 1:
+                observation_shape.insert(1, c.context_size)
             box_min = np.zeros(
-                [
-                    1 + (c.camera_horizontal_resolution != 0),
-                    c.lidar_horizontal_resolution,
-                ],
+                observation_shape,
                 dtype=np.float32,
             )
-            box_max = np.full(
-                [
-                    1 + (c.camera_horizontal_resolution != 0),
-                    c.lidar_horizontal_resolution,
-                ],
-                1,
-                dtype=np.float32,
-            )
+            if c.camera_horizontal_resolution:
+                box_min[1] = -1
+            box_max = np.full(observation_shape, 1, dtype=np.float32)
 
             self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
         else:
@@ -133,13 +131,15 @@ class VehicleEnv(gym.Env):
         # 2 channels if camera_horizontal_resolution != 0
         # 1 channel otherwise
         if c.input_type != "image":
-            obs = np.zeros(
-                [
-                    1 + (c.camera_horizontal_resolution != 0),
-                    c.lidar_horizontal_resolution,
-                ],
-                dtype=np.float32,
-            )
+            observation_shape = [
+                1 + (c.camera_horizontal_resolution != 0),
+                c.lidar_horizontal_resolution,
+            ]
+            if c.context_size > 1:
+                observation_shape.insert(1, c.context_size)
+            obs = np.zeros(observation_shape, dtype=np.float32)
+            if c.context_size > 1:
+                self.context = obs
         else:
             obs = np.zeros(
                 [
@@ -195,10 +195,10 @@ class VehicleEnv(gym.Env):
             lidar_obs = cur_state[: c.lidar_horizontal_resolution]
             lidar_obs = np.clip(lidar_obs, 0.0, c.lidar_max_range)
             lidar_obs = lidar_obs / c.lidar_max_range
-            obs = lidar_obs[None, :]
+            frame = lidar_obs[None, :]
 
             self.log.info("step over")
-            return obs, reward, done, truncated, info
+            return self._with_context(frame), reward, done, truncated, info
 
         elif c.input_type == "LiDAR+Camera":
             lidar_obs = cur_state[: c.lidar_horizontal_resolution]
@@ -207,10 +207,10 @@ class VehicleEnv(gym.Env):
 
             camera_obs = cur_state[c.lidar_horizontal_resolution :]
 
-            obs = np.stack([lidar_obs, camera_obs], axis=0)
+            frame = np.stack([lidar_obs, camera_obs], axis=0)
 
             self.log.info("step over")
-            return obs, reward, done, truncated, info
+            return self._with_context(frame), reward, done, truncated, info
 
         elif c.input_type == "image":
             camera_obs = cur_state[c.lidar_horizontal_resolution :]
@@ -224,3 +224,12 @@ class VehicleEnv(gym.Env):
             self.log.info("step over")
 
             return obs, reward, done, truncated, info
+
+    def _with_context(self, frame: np.ndarray) -> np.ndarray:
+        if c.context_size <= 1:
+            return frame
+
+        self.context = np.concatenate(
+            [self.context[:, 1:, :], frame[:, None, :]], axis=1
+        )
+        return self.context

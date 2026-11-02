@@ -14,12 +14,8 @@ PROTO TT02_2023b [
   field SFBool     synchronization TRUE                    # Is `Robot.synchronization`.
   field SFColor    color           0.69 0.0 1.0            # Is `Material.diffuseColor`.
   field SFInt32    lidar_horizontal_resolution 1080         # Is `Lidar.horizontalResolution`.
-<<<<<<< HEAD
   field SFInt32    camera_horizontal_resolution 1640        # Is `Camera.horizontalResolution`.
   field SFInt32    camera_vertical_resolution 1232          # Is `Camera.verticalResolution`.
-=======
-  field SFInt32    camera_horizontal_resolution 1640        # Is `Camera.horizontalResolution`. TODO : à vérifier
->>>>>>> origin/new_car_webots
 ]
 {
   Car {
