@@ -1,22 +1,35 @@
 import os
+import shutil
+import sys
 from logging import DEBUG
 from pathlib import Path
-from typing import Any, Dict
-
-import torch.nn as nn
-from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import SubprocVecEnv
 
 from simulation import VehicleEnv
-from simulation import config as c
-from utils import onnx_utils
 
 if __name__ == "__main__":
-    if not os.path.exists("/tmp/autotech/"):
-        os.mkdir("/tmp/autotech/")
+    print("[1/4] Importing PyTorch, Stable-Baselines3 & PitWall...", flush=True)
+    from stable_baselines3 import PPO
+    from stable_baselines3.common.vec_env import SubprocVecEnv
+    from simulation import config as c
+    from utils import onnx_utils
 
-    os.system('if [ -n "$(ls /tmp/autotech)" ]; then rm /tmp/autotech/*; fi')
+    PITWALL_DIR = Path(__file__).resolve().parents[4] / "PitWall"
+    sys.path.insert(0, str(PITWALL_DIR))
+    from sb3_callback import TelemetryCallback
 
+    shutil.rmtree("/tmp/autotech", ignore_errors=True)
+    os.makedirs("/tmp/autotech", exist_ok=True)
+
+    model_name = f"{c.ExtractorClass.__name__}_context5_motion"
+    # to change if we go back to no context or no motion, but for now we are using context5 and motion
+    telemetry_cb = TelemetryCallback(
+        run_name=f"PPO_{model_name}",
+        n_checkpoints=31,
+        log_dir=str(PITWALL_DIR / "logs"),
+        meta={"map": "piste0", "lidar_res": c.lidar_horizontal_resolution},
+    )
+
+    print("[2/4] Launching Webots (--no-rendering) & waiting for pipes...", flush=True)
     envs = SubprocVecEnv(
         [
             lambda sr=simulation_rank, vr=vehicle_rank: VehicleEnv(sr, vr)
@@ -25,24 +38,22 @@ if __name__ == "__main__":
         ]
     )
 
-    save_path = c.save_dir / "checkpoints" / c.ExtractorClass.__name__
-
+    print("[3/4] Initializing PPO model...", flush=True)
+    save_path = c.save_dir / "checkpoints" / model_name
     save_path.mkdir(parents=True, exist_ok=True)
 
     valid_files = [x for x in save_path.iterdir() if x.name.rstrip(".zip").isnumeric()]
 
     if valid_files:
         model_path = max(valid_files, key=lambda x: int(x.name.rstrip(".zip")))
-        print(f"Loading model {model_path.name}")
+        print(f"Loading model {model_path.name}", flush=True)
         model = PPO.load(model_path, envs, **c.ppo_args, policy_kwargs=c.policy_kwargs)
         i = int(model_path.name.rstrip(".zip")) + 1
-        print(f"Model found, loading {model_path}")
-
+        print(f"Model found, loading {model_path}", flush=True)
     else:
-        model = PPO("MlpPolicy", envs, **c.ppo_args, policy_kwargs=c.policy_kwargs)
-
+        model = PPO("MultiInputPolicy", envs, **c.ppo_args, policy_kwargs=c.policy_kwargs)
         i = 0
-        print("Model not found, creating a new one")
+        print("Model not found, creating a new one", flush=True)
 
     print("model hyper parameters:")
     print(f"{model.learning_rate=}")
@@ -51,14 +62,15 @@ if __name__ == "__main__":
     print(f"{model.n_steps=}")
     print(f"{model.n_epochs=}")
     print(f"{model.batch_size=}")
-    print(f"{model.device=}")
+    print(f"{model.device=}", flush=True)
 
     while True:
-        onnx_utils.export_onnx(
-            model,
-            str(c.save_dir / f"model_{c.ExtractorClass.__name__}.onnx"),
-        )
-        onnx_utils.test_onnx(model)
+        print(f"[4/4] Iteration {i}: exporting ONNX & starting PPO learn()...", flush=True)
+        # onnx_utils.export_onnx(
+        #     model,
+        #     str(c.save_dir / f"model_{c.ExtractorClass.__name__}.onnx"),
+        # )
+        # onnx_utils.test_onnx(model)
 
         if c.LOG_LEVEL <= DEBUG:
             from utils import PlotModelIO
@@ -66,13 +78,15 @@ if __name__ == "__main__":
             model.learn(
                 total_timesteps=c.total_timesteps,
                 progress_bar=False,
-                callback=PlotModelIO(),
+                callback=[PlotModelIO(), telemetry_cb],
             )
         else:
-            model.learn(total_timesteps=c.total_timesteps, progress_bar=True)
+            model.learn(
+                total_timesteps=c.total_timesteps,
+                progress_bar=True,
+                callback=telemetry_cb,
+            )
 
-        print("iteration over")
-        # TODO: we could just use a callback to save checkpoints or export the model to onnx
+        print("iteration over", flush=True)
         model.save(save_path / str(i))
-
         i += 1

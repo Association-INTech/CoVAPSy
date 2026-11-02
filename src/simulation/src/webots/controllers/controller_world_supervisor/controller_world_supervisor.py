@@ -105,7 +105,7 @@ class WebotsVehicleManager:
     # returns the lidar data of all vehicles
     def observe(self):
         # gets from Vehicle
-        self.log.info(f"Waiting for obs from VEHICLE_{self.simulation_rank}_{self.vehicle_rank}")
+        #self.log.info(f"Waiting for obs from VEHICLE_{self.simulation_rank}_{self.vehicle_rank}")
         obs = np.frombuffer(
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
@@ -113,23 +113,24 @@ class WebotsVehicleManager:
                     c.n_sensors
                     + c.lidar_horizontal_resolution
                     + c.camera_horizontal_resolution
+                    + 1
                 )
             ),
             dtype=np.float32,
         )
-        self.log.debug(f"observing {obs=}")
+        #self.log.debug(f"observing {obs=}")
         return obs
 
     # reset the gym environment reset
     def reset(self, seed=None):
-        self.log.info("reseting vehicle")
+        #self.log.info("reseting vehicle")
         # this has to be done otherwise thec cars will shiver for a while sometimes when respawning and idk why
         if supervisor.getTime() - self.last_reset >= 1e-1:
-            self.log.debug("getting info from vehicle")
+            #self.log.debug("getting info from vehicle")
             self.last_reset = supervisor.getTime()
 
             vehicle = supervisor.getFromDef(f"TT02_{self.vehicle_rank}")
-            self.log.debug("resetting vehicle physics")
+            #self.log.debug("resetting vehicle physics")
             self.checkpoint_manager.reset(seed)
             trans = self.checkpoint_manager.getTranslation()
             rot = self.checkpoint_manager.getRotation()
@@ -139,7 +140,7 @@ class WebotsVehicleManager:
             self.checkpoint_manager.update()
 
             vehicle.resetPhysics()
-            self.log.info("vehicle reset done")
+            #self.log.info("vehicle reset done")
 
         obs = np.zeros(
             c.n_sensors
@@ -153,13 +154,14 @@ class WebotsVehicleManager:
     # step function of the gym environment
     def step(self):
         # we should add a beacon sensor pointing upwards to detect the beacon
-        self.log.debug("getting observation")
+        #self.log.debug("getting observation")
         obs = self.observe()
-        self.log.info(f"observed {obs=}")
+        #self.log.info(f"observed {obs=}")
         sensor_data = obs[: c.n_sensors]
         reward = 0
         done = np.False_
         truncated = np.False_
+        checkpoint_event = np.False_
 
         x, y, z = self.translation_field.getSFVec3f()
         b_past_checkpoint = self.checkpoint_manager.update(x, y)
@@ -172,23 +174,38 @@ class WebotsVehicleManager:
             reward = np.float32(-0.5)
             done = np.bool(c.respawn_on_crash)
         elif b_past_checkpoint:
+            checkpoint_event = np.True_
             reward = np.float32(1.0)
             done = np.False_
         else:
             reward = np.float32(0.05)
             done = np.False_
 
-        return obs, reward, done, truncated, {}
+        return (
+            obs, 
+            reward, 
+            done, 
+            truncated, 
+            {},
+            checkpoint_event,
+        )
 
 
 def main():
     envs = [WebotsVehicleManager(i) for i in range(c.n_vehicles)]
 
-    supervisor.step()
-
     for i, e in enumerate(envs):
         e.reset(i)
+    
+    # At t = 0, we need to step the supervisor once to make sure 
+    # that the vehicles are in the right position before starting the simulation
+    supervisor.step()
+    for e in envs:
+        initial_obs = e.observe()
+        e.fifo_w.write(initial_obs.tobytes())
+        e.fifo_w.flush()
 
+    # We also need to reset the position of the stupid vehicles at t = 0
     for i in range(c.n_vehicles, c.n_vehicles + c.n_stupid_vehicles):
         (
             supervisor.getFromDef(f"TT02_{i}")
@@ -200,23 +217,29 @@ def main():
 
     while supervisor.step() != -1:
         for e in envs:
-            e.log.info("starting new step")
+            #e.log.info("starting new step")
 
-            obs, reward, done, truncated, info = e.step()
-            if done:
-                obs, info = e.reset()
+            (obs, 
+            reward, 
+            done, 
+            truncated, 
+            info,
+            checkpoint_event
+            ) = e.step()
 
-            e.log.info(f"sending {obs=}")
+            #e.log.info(f"sending {obs=}")
             e.fifo_w.write(obs.tobytes())
-            e.log.info(f"sending {reward=}")
+            #e.log.info(f"sending {reward=}")
             e.fifo_w.write(reward.tobytes())
-            e.log.info(f"sending {done=}")
+            #e.log.info(f"sending {done=}")
             e.fifo_w.write(done.tobytes())
-            e.log.info(f"sending {truncated=}")
+            #e.log.info(f"sending {truncated=}")
             e.fifo_w.write(truncated.tobytes())
             e.fifo_w.flush()
 
-            e.log.info("finished sending everything")
+            #e.log.info("finished sending everything")
+            if done:
+                info = e.reset()
 
         for i in range(c.n_stupid_vehicles):
             tr_field = supervisor.getFromDef(f"TT02_{c.n_vehicles + i}").getField(
@@ -230,9 +253,7 @@ def main():
                 envs[i].log.debug("did not move")
 
             if supervisor.getTime() - last_moved[i]:
-                envs[i].log.info(
-                    "resetting position because did not move for more than 1s"
-                )
+                envs[i].log.info("resetting position because did not move for more than 1s")
                 tr_field.setSFVec3f(checkpoint_positions[0])
 
 

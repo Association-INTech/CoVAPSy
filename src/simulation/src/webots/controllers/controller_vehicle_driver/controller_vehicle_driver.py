@@ -48,8 +48,9 @@ class VehicleDriver(Driver):
         basicTimeStep = int(self.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
 
-        self.v_min = 1
-        self.v_max = 9
+        self.v_min = c.v_min
+        self.v_max = c.v_max
+        self.applied_steering = 0.0
 
         self.vehicle_rank = int(self.getName().split("_")[-1])
         # Lidar
@@ -93,7 +94,6 @@ class VehicleDriver(Driver):
     def observe(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # try:
         sensor_data = np.array([self.touch_sensor.getValue()], dtype=np.float32)
-
         lidar_data = np.array(self.lidar.getRangeImage(), dtype=np.float32)
 
         if c.camera_horizontal_resolution == 0:
@@ -125,56 +125,58 @@ class VehicleDriver(Driver):
 
     # Step function of the GYM environment
     def step(self):
-        match self.state:
-            case State.AI:
-                self.ai()
-            case State.BACK:
-                # TODO: this is a very poor fix and not a definitive solution
-                # we HAVE to remove this line and properly manage the communication
-                # in State.BACK so that the ai doesn't train the data during that
-                # period to make sure that the training is not polluted
-                self.ai()
-
-                self.back()
-
-        return super().step()
-
-    def ai(self):
-        self.log.info("Starting step")
-        obs = self.observe()
-        self.log.info(f"Observe {obs=}")
-        self.fifo_w.write(np.concatenate(obs).tobytes())
-        self.fifo_w.flush()
-
-        self.log.info(f"Waiting for an action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
+        # we cannot obs until an action has been applied,
+        # otherwise, supervisor would have computed the reward for the previous action
+        # then would have forwarded it to env that would compute the next action
+        # so the reward would be for the previous action, not the current one
+        # self.log.debug("Waiting for action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
         action = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64
+            self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64,
         )
-        self.log.info(f"received {action=}")
-
-        # Simulation step
+        # self.log.info(f"received {action=}")
 
         action_steering = np.linspace(
             -0.4, 0.4, c.n_actions_steering, dtype=np.float32
         )[action[0]]
-
+        
         action_speed = np.linspace(
-            self.v_min, self.v_max, c.n_actions_speed, dtype=np.float32
-        )[action[1]]
-
+            c.v_min, c.v_max, c.n_actions_speed, dtype=np.float32
+            )[action[1]]
+        
         cur_angle = self.getSteeringAngle()
-        dt = self.getBasicTimeStep()
-        omega = 20  # rad/s (max angular speed of the steering servo)
+        dt = self.getBasicTimeStep() / 1000.0
+        omega = 20 # max angular speed of the steering wheel in rad/s
 
-        action_steering = cur_angle + np.clip(
-            action_steering - cur_angle, -omega * dt, omega * dt
-        )
+        action_steering = cur_angle + np.clip(action_steering - cur_angle, -omega * dt, omega * dt)
 
         self.setSteeringAngle(float(action_steering))
         self.setCruisingSpeed(float(action_speed))
+        self.applied_steering = float(action_steering)
 
-        if self.touch_sensor.getValue():
+        if self.state == State.BACK:
+            self.back()
+        
+        if super().step() == -1:
+            return -1
+        
+        if self.touch_sensor.getValue() > 0:
             self.state = State.BACK
+        
+        obs = self.observe()
+        # self.log.info(f"observed {obs=}")
+        self._send_observation(obs)
+        return 0
+
+    def _send_observation(self, obs):
+        # sends lidar, camera, sensor, cruising speed, steering angle to the supervisor
+        state = np.concatenate(
+            [
+                *obs,
+                np.array([self.applied_steering], dtype=np.float32),
+            ]
+        )
+        self.fifo_w.write(state.tobytes())
+        self.fifo_w.flush()
 
     def back(self):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
@@ -200,7 +202,13 @@ class VehicleDriver(Driver):
         # otherwise it will crash the controller with the message:
         # WARNING: 'controller_vehicle_driver' controller crashed.
         # WARNING: controller_vehicle_driver: The process crashed some time after starting successfully.
-        super().step()
+        if super().step() == -1:
+            return -1
+        self.applied_steering = float(self.getSteeringAngle())
+        initial_obs = self.observe()
+        # self.log.info(f"observed {initial_obs=}")
+        self._send_observation(initial_obs)
+        
         while self.step() != -1:
             pass
 

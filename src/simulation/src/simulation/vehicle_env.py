@@ -44,6 +44,8 @@ class VehicleEnv(gym.Env):
         super().__init__()
         self.simulation_rank = simulation_rank
         self.vehicle_rank = vehicle_rank
+        self.speed_history = np.array([], dtype=np.float32)  # to keep track of speed for reward adjustment
+        self._initial_observation_pending = True  # flag to indicate if the initial observation has been received
 
         self.handler = logging.FileHandler(
             f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
@@ -57,27 +59,23 @@ class VehicleEnv(gym.Env):
 
         self.log.info("Initialisation started")
 
-        # 2 channels if camera_horizontal_resolution != 0
-        # 1 channel otherwise
-        box_min = np.zeros(
-            [
-                1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
-                c.lidar_horizontal_resolution,
-            ],
+        sensor_min = np.full(
+            (c.sensor_channel_count, c.context_size, c.lidar_horizontal_resolution),
+            -30.0,
             dtype=np.float32,
         )
-        box_max = np.full(
-            [
-                1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
-                c.lidar_horizontal_resolution,
-            ],
-            30,
-            dtype=np.float32,
+        sensor_max = np.full_like(sensor_min, 30.0)
+
+        control_min = np.full((c.context_size, 2), -30.0, dtype=np.float32)
+        control_max = np.full_like(control_min, 30.0)
+
+        self.observation_space = gym.spaces.Dict(
+            {
+                "sensors": gym.spaces.Box(sensor_min, sensor_max, dtype=np.float32),
+                "controls": gym.spaces.Box(control_min, control_max, dtype=np.float32),
+            }
         )
 
-        self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
         self.action_space = gym.spaces.MultiDiscrete(
             [c.n_actions_steering, c.n_actions_speed]
         )
@@ -85,7 +83,7 @@ class VehicleEnv(gym.Env):
         if not os.path.exists("/tmp/autotech"):
             os.mkdir("/tmp/autotech")
 
-        self.log.debug("Creation of the pipes")
+        #self.log.debug("Creation of the pipes")
 
         os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe")
         os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe")
@@ -93,6 +91,8 @@ class VehicleEnv(gym.Env):
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
         if vehicle_rank == 0:
+            webots_env = os.environ.copy()
+            webots_log = open(f"/tmp/autotech/webots_{simulation_rank}.log", "w")
             proc = subprocess.Popen(
                 [
                     "webots",
@@ -100,50 +100,106 @@ class VehicleEnv(gym.Env):
                     "--mode=fast",
                     "--minimize",
                     "--batch",
-                    # "--no-rendering",
-                ]
+                    "--no-rendering",
+                    "--stdout",
+                    "--stderr",
+                ],
+                env=webots_env,
+                stdout=webots_log,
+                stderr=webots_log,
             )
-
             with open("/tmp/autotech/simulationranks", "a") as f:
                 f.write(f"{proc.pid} {simulation_rank}_{vehicle_rank}\n")
 
-        self.log.debug("Connection to the vehicle")
+        #self.log.debug("Connection to the vehicle")
         self.fifo_w = open(
             f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe", "wb"
         )
-        self.log.debug("Connection to the supervisor")
+        #self.log.debug("Connection to the supervisor")
         self.fifo_r = open(
             f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb"
         )
 
-        self.log.info("Initialisation finished\n")
+        #self.log.info("Initialisation finished\n")
+
+    def _append_observation(
+        self,
+        cur_state: np.ndarray,
+        speed_command: float = 0.0,
+    ) -> Dict[str, np.ndarray]:
+        lidar_start = c.n_sensors
+        camera_start = lidar_start + c.lidar_horizontal_resolution
+        steering_index = camera_start + c.camera_horizontal_resolution
+
+        cur_state = np.nan_to_num(cur_state, nan=0.0, posinf=30.0)
+
+        lidar_obs = cur_state[lidar_start:camera_start]
+        camera_obs = cur_state[camera_start:steering_index]
+        steering_angle = cur_state[steering_index]
+
+        # 1. Update Sensor Context: shape (2, 5, 1080)
+        frame_channels = [lidar_obs]
+        if c.camera_horizontal_resolution != 0:
+            frame_channels.append(camera_obs)
+        sensor_frame = np.stack(frame_channels, axis=0)[:, None, :]  # (2, 1, 1080)
+        self.context = np.concatenate([self.context[:, 1:], sensor_frame], axis=1)
+
+        # 2. Update Control Context: shape (5, 2)
+        control_frame = np.array([[speed_command, steering_angle]], dtype=np.float32)  # (1, 2)
+        self.control_context = np.concatenate([self.control_context[1:], control_frame], axis=0)
+
+        return {"sensors": self.context, "controls": self.control_context}
 
     def reset(self, seed: int | None = None, **options) -> Tuple[ObsType, Dict]:
-        # basically useless function
+        
+        # Repeat the last frame 5 times so Savitzky-Golay velocity starts cleanly at 0.0
+        if hasattr(self, "context"):
+            last_frame = self.context[:, -1:, :]  # shape (2, 1, 1080)
+        else:
+            last_frame = np.zeros(
+                (c.sensor_channel_count, 1, c.lidar_horizontal_resolution),
+                dtype=np.float32,
+            )
+        self.context = np.repeat(last_frame, c.context_size, axis=1)
+        self.control_context = np.zeros((c.context_size, 2), dtype=np.float32)
 
-        # 2 channels if camera_horizontal_resolution != 0
-        # 1 channel otherwise
-        self.context = obs = np.zeros(
-            [
-                1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
-                c.lidar_horizontal_resolution,
-            ],
-            dtype=np.float32,
-        )
+        obs = {"sensors": self.context, "controls": self.control_context}
 
+        if self._initial_observation_pending:
+            initial_state = np.frombuffer(
+                self.fifo_r.read(
+                    np.dtype(np.float32).itemsize
+                    * (
+                        c.n_sensors
+                        + c.lidar_horizontal_resolution
+                        + c.camera_horizontal_resolution
+                        + 1
+                    )
+                ),
+                dtype=np.float32,
+            )
+            obs = self._append_observation(initial_state, speed_command=0.0)
+            self._initial_observation_pending = False
+            # Also repeat initial_state across all 5 slots on first boot so sg_velocity starts at 0.0
+            self.context = np.repeat(self.context[:, -1:, :], c.context_size, axis=1)
+            obs["sensors"] = self.context
+        
         info = {}
-        self.log.info("reset finished\n")
+        #self.log.info("reset finished\n")
         return obs, info
 
     def step(self, action: ActType):
-        self.log.info("Starting step")
-        self.log.info(f"sending {action=}")
+        #self.log.info("Starting step")
+        #self.log.info(f"sending {action=}")
         self.fifo_w.write(action.tobytes())
         self.fifo_w.flush()
 
+        action_speed = float(
+            np.linspace(c.v_min, c.v_max, c.n_actions_speed, dtype=np.float32)[action[1]]
+        )
+
         # communication with the supervisor
-        self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
+        #self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
         cur_state = np.frombuffer(
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
@@ -151,39 +207,27 @@ class VehicleEnv(gym.Env):
                     c.n_sensors
                     + c.lidar_horizontal_resolution
                     + c.camera_horizontal_resolution
+                    + 1
                 )
             ),
             dtype=np.float32,
         )
-        self.log.info(f"received {cur_state=}")
+        #self.log.info(f"received {cur_state=}")
         reward = np.frombuffer(
             self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32
         )[0]  # scalar
-        self.log.info(f"received {reward=}")
+        #self.log.info(f"received {reward=}")
         done = np.frombuffer(
             self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
         )[0]  # scalar
-        self.log.info(f"received {done=}")
+        #self.log.info(f"received {done=}")
         truncated = np.frombuffer(
             self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
         )[0]  # scalar
-        self.log.info(f"received {truncated=}")
+        #self.log.info(f"received {truncated=}")
+
+        obs = self._append_observation(cur_state, speed_command=action_speed)
         info = {}
-
-        cur_state = np.nan_to_num(cur_state[c.n_sensors :], nan=0.0, posinf=30.0)
-
-        lidar_obs = cur_state[: c.lidar_horizontal_resolution]
-        camera_obs = cur_state[c.lidar_horizontal_resolution :]
-
-        if c.camera_horizontal_resolution == 0:
-            self.context = obs = np.concatenate(
-                [self.context[:, 1:], lidar_obs[None, None]], axis=1
-            )
-        else:
-            self.context = obs = np.concatenate(
-                [self.context[:, 1:], [lidar_obs[None], camera_obs[None]]], axis=1
-            )
-
-        self.log.info("step over")
+        #self.log.info("step over")
 
         return obs, reward, done, truncated, info
