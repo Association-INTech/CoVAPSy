@@ -119,7 +119,6 @@ class Driver:
         Like Webots:
         convert in meters, replace nan with 0, inf with 30, and resize to horizontal_size
         """
-        # print("len(np.where(lidar_data == 0)[0]) =", len(np.where(lidar_data == 0)[0]))
         lidar_m = np.asarray(lidar_data, dtype=np.float32).reshape(-1)
         lidar_m = np.nan_to_num(lidar_m, nan=0.0, posinf=30.0, neginf=0.0)
         lidar_m = np.clip(lidar_m, 0.0, 30.0)
@@ -176,7 +175,6 @@ class Driver:
         lidar_data_m = self._resize_lidar_like_webots(lidar_data_m)[::-1]
         # print("lidar_data_m =", lidar_data_m)
         camera_data = self._resize_camera_like_webots(camera_data)
-        camera_data = np.zeros_like(camera_data)
         new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
         if self.context_size > 1:
             if self.context is None:
@@ -188,17 +186,6 @@ class Driver:
             self.context = new_frame
 
         input_name = self.input_infos[0].name
-        # print(lidar_data_m.tolist())
-        # print(len(np.where(lidar_data_m == 0)[0]))
-        lidar_data_m[np.where(lidar_data_m == 0)] = 30
-        # print(
-        #     "min_lidar",
-        #     np.min(lidar_data_m),
-        #     "max_lidar",
-        #     np.max(lidar_data_m),
-        #     "mean_lidar",
-        #     np.mean(lidar_data_m),
-        # )
         vect = cast(
             np.ndarray,
             self.ai_session.run(None, {input_name: self.context[None]})[0],
@@ -231,8 +218,8 @@ class Driver:
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in
 
-        vect_dir = softmax(vect_dir / Temperature)  # probability distribution
-        vect_prop = softmax(vect_prop)
+        vect_dir = softmax(vect_dir / Temperature_steer)  # probability distribution
+        vect_prop = softmax(vect_prop / Temperature_vitesse)
 
         angle = sum(ANGLE_LOOKUP * vect_dir)  # weighted average of angles
         # weighted average of speeds
