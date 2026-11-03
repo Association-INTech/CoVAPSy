@@ -17,7 +17,7 @@ from extractors import (  # noqa: F401
 
 # Webots environments config
 n_map = 4 
-n_simulations = 10
+n_simulations = 5
 n_vehicles = 5
 n_stupid_vehicles = 0
 n_actions_steering = 16
@@ -28,7 +28,7 @@ respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 
 # Rewards
 speed_window = 10     # average the speed over the last 10 checkpoints
-speed_bonus = 0.0    # extra reward at reference speed (the checkpoint reward is 1.0)
+speed_bonus = 0.02    # extra reward at reference speed (the checkpoint reward is 1.0)
 collision_reward = -2.0  # penalty for colliding with another vehicle or obstacle
 step_reward = 0.0  # reward for taking a step 
 checkpoint_reward = 1.0  # reward for passing a checkpoint
