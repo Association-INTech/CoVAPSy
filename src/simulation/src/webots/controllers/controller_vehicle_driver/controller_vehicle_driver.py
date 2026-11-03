@@ -175,7 +175,16 @@ class VehicleDriver(Driver):
                 # shape = (camera_horizontal_resolution, 1, 3)
                 camera_data = camera_data.transpose(1, 2, 0)[0]
                 # shape = (3, 1080)
-                camera_data = camera_color_profile(camera_data.T[None, :, :])
+                camera_data = camera_color_profile(camera_data)
+                #color = np.argmax(camera_data, axis=0)
+                #camera_data = (
+                #    (color == 0).astype(np.float32) * -1
+                #    + (color == 1).astype(np.float32) * 1
+                #    + (color == 2).astype(np.float32) * 0
+                #)
+                ## red   -> -1
+                ## green -> 1
+                ## blue  -> 0
 
 
         return (sensor_data, lidar_data, camera_data)
