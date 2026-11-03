@@ -182,7 +182,7 @@ class WebotsVehicleManager:
             done = np.True_
         elif b_collided:
             reward = np.float32(c.collision_reward)
-            done = np.bool(c.respawn_on_crash)
+            done = np.bool_(c.respawn_on_crash)
         elif b_past_checkpoint:
             self.passed.append((t, x, y))
             reward = np.float32(c.checkpoint_reward + self.speed_bonus())

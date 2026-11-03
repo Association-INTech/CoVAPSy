@@ -7,6 +7,7 @@ from controller import Camera, Lidar, TouchSensor
 from vehicle import Driver
 
 from simulation import config as c
+from utils.camera import camera_color_profile
 from utils.simulation_rank import get_simulation_rank
 
 FOV_DEG = 270
@@ -34,17 +35,36 @@ class State(Enum):
 def track_score(cam):
     """ > 0 : green rather on the right and red on the left
         < 0 : the opposite."""
-    if len(cam) == 0:
-        return 0.0
-    h = len(cam) // 2
-    return float((cam[h:].sum() - cam[:h].sum()) / len(cam))
-    
+    if c.input_type != "image":
+        if len(cam) == 0:
+            return 0.0
+        h = len(cam) // 2
+        return float((cam[h:].sum() - cam[:h].sum()) / len(cam))
+    else:
+        image = np.asarray(cam).reshape(
+            c.camera_vertical_resolution,
+            c.camera_horizontal_resolution,
+            3,
+        )
+        profile = camera_color_profile(image)
+        middle = len(profile) // 2
 
-def too_close(lidar, dir):
-    R = 2 # Minimum circle radius for the car to turn
+        left_score = profile[:middle].sum()
+        right_score = profile[middle:].sum()
+        colored_columns = np.count_nonzero(profile)
+
+        if colored_columns == 0:
+            return 0.0  # aucun marqueur détecté : direction indéterminée
+
+        return float((right_score - left_score) / np.abs(profile).sum())
+
+
+def too_close(lidar, direction):
+    #TODO : adapter a que la cam
+    R = 0.83 # Minimum circle radius for the car to turn
     length = len(lidar)
     straight = lidar[length // 2]
-    if dir:
+    if direction:
         nearest = min(lidar[length // 2 :])
     else:
         nearest = min(lidar[: length // 2])
@@ -57,9 +77,8 @@ def too_close(lidar, dir):
 
     theta = np.arccos(cos)
     L = R * (1 - np.sin(theta))
+    print(f"{nearest} < {L}")
     return nearest < L
-
-
 
 class VehicleDriver(Driver):
     """
@@ -82,10 +101,12 @@ class VehicleDriver(Driver):
         self.crash_angle = np.degrees(np.arctan2(WIDTH_LIDAR_CAR, LENGTH_LIDAR_CAR)) 
         
         self.vehicle_rank = int(self.getName().split("_")[-1])
+
         # Lidar
-        self.lidar = cast(Lidar, self.getDevice("Hokuyo"))
-        self.lidar.enable(self.sensorTime)
-        self.lidar.enablePointCloud()
+        if c.input_type != "image":
+            self.lidar = cast(Lidar, self.getDevice("Hokuyo"))
+            self.lidar.enable(self.sensorTime)
+            self.lidar.enablePointCloud()
 
         # Camera
         self.camera = cast(Camera, self.getDevice("RASPI_Camera_V2"))
@@ -136,8 +157,11 @@ class VehicleDriver(Driver):
     def observe(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # try:
         sensor_data = np.array([self.touch_sensor.getValue()], dtype=np.float32)
-
-        lidar_data = np.array(self.lidar.getRangeImage(), dtype=np.float32)
+        if c.input_type == "image":
+            # Keep the FIFO layout; the image policy does not use this zero-filled segment.
+            lidar_data = np.zeros(c.lidar_horizontal_resolution, dtype=np.float32)
+        else:
+            lidar_data = np.array(self.lidar.getRangeImage(), dtype=np.float32)
 
         if c.camera_horizontal_resolution == 0:
             # empty array
@@ -236,7 +260,7 @@ class VehicleDriver(Driver):
         self.setSteeringAngle(float(action_steering))
         self.setCruisingSpeed(float(action_speed))
 
-        if self.crash() and self.state == State.AI: # TODO : Vérifier si le STATE.AI est utile ou non
+        if c.input_type != "image" and self.crash() and self.state == State.AI: # TODO : Vérifier si le STATE.AI est utile ou non
             self.log.info("Crash détécté")
             self.state = State.BACK
 
@@ -315,6 +339,11 @@ class VehicleDriver(Driver):
 
         # Wrong direction
         if self.wrong_count >= WRONG_STEPS:
+            if c.input_type == "image":
+                self.log.info("U-turn recovery skipped in image-only mode")
+                self.wrong_count = 0
+                return
+
             lidar = np.clip(self.last_obs[1], 0, 10)
             h = len(lidar) // 2
             # Make a U-turn to the clearest side

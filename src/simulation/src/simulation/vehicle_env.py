@@ -180,11 +180,11 @@ class VehicleEnv(gym.Env):
         )[0]  # scalar
         self.log.info("received reward=%r", reward)
         done = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
+            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
         )[0]  # scalar
         self.log.info("received done=%r", done)
         truncated = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
+            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
         )[0]  # scalar
         self.log.info("received truncated=%r", truncated)
         info = {}
