@@ -77,7 +77,6 @@ def too_close(lidar, direction):
 
     theta = np.arccos(cos)
     L = R * (1 - np.sin(theta))
-    print(f"{nearest} < {L}")
     return nearest < L
 
 class VehicleDriver(Driver):
@@ -176,15 +175,7 @@ class VehicleDriver(Driver):
                 # shape = (camera_horizontal_resolution, 1, 3)
                 camera_data = camera_data.transpose(1, 2, 0)[0]
                 # shape = (3, 1080)
-                color = np.argmax(camera_data, axis=0)
-                camera_data = (
-                    (color == 0).astype(np.float32) * -1
-                    + (color == 1).astype(np.float32) * 1
-                    + (color == 2).astype(np.float32) * 0
-                )
-                # red   -> -1
-                # green -> 1
-                # blue  -> 0
+                camera_data = camera_color_profile(camera_data.T[None, :, :])
 
 
         return (sensor_data, lidar_data, camera_data)
