@@ -10,7 +10,7 @@ from webots import webots_path
 
 from . import config as c
 
-ObsType = np.ndarray  # float32 array
+ObsType = Dict[str, np.ndarray]  # dict of 2D arrays (context_size, length)
 ActType = np.ndarray  # int64 array
 
 
@@ -59,22 +59,29 @@ class VehicleEnv(gym.Env):
 
         self.log.info("Initialisation started")
 
-        sensor_min = np.full(
-            (c.sensor_channel_count, c.context_size, c.lidar_horizontal_resolution),
-            -30.0,
-            dtype=np.float32,
-        )
-        sensor_max = np.full_like(sensor_min, 30.0)
+        # sensor_min = np.full(
+        #     (c.sensor_channel_count, c.context_size, c.lidar_horizontal_resolution),
+        #     -30.0,
+        #     dtype=np.float32,
+        # )
+        # sensor_max = np.full_like(sensor_min, 30.0)
 
-        control_min = np.full((c.context_size, 2), -30.0, dtype=np.float32)
-        control_max = np.full_like(control_min, 30.0)
+        # control_min = np.full((c.context_size, 2), -30.0, dtype=np.float32)
+        # control_max = np.full_like(control_min, 30.0)
 
-        self.observation_space = gym.spaces.Dict(
-            {
-                "sensors": gym.spaces.Box(sensor_min, sensor_max, dtype=np.float32),
-                "controls": gym.spaces.Box(control_min, control_max, dtype=np.float32),
-            }
-        )
+        
+
+        # self.observation_space = gym.spaces.Dict(
+        #     {
+        #         "sensors": gym.spaces.Box(sensor_min, sensor_max, dtype=np.float32),
+        #         "controls": gym.spaces.Box(control_min, control_max, dtype=np.float32),
+        #     }
+        # )
+
+        self.obs_context = {
+            key: np.zeros((c.context_size, c.OBS_SPECS[key]), dtype=np.float32)
+            for key in c.active_obs
+        }
 
         self.action_space = gym.spaces.MultiDiscrete(
             [c.n_actions_steering, c.n_actions_speed]
@@ -122,33 +129,28 @@ class VehicleEnv(gym.Env):
 
         #self.log.info("Initialisation finished\n")
 
-    def _append_observation(
-        self,
-        cur_state: np.ndarray,
-        speed_command: float = 0.0,
-    ) -> Dict[str, np.ndarray]:
-        lidar_start = c.n_sensors
-        camera_start = lidar_start + c.lidar_horizontal_resolution
-        steering_index = camera_start + c.camera_horizontal_resolution
+    def _append_observation(self, raw_pipe: np.ndarray, action_speed: float = 0.0, action_steer: float = 0.0) -> dict[str, np.ndarray]:
+        # 1. Unpack Webots pipe fields (skipping index 0 which is Collision)
+        new_values = {"Collision": raw_pipe[0:1]}  # shape (1,)
+        idx = c.n_sensors
+        for key in c.active_obs:
+            if key in ("Lidar", "Cam", "Internal_Speed"):
+                length = c.OBS_SPECS[key]
+                new_values[key] = raw_pipe[idx : idx + length]
+                idx += length
 
-        cur_state = np.nan_to_num(cur_state, nan=0.0, posinf=30.0)
+        # 2. Add self-commanded fields if this model requested them in active_obs
+        if "Speed_Cmd" in c.active_obs:
+            new_values["Speed_Cmd"] = np.array([action_speed], dtype=np.float32)
+        if "Steer_Cmd" in c.active_obs:
+            new_values["Steer_Cmd"] = np.array([action_steer], dtype=np.float32)
 
-        lidar_obs = cur_state[lidar_start:camera_start]
-        camera_obs = cur_state[camera_start:steering_index]
-        steering_angle = cur_state[steering_index]
+        # 3. Unified sliding-window update for ALL active fields!
+        for key in c.active_obs:
+            frame = new_values[key][None, :]  # shape: (1, length)
+            self.obs_context[key] = np.concatenate([self.obs_context[key][1:], frame], axis=0)
 
-        # 1. Update Sensor Context: shape (2, 5, 1080)
-        frame_channels = [lidar_obs]
-        if c.camera_horizontal_resolution != 0:
-            frame_channels.append(camera_obs)
-        sensor_frame = np.stack(frame_channels, axis=0)[:, None, :]  # (2, 1, 1080)
-        self.context = np.concatenate([self.context[:, 1:], sensor_frame], axis=1)
-
-        # 2. Update Control Context: shape (5, 2)
-        control_frame = np.array([[speed_command, steering_angle]], dtype=np.float32)  # (1, 2)
-        self.control_context = np.concatenate([self.control_context[1:], control_frame], axis=0)
-
-        return {"sensors": self.context, "controls": self.control_context}
+        return self.obs_context
 
     def reset(self, seed: int | None = None, **options) -> Tuple[ObsType, Dict]:
         
@@ -160,31 +162,29 @@ class VehicleEnv(gym.Env):
                 (c.sensor_channel_count, 1, c.lidar_horizontal_resolution),
                 dtype=np.float32,
             )
-        self.context = np.repeat(last_frame, c.context_size, axis=1)
-        self.control_context = np.zeros((c.context_size, 2), dtype=np.float32)
-
-        obs = {"sensors": self.context, "controls": self.control_context}
+        # for each active_obs, repeat the last frame across all 5 slots
+        for key in c.active_obs:
+            self.obs_context[key] = np.repeat(self.obs_context[key][-1:, :], c.context_size, axis=0)
 
         if self._initial_observation_pending:
             initial_state = np.frombuffer(
                 self.fifo_r.read(
                     np.dtype(np.float32).itemsize
                     * (
-                        c.n_sensors
-                        + c.lidar_horizontal_resolution
-                        + c.camera_horizontal_resolution
-                        + 1
+                        sum(c.OBS_SPECS[k] for k in c.active_obs if k in ("Lidar", "Cam", "Internal_Speed"))
+                        + 1  # Collision
                     )
                 ),
                 dtype=np.float32,
             )
-            obs = self._append_observation(initial_state, speed_command=0.0)
+            obs = self._append_observation(initial_state, action_speed=0.0, action_steer=0.0)
             self._initial_observation_pending = False
             # Also repeat initial_state across all 5 slots on first boot so sg_velocity starts at 0.0
-            self.context = np.repeat(self.context[:, -1:, :], c.context_size, axis=1)
-            obs["sensors"] = self.context
+            for key in c.active_obs:
+                self.obs_context[key] = np.repeat(self.obs_context[key][:, -1:, :], c.context_size, axis=1)
         
         info = {}
+        obs = {key: self.obs_context[key].copy() for key in c.active_obs}
         #self.log.info("reset finished\n")
         return obs, info
 
@@ -197,6 +197,9 @@ class VehicleEnv(gym.Env):
         action_speed = float(
             np.linspace(c.v_min, c.v_max, c.n_actions_speed, dtype=np.float32)[action[1]]
         )
+        action_steer = float(
+            np.linspace(-0.4, 0.4, c.n_actions_steering, dtype=np.float32)[action[0]]
+        )
 
         # communication with the supervisor
         #self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
@@ -204,10 +207,8 @@ class VehicleEnv(gym.Env):
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
                 * (
-                    c.n_sensors
-                    + c.lidar_horizontal_resolution
-                    + c.camera_horizontal_resolution
-                    + 1
+                    sum(c.OBS_SPECS[k] for k in c.active_obs if k in ("Lidar", "Cam", "Internal_Speed"))
+                    + 1  # Collision
                 )
             ),
             dtype=np.float32,
@@ -226,7 +227,7 @@ class VehicleEnv(gym.Env):
         )[0]  # scalar
         #self.log.info(f"received {truncated=}")
 
-        obs = self._append_observation(cur_state, speed_command=action_speed)
+        obs = self._append_observation(cur_state, action_speed=action_speed, action_steer=action_steer)
         info = {}
         #self.log.info("step over")
 

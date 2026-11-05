@@ -69,6 +69,8 @@ class WebotsVehicleManager:
         self.v_max = 9
         basicTimeStep = int(supervisor.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
+        self._last_cp_pos = np.array([0.0, 0.0])
+        self._last_cp_time = 0.0
 
         # negative value so that the first reset is not skipped
         self.last_reset = -1e6
@@ -110,10 +112,8 @@ class WebotsVehicleManager:
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
                 * (
-                    c.n_sensors
-                    + c.lidar_horizontal_resolution
-                    + c.camera_horizontal_resolution
-                    + 1
+                    sum(c.OBS_SPECS[k] for k in c.active_obs if k in ("Lidar", "Cam", "Internal_Speed"))
+                    + 1  # Collision
                 )
             ),
             dtype=np.float32,
@@ -123,6 +123,9 @@ class WebotsVehicleManager:
 
     # reset the gym environment reset
     def reset(self, seed=None):
+        pos = self.translation_field.getSFVec3f()
+        self._last_cp_pos = np.array([pos[0], pos[1]], dtype=np.float32)
+        self._last_cp_time = float(supervisor.getTime())
         #self.log.info("reseting vehicle")
         # this has to be done otherwise thec cars will shiver for a while sometimes when respawning and idk why
         if supervisor.getTime() - self.last_reset >= 1e-1:
@@ -141,11 +144,15 @@ class WebotsVehicleManager:
 
             vehicle.resetPhysics()
             #self.log.info("vehicle reset done")
-
-        obs = np.zeros(
-            c.n_sensors
-            + c.lidar_horizontal_resolution
-            + c.camera_horizontal_resolution,
+        # obs is now modulable based on the active_obs in config.py
+        obs = np.frombuffer(
+            self.fifo_r.read(
+                np.dtype(np.float32).itemsize
+                * (
+                    sum(c.OBS_SPECS[k] for k in c.active_obs if k in ("Lidar", "Cam", "Internal_Speed"))
+                    + 1  # Collision
+                )
+            ),
             dtype=np.float32,
         )
         info = {}
@@ -161,7 +168,6 @@ class WebotsVehicleManager:
         reward = 0
         done = np.False_
         truncated = np.False_
-        checkpoint_event = np.False_
 
         x, y, z = self.translation_field.getSFVec3f()
         b_past_checkpoint = self.checkpoint_manager.update(x, y)
@@ -174,8 +180,22 @@ class WebotsVehicleManager:
             reward = np.float32(-0.5)
             done = np.bool(c.respawn_on_crash)
         elif b_past_checkpoint:
-            checkpoint_event = np.True_
-            reward = np.float32(1.0)
+            pos = self.translation_field.getSFVec3f()
+            cur_pos = np.array([pos[0], pos[1]], dtype=np.float32)
+            t_now = float(supervisor.getTime())
+
+            dt_sector = max(t_now - self._last_cp_time, 0.025)  # At least 1 sim step (25 ms)
+            dist_sector = float(np.linalg.norm(cur_pos - self._last_cp_pos))
+            v_sector = dist_sector / dt_sector  # Real physical average speed (m/s) across the sector!
+
+            # Update memory for the next checkpoint
+            self._last_cp_pos = cur_pos
+            self._last_cp_time = t_now
+
+            # Quadratic bonus on real achieved sector speed (with v_ref ≈ 1.25 m/s)
+            v_ref = c.target_speed
+            lambda_v = c.speed_factor
+            reward = np.float32(1.0 + lambda_v * ((v_sector / v_ref) ** 2))
             done = np.False_
         else:
             reward = np.float32(0.05)
@@ -187,7 +207,6 @@ class WebotsVehicleManager:
             done, 
             truncated, 
             {},
-            checkpoint_event,
         )
 
 
@@ -224,7 +243,6 @@ def main():
             done, 
             truncated, 
             info,
-            checkpoint_event
             ) = e.step()
 
             #e.log.info(f"sending {obs=}")

@@ -1,6 +1,6 @@
 import logging
 from enum import Enum, auto
-from typing import Tuple, cast
+from typing import Dict, Tuple, cast
 
 import numpy as np
 from controller import Camera, Lidar, TouchSensor
@@ -50,7 +50,9 @@ class VehicleDriver(Driver):
 
         self.v_min = c.v_min
         self.v_max = c.v_max
+
         self.applied_steering = 0.0
+        self.applied_speed = 0.0
 
         self.vehicle_rank = int(self.getName().split("_")[-1])
         # Lidar
@@ -91,7 +93,7 @@ class VehicleDriver(Driver):
         )
 
     # Check the state of the car
-    def observe(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def observe(self) -> Dict[str, np.ndarray]:
         # try:
         sensor_data = np.array([self.touch_sensor.getValue()], dtype=np.float32)
         lidar_data = np.array(self.lidar.getRangeImage(), dtype=np.float32)
@@ -114,7 +116,11 @@ class VehicleDriver(Driver):
             # green -> 1
             # blue  -> 0
 
-        return (sensor_data, lidar_data, camera_data)
+        return {
+            "Collision": sensor_data,
+            "Lidar": lidar_data,
+            "Cam": camera_data,
+        }
 
         # except:
         #     # In case of no lidar return
@@ -152,6 +158,7 @@ class VehicleDriver(Driver):
         self.setSteeringAngle(float(action_steering))
         self.setCruisingSpeed(float(action_speed))
         self.applied_steering = float(action_steering)
+        self.applied_speed = float(action_speed)
 
         if self.state == State.BACK:
             self.back()
@@ -171,8 +178,11 @@ class VehicleDriver(Driver):
         # sends lidar, camera, sensor, cruising speed, steering angle to the supervisor
         state = np.concatenate(
             [
-                *obs,
+                obs["Collision"],
+                obs["Lidar"],
+                obs["Cam"],
                 np.array([self.applied_steering], dtype=np.float32),
+                np.array([self.applied_speed], dtype=np.float32),
             ]
         )
         self.fifo_w.write(state.tobytes())
@@ -180,7 +190,8 @@ class VehicleDriver(Driver):
 
     def back(self):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
-        lidar, cam = self.observe()[1:]
+        lidar, cam = self.observe()["Lidar"], self.observe()["Cam"]
+
         S = sum(cam)
         dir = S > 0
         if dir:
