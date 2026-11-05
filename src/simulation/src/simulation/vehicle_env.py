@@ -95,10 +95,10 @@ class VehicleEnv(gym.Env):
         if vehicle_rank == 0:
             if c.use_generated_map:
                 # génération d'une piste (seed aléatoire si c.map_seed est None)
-                from .generation import creer_world_wbt
+                from .generation import create_world_wbt
 
                 world_path = f"{webots_path}/worlds/generated_{simulation_rank}.wbt"
-                seed = creer_world_wbt(world_path, c.map_seed,4,2) #(complexité,taille) recommandé : (4,2)
+                seed = create_world_wbt(world_path, c.map_seed,c.complexity,c.size)
                 print(f"[simulation {simulation_rank}] map seed = {seed}")
             else:
                 world_path = f"{webots_path}/worlds/piste{simulation_rank % c.n_map}.wbt"

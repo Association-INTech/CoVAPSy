@@ -228,5 +228,5 @@ Debug_Wayfinding
 checkpoints
 *.wbproj
 
-# Mondes Webots générés (generation.py)
+# webots generated maps (generation.py)
 src/simulation/src/webots/worlds/generated_*

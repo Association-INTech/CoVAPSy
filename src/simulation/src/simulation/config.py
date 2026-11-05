@@ -16,6 +16,7 @@ from extractors import (  # noqa: F401
 # Webots environments config
 use_generated_map = True 
 map_seed = None  # None: random seed
+complexity,size = 4, 2  # compexity: higher = more turns, size: higher = basically more floor space occupied. Recommended: (4,2)
 n_map = 2
 n_simulations = 4
 n_vehicles = 1

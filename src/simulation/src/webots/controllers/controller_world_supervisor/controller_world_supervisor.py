@@ -56,8 +56,9 @@ simulation_rank = get_simulation_rank()
 
 def get_checkpoints():
     """
-    Piste générée : checkpoints écrits par generation.creer_world_wbt dans
-    worlds/generated_{rank}.json. Sinon : checkpoints codés en dur de piste{rank % n_map}.
+    Returns the checkpoints for the current simulation rank.
+    If use_generated_map is True, it loads the checkpoints from generation.py.
+    Otherwise, it returns the predefined checkpoints for the simulation rank.
     """
     if c.use_generated_map:
         with open(f"{webots_path}/worlds/generated_{simulation_rank}.json") as f:

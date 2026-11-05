@@ -2,7 +2,7 @@ import os
 from typing import List
 
 import numpy as np
-from simulation.generation import creer_checkpoint
+from simulation.generation import create_checkpoints
 from controller import Supervisor
 
 from . import Checkpoint

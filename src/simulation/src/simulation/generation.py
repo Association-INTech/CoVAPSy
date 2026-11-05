@@ -1,28 +1,28 @@
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 import secrets
 import json
 import math
 
 
-def rectangle(taille):
-    l=np.random.randint(taille*1,taille*2)
-    L=np.random.randint(taille*2,taille*3)
-    coins.append([0,l])
-    coins.append([L,l])
-    coins.append([L,0])
+def rectangle(size):
+    l=np.random.randint(size*1,size*2)
+    L=np.random.randint(size*2,size*3)
+    corners.append([0,l])
+    corners.append([L,l])
+    corners.append([L,0])
 
 
-def piste_legal(coins):
-    if len(coins) < 4:
+def track_legal(corners):
+    if len(corners) < 4:
         return False
 
 
-    N = len(coins)
+    N = len(corners)
 
     for i in range(N):
-        a = coins[i]
-        b = coins[(i + 1) % N]
+        a = corners[i]
+        b = corners[(i + 1) % N]
 
         if a == b:
             return False
@@ -31,31 +31,31 @@ def piste_legal(coins):
             return False
         
     for i in range(N):
-        avant = coins[i - 1]
-        actuel = coins[i]
-        apres = coins[(i + 1) % N]
+        before = corners[i - 1]
+        current = corners[i]
+        after = corners[(i + 1) % N]
 
-        alignes_verticalement = (
-            avant[0] == actuel[0] == apres[0]
+        vertically_aligned = (
+            before[0] == current[0] == after[0]
         )
 
-        alignes_horizontalement = (
-            avant[1] == actuel[1] == apres[1]
+        horizontally_aligned = (
+            before[1] == current[1] == after[1]
         )
 
-        if alignes_verticalement or alignes_horizontalement:
+        if vertically_aligned or horizontally_aligned:
             return False
 
 
-    rouge = bord_rouge(coins)
+    red = red_corner(corners)
 
-    if len(rouge) < 4:
+    if len(red) < 4:
         return False
 
 
-    for i in range(len(rouge)):
-        a = rouge[i]
-        b = rouge[(i + 1) % len(rouge)]
+    for i in range(len(red)):
+        a = red[i]
+        b = red[(i + 1) % len(red)]
 
         if a == b:
             return False
@@ -64,19 +64,19 @@ def piste_legal(coins):
             return False
 
 
-    for bord in [coins, rouge]:
+    for corner in [corners, red]:
 
-        N = len(bord)
+        N = len(corner)
 
         for i in range(N):
-            a = bord[i]
-            b = bord[(i + 1) % N]
+            a = corner[i]
+            b = corner[(i + 1) % N]
 
             for j in range(i + 1, N):
-                c = bord[j]
-                d = bord[(j + 1) % N]
+                c = corner[j]
+                d = corner[(j + 1) % N]
 
-                voisins = (
+                neighbor = (
                     j == i + 1
                     or
                     (i == 0 and j == N - 1)
@@ -94,7 +94,7 @@ def piste_legal(coins):
                         if max(gauche1, gauche2) < min(droite1, droite2):
                             return False
                         if (
-                            not voisins
+                            not neighbor
                             and
                             max(gauche1, gauche2) == min(droite1, droite2)
                         ):
@@ -113,7 +113,7 @@ def piste_legal(coins):
                             return False
 
                         if (
-                            not voisins
+                            not neighbor
                             and
                             max(bas1, bas2) == min(haut1, haut2)
                         ):
@@ -135,7 +135,7 @@ def piste_legal(coins):
                         vertical2 = b
 
 
-                    croisement = (
+                    crossing = (
                         min(horizontal1[0], horizontal2[0])
                         <= vertical1[0]
                         <= max(horizontal1[0], horizontal2[0])
@@ -147,33 +147,33 @@ def piste_legal(coins):
                         <= max(vertical1[1], vertical2[1])
                     )
 
-                    if croisement and not voisins:
+                    if crossing and not neighbor:
                         return False
 
 
-    for i in range(len(coins)):
+    for i in range(len(corners)):
 
-        vert_a = coins[i]
-        vert_b = coins[(i + 1) % len(coins)]
+        green_a = corners[i]
+        green_b = corners[(i + 1) % len(corners)]
 
-        for j in range(len(rouge)):
+        for j in range(len(red)):
 
-            rouge_a = rouge[j]
-            rouge_b = rouge[(j + 1) % len(rouge)]
+            red_a = red[j]
+            red_b = red[(j + 1) % len(red)]
 
             if (
-                vert_a[1] == vert_b[1]
+                green_a[1] == green_b[1]
                 and
-                rouge_a[1] == rouge_b[1]
+                red_a[1] == red_b[1]
             ):
 
-                if vert_a[1] == rouge_a[1]:
+                if green_a[1] == red_a[1]:
 
-                    gauche_vert = min(vert_a[0], vert_b[0])
-                    droite_vert = max(vert_a[0], vert_b[0])
+                    gauche_vert = min(green_a[0], green_b[0])
+                    droite_vert = max(green_a[0], green_b[0])
 
-                    gauche_rouge = min(rouge_a[0], rouge_b[0])
-                    droite_rouge = max(rouge_a[0], rouge_b[0])
+                    gauche_rouge = min(red_a[0], red_b[0])
+                    droite_rouge = max(red_a[0], red_b[0])
 
                     if (
                         max(gauche_vert, gauche_rouge)
@@ -183,18 +183,18 @@ def piste_legal(coins):
                         return False
 
             elif (
-                vert_a[0] == vert_b[0]
+                green_a[0] == green_b[0]
                 and
-                rouge_a[0] == rouge_b[0]
+                red_a[0] == red_b[0]
             ):
 
-                if vert_a[0] == rouge_a[0]:
+                if green_a[0] == red_a[0]:
 
-                    bas_vert = min(vert_a[1], vert_b[1])
-                    haut_vert = max(vert_a[1], vert_b[1])
+                    bas_vert = min(green_a[1], green_b[1])
+                    haut_vert = max(green_a[1], green_b[1])
 
-                    bas_rouge = min(rouge_a[1], rouge_b[1])
-                    haut_rouge = max(rouge_a[1], rouge_b[1])
+                    bas_rouge = min(red_a[1], red_b[1])
+                    haut_rouge = max(red_a[1], red_b[1])
 
                     if (
                         max(bas_vert, bas_rouge)
@@ -203,90 +203,90 @@ def piste_legal(coins):
                     ):
                         return False
 
-            elif vert_a[1] == vert_b[1]:
+            elif green_a[1] == green_b[1]:
 
-                croisement = (
-                    min(vert_a[0], vert_b[0])
-                    <= rouge_a[0]
-                    <= max(vert_a[0], vert_b[0])
+                crossing = (
+                    min(green_a[0], green_b[0])
+                    <= red_a[0]
+                    <= max(green_a[0], green_b[0])
 
                     and
 
-                    min(rouge_a[1], rouge_b[1])
-                    <= vert_a[1]
-                    <= max(rouge_a[1], rouge_b[1])
+                    min(red_a[1], red_b[1])
+                    <= green_a[1]
+                    <= max(red_a[1], red_b[1])
                 )
 
-                if croisement:
+                if crossing:
                     return False
 
 
             else:
 
-                croisement = (
-                    min(rouge_a[0], rouge_b[0])
-                    <= vert_a[0]
-                    <= max(rouge_a[0], rouge_b[0])
+                crossing = (
+                    min(red_a[0], red_b[0])
+                    <= green_a[0]
+                    <= max(red_a[0], red_b[0])
 
                     and
 
-                    min(vert_a[1], vert_b[1])
-                    <= rouge_a[1]
-                    <= max(vert_a[1], vert_b[1])
+                    min(green_a[1], green_b[1])
+                    <= red_a[1]
+                    <= max(green_a[1], green_b[1])
                 )
 
-                if croisement:
+                if crossing:
                     return False
 
     return True
 
-def nettoyer(coins):
-    coins_nettoyes = [coin.copy() for coin in coins]
+def clean(corners):
+    cleaned_corners = [corner.copy() for corner in corners]
 
-    changement = True
+    changed = True
 
-    while changement:
-        changement = False
+    while changed:
+        changed = False
 
-        for i in range(len(coins_nettoyes)):
-            avant = coins_nettoyes[i - 1]
-            actuel = coins_nettoyes[i]
-            apres = coins_nettoyes[(i + 1) % len(coins_nettoyes)]
+        for i in range(len(cleaned_corners)):
+            before = cleaned_corners[i - 1]
+            current = cleaned_corners[i]
+            after = cleaned_corners[(i + 1) % len(cleaned_corners)]
 
-            alignes_verticalement = (
-                avant[0] == actuel[0] == apres[0]
+            vertically_aligned = (
+                before[0] == current[0] == after[0]
             )
 
-            alignes_horizontalement = (
-                avant[1] == actuel[1] == apres[1]
+            horizontally_aligned = (
+                before[1] == current[1] == after[1]
             )
 
-            if alignes_verticalement or alignes_horizontalement:
-                coins_nettoyes.pop(i)
-                changement = True
+            if vertically_aligned or horizontally_aligned:
+                cleaned_corners.pop(i)
+                changed = True
                 break
 
-    return coins_nettoyes
+    return cleaned_corners
 
-def ajouter_couille(taille):
-    n=np.random.randint(0,len(coins))
-    l=[-coins[n][0]+coins[(n+1)%len(coins)][0],-coins[n][1]+coins[(n+1)%len(coins)][1]]
+def add_turns(size):
+    n=np.random.randint(0,len(corners))
+    l=[-corners[n][0]+corners[(n+1)%len(corners)][0],-corners[n][1]+corners[(n+1)%len(corners)][1]]
     # print(n)
     # print(l)
     d=0
     if l[0]==0:
         d=1
     if abs(l[d])<2:
-        ajouter_couille(taille)
+        add_turns(size)
         return
-    a=coins[n].copy()
-    b=coins[(n+1)%len(coins)].copy()
+    a=corners[n].copy()
+    b=corners[(n+1)%len(corners)].copy()
     # print(a,b)
-    debut = min(a[d], b[d])
-    fin = max(a[d], b[d])
+    start = min(a[d], b[d])
+    end = max(a[d], b[d])
 
-    k = np.random.randint(debut, fin)
-    j = np.random.randint(k + 1, fin+1)
+    k = np.random.randint(start, end)
+    j = np.random.randint(k + 1, end+1)
 
     if a[d] < b[d]:
         a[d] = k
@@ -295,83 +295,83 @@ def ajouter_couille(taille):
         a[d] = j
         b[d] = k
 
-    coins.insert(n+1,a.copy())
-    coins.insert(n+2,b.copy())
+    corners.insert(n+1,a.copy())
+    corners.insert(n+2,b.copy())
 
-    p=np.random.randint(-taille,taille+1)
+    p=np.random.randint(-size,size+1)
     while p==0:
-        p=np.random.randint(-taille,taille+1)
+        p=np.random.randint(-size,size+1)
 
     a[(d+1)%2]+=p
     b[(d+1)%2]+=p
 
-    coins.insert(n+2,a)
-    coins.insert(n+3,b)
+    corners.insert(n+2,a)
+    corners.insert(n+3,b)
 
     i=0
-    while i<len(coins):
-        avant=coins[i-1]
-        actuel=coins[i]
-        apres=coins[(i+1)%len(coins)]
+    while i<len(corners):
+        before=corners[i-1]
+        current=corners[i]
+        after=corners[(i+1)%len(corners)]
 
-        if (avant[0]==actuel[0]==apres[0] or
-            avant[1]==actuel[1]==apres[1]):
-            coins.pop(i)
+        if (before[0]==current[0]==after[0] or
+            before[1]==current[1]==after[1]):
+            corners.pop(i)
         else:
             i+=1
 
-def gen_piste(complexité,taille):
-    global coins
+def gen_piste(complexity,size):
+    global corners
 
-    coins=[[0,0]]
-    rectangle(taille)
+    corners=[[0,0]]
+    rectangle(size)
 
-    for k in range(complexité):
-        mem = [coin.copy() for coin in coins]
+    for k in range(complexity):
+        mem = [coin.copy() for coin in corners]
 
         for tentative in range(1000):
-            coins = [coin.copy() for coin in mem]
+            corners = [coin.copy() for coin in mem]
 
-            ajouter_couille(taille)
+            add_turns(size)
 
-            if piste_legal(coins):
+            if track_legal(corners):
                 break
         else:
             break
 
-    return coins
+    return corners
 
 def direction(coins,i):
-    entrée=[-coins[(i-1)%len(coins)][0]+coins[i][0],-coins[(i-1)%len(coins)][1]+coins[i][1]]
-    sortie=[coins[(i+1)%len(coins)][0]-coins[i][0],coins[(i+1)%len(coins)][1]-coins[i][1]]
-    return(entrée,sortie)
+    entry=[-coins[(i-1)%len(coins)][0]+coins[i][0],-coins[(i-1)%len(coins)][1]+coins[i][1]]
+    exit=[coins[(i+1)%len(coins)][0]-coins[i][0],coins[(i+1)%len(coins)][1]-coins[i][1]]
+    return(entry,exit)
 
-def bord_rouge(coins):
+def red_corner(coins):
     rouge = []
 
     for i in range(len(coins)):
-        entrée, sortie = direction(coins, i)
+        entry, exit = direction(coins, i)
 
-        ne = np.linalg.norm(entrée)
-        ns = np.linalg.norm(sortie)
+        ne = np.linalg.norm(entry)
+        ns = np.linalg.norm(exit)
 
-        gauche_entrée = [-entrée[1] / ne, entrée[0] / ne ]
+        gauche_entrée = [-entry[1] / ne, entry[0] / ne ]
 
-        gauche_sortie = [-sortie[1] / ns, sortie[0] / ns]
+        gauche_sortie = [-exit[1] / ns, exit[0] / ns]
 
-        x = coins[i][0] + (gauche_entrée[0] + gauche_sortie[0]) * largueur_piste
+        x = coins[i][0] + (gauche_entrée[0] + gauche_sortie[0]) * track_width
 
-        y = coins[i][1] + (gauche_entrée[1] + gauche_sortie[1]) * largueur_piste
+        y = coins[i][1] + (gauche_entrée[1] + gauche_sortie[1]) * track_width
 
         rouge.append([x, y])
 
     return rouge
 
-def placer(coins,couleur):
+def place(corners,color):
     blocs=[]
-    for k in range(len(coins)):
-        entrée,sortie = direction(coins,k)
-        d=[-entrée[i]+sortie[i] for i in range(2)]
+    for k in range(len(corners)):
+        entry,exit = direction(corners,k)
+        d=[-entry[i]+exit[i] for i in range(2)]
         #direction 0=droit-haut 1=bas-droit 2=gauche-bas 3=haut-gauche
         direc=0
         if d[0]>0 and d[1]<0:
@@ -384,28 +384,28 @@ def placer(coins,couleur):
             direc=3
         # print(direc)
         # print(coins[k])
-        bloc={"position":[int(coins[k][0]),int(coins[k][1])], "direction":direc,"couleur":couleur,"type":"virage"}
+        bloc={"position":[int(corners[k][0]),int(corners[k][1])], "direction":direc,"couleur":color,"type":"virage"}
         blocs.append(bloc)
-    for k in range(len(coins)):
-        a = coins[k]
-        b = coins[(k + 1) % len(coins)]
+    for k in range(len(corners)):
+        a = corners[k]
+        b = corners[(k + 1) % len(corners)]
         ax_, ay_ = int(round(a[0])), int(round(a[1]))
         bx_, by_ = int(round(b[0])), int(round(b[1]))
 
-        if ay_ == by_:                                   # horizontal
+        if ay_ == by_: # horizontal
             for x in range(min(ax_, bx_) + 1, max(ax_, bx_)):
                 blocs.append({"position": [x, ay_], "direction": 0,
-                              "couleur": couleur, "type": "mur"})
-        else:                                            # vertical
+                              "couleur": color, "type": "mur"})
+        else: # vertical
             for y in range(min(ay_, by_) + 1, max(ay_, by_)):
                 blocs.append({"position": [ax_, y], "direction": 1,
-                              "couleur": couleur, "type": "mur"})
+                              "couleur": color, "type": "mur"})
     return blocs
 
 
 
 
-
+"""
 def afficher_blocs(blocs, ax=None):
     import matplotlib.patches as patches
 
@@ -463,7 +463,7 @@ def afficher_piste(coins):
     y.append(y[0])
     plt.plot(x, y)
 
-    bords_rouges = bord_rouge(coins)
+    bords_rouges = red_corner(coins)
     bords_verts = coins.copy()
 
     x_rouge = [bord[0] for bord in bords_rouges]
@@ -484,23 +484,23 @@ def afficher_piste(coins):
     plt.plot(x_vert, y_vert, color="green")
     plt.axis('equal')
     plt.show()
-
-def blocs_vers_wbt(blocs):
-    centre = {0: (0.5, 0.5), 1: (0.5, -0.5), 2: (-0.5, -0.5), 3: (-0.5, 0.5)}
+"""
+def blocks_to_wbt(blocs):
+    center = {0: (0.5, 0.5), 1: (0.5, -0.5), 2: (-0.5, -0.5), 3: (-0.5, 0.5)}
     rotation = {0: 0.0, 1: -math.pi / 2, 2: math.pi, 3: math.pi / 2}
-    couleurs = {
+    colors = {
         "r": ("rouge", "0.9 0 0", "1 0 0"),
         "g": ("vert", "0 0.6 0", "0 1 0"),
     }
 
-    noeuds = []
+    nodes = []
     for i, bloc in enumerate(blocs):
         x, y = bloc["position"]
-        nom_couleur, couleur_virage, couleur_mur = couleurs[bloc["couleur"]]
+        color_name, turn_color, wall_color = colors[bloc["couleur"]]
 
         if bloc["type"] == "virage":
-            dx, dy = centre[bloc["direction"]]
-            noeuds.append(f"""    Solid {{
+            dx, dy = center[bloc["direction"]]
+            nodes.append(f"""    Solid {{
       translation {x + dx} {y + dy} 0.185
       rotation 0 0 1 {rotation[bloc["direction"]]}
       children [
@@ -508,9 +508,9 @@ def blocs_vers_wbt(blocs):
           appearance Appearance {{
             material Material {{
               ambientIntensity 0.5
-              diffuseColor {couleur_virage}
-              emissiveColor {couleur_virage}
-              specularColor {couleur_virage}
+              diffuseColor {turn_color}
+              emissiveColor {turn_color}
+              specularColor {turn_color}
             }}
           }}
           geometry Mesh {{
@@ -520,7 +520,7 @@ def blocs_vers_wbt(blocs):
           }}
         }}
       ]
-      name "virage_{nom_couleur}_{i}"
+      name "virage_{color_name}_{i}"
       boundingObject Mesh {{
         url [
           "ImageToStl.com_virage.obj"
@@ -529,13 +529,13 @@ def blocs_vers_wbt(blocs):
     }}""")
         else:
             angle = 0.0 if bloc["direction"] == 0 else math.pi / 2
-            noeuds.append(f"""    Solid {{
+            nodes.append(f"""    Solid {{
       translation {x} {y} 0.1
       rotation 0 0 1 {angle}
       children [
         Shape {{
           appearance PBRAppearance {{
-            baseColor {couleur_mur}
+            baseColor {wall_color}
             metalness 0
           }}
           geometry Box {{
@@ -543,31 +543,31 @@ def blocs_vers_wbt(blocs):
           }}
         }}
       ]
-      name "droit_1m_{nom_couleur}_{i}"
+      name "droit_1m_{color_name}_{i}"
       boundingObject Box {{
         size 1 0.1 0.2
       }}
     }}""")
 
-    return "\n".join(noeuds)
+    return "\n".join(nodes)
 
 
-coins=[[0,0]]
-largueur_piste=1.0
+corners=[[0,0]]
+track_width=1.0
 
-def creer_checkpoint(coins):
-    rouge = bord_rouge(coins)
-    n = len(coins)
-    milieu = [
-        [(coins[i][0] + rouge[i][0]) / 2, (coins[i][1] + rouge[i][1]) / 2]
+def create_checkpoints(corners):
+    red = red_corner(corners)
+    n = len(corners)
+    middle = [
+        [(corners[i][0] + red[i][0]) / 2, (corners[i][1] + red[i][1]) / 2]
         for i in range(n)
     ]
 
     checkpoints = []
     for i in range(n):
-        a = milieu[i]
-        b = milieu[(i + 1) % n]
-        entree, sortie = direction(milieu, i)
+        a = middle[i]
+        b = middle[(i + 1) % n]
+        entree, sortie = direction(middle, i)
         theta_entree = math.atan2(entree[1], entree[0])
         theta_sortie = math.atan2(sortie[1], sortie[0])
         theta = math.atan2(
@@ -594,35 +594,35 @@ def creer_checkpoint(coins):
     return checkpoints
 
 
-def generer_map(seed=None,complexite=4,taille=2):
+def generate_map(seed=None,complexity=4,size=2):
 
-    global coins
+    global corners
 
     if seed is None:
         seed=secrets.randbelow(100)
     print(seed)
     np.random.seed(seed)
 
-    coins=[[0,0]]
-    coins=gen_piste(complexite,taille)
-    coins=nettoyer(coins)
+    corners=[[0,0]]
+    corners=gen_piste(complexity,size)
+    corners=clean(corners)
 
-    bords_rouges = bord_rouge(coins)
-    blocs_rouge=placer(bords_rouges,'r')
-    blocs_vert=placer(coins,'g')
+    red_corners = red_corner(corners)
+    red_blocks=place(red_corners,'r')
+    green_blocks=place(corners,'g')
 
-    return seed, coins, blocs_rouge, blocs_vert
+    return seed, corners, red_blocks, green_blocks
 
 
-def creer_world_wbt(chemin, seed=None,complexite=4,taille=2):
-    seed, coins, blocs_rouge, blocs_vert = generer_map(seed,complexite,taille)
-    blocs = blocs_rouge + blocs_vert
+def create_world_wbt(path, seed=None,complexity=4,size=2):
+    seed, coins, red_blocks, green_blocks = generate_map(seed,complexity,size)
+    blocs = red_blocks + green_blocks
 
     xs = [bloc["position"][0] for bloc in blocs]
     ys = [bloc["position"][1] for bloc in blocs]
     cx = (min(xs) + max(xs)) / 2
     cy = (min(ys) + max(ys)) / 2
-    taille_sol = max(10, max(xs) - min(xs) + 4, max(ys) - min(ys) + 4)
+    ground_size = max(10, max(xs) - min(xs) + 4, max(ys) - min(ys) + 4)
 
     entete = f"""#VRML_SIM R2023b utf8
 
@@ -656,14 +656,14 @@ Solid {{
         roughness 1
       }}
       geometry Box {{
-        size {taille_sol} {taille_sol} 0.1
+        size {ground_size} {ground_size} 0.1
       }}
     }}
   ]
   name "sol_piste"
   boundingObject Shape {{
     geometry Box {{
-      size {taille_sol} {taille_sol} 0.1
+      size {ground_size} {ground_size} 0.1
     }}
   }}
 }}
@@ -675,16 +675,16 @@ DEF WorldInit Robot {{
   ]
 }}
 """
-    with open(chemin, "w") as f:
-        f.write(entete + blocs_vers_wbt(blocs) + pied)
+    with open(path, "w") as f:
+        f.write(entete + blocks_to_wbt(blocs) + pied)
 
-    with open(chemin.replace(".wbt", ".json"), "w") as f:
-        json.dump({"seed": seed, "checkpoints": creer_checkpoint(coins)}, f)
+    with open(path.replace(".wbt", ".json"), "w") as f:
+        json.dump({"seed": seed, "checkpoints": create_checkpoints(coins)}, f)
 
     return seed
 
 
 if __name__ == "__main__":
-    seed, coins, blocs_rouge, blocs_vert = generer_map()
-    afficher_piste(coins)
-    # afficher_blocs(blocs_rouge)
+    seed, corners, red_blocks, green_blocks = generate_map()
+    #afficher_piste(corners)
+    # afficher_blocs(red_blocks)
