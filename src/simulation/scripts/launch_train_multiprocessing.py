@@ -20,7 +20,9 @@ if __name__ == "__main__":
     shutil.rmtree("/tmp/autotech", ignore_errors=True)
     os.makedirs("/tmp/autotech", exist_ok=True)
 
-    model_name = f"{c.ExtractorClass.__name__}_context5_motion"
+    model_name = f"{c.ExtractorClass.__name__}"
+    if (c.context_size > 1):
+        model_name += f"{"context_"}" + f"{c.context_size}"
     # to change if we go back to no context or no motion, but for now we are using context5 and motion
     telemetry_cb = TelemetryCallback(
         run_name=f"PPO_{model_name}",

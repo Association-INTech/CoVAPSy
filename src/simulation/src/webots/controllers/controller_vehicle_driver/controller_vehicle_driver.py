@@ -48,11 +48,12 @@ class VehicleDriver(Driver):
         basicTimeStep = int(self.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
 
-        self.v_min = c.v_min
-        self.v_max = c.v_max
-
-        self.applied_steering = 0.0
-        self.applied_speed = 0.0
+        self.internal_observation = {
+            "speed_cmd": 0.0,
+            "steering_cmd": 0.0,
+        }
+        # will be able to hold odometry derived applied_speed (most of the time different from wanted speed)
+        # and applied_steering which can also be diff from wanted_steer if jitter / imprecisions
 
         self.vehicle_rank = int(self.getName().split("_")[-1])
         # Lidar
@@ -157,8 +158,8 @@ class VehicleDriver(Driver):
 
         self.setSteeringAngle(float(action_steering))
         self.setCruisingSpeed(float(action_speed))
-        self.applied_steering = float(action_steering)
-        self.applied_speed = float(action_speed)
+        self.internal_observation["steering_cmd"] = float(action_steering)
+        self.internal_observation["speed_cmd"] = float(action_speed)
 
         if self.state == State.BACK:
             self.back()
@@ -175,16 +176,17 @@ class VehicleDriver(Driver):
         return 0
 
     def _send_observation(self, obs):
-        # sends lidar, camera, sensor, cruising speed, steering angle to the supervisor
-        state = np.concatenate(
-            [
-                obs["Collision"],
-                obs["Lidar"],
-                obs["Cam"],
-                np.array([self.applied_steering], dtype=np.float32),
-                np.array([self.applied_speed], dtype=np.float32),
+        # writes (external sensor datas) :: (internal sensor data) to pipe
+
+        external_sensor_data = np.concatenate(
+            [obs["Collision"],
+            obs["Lidar"],
+            obs["Cam"],
             ]
         )
+        internal_sensor_data = np.concatenate([np.array(v, dtype=np.float32) for v in self.internal_sensor.values()], axis=0)
+        state = np.concatenate([external_sensor_data, internal_sensor_data], axis = 0)
+
         self.fifo_w.write(state.tobytes())
         self.fifo_w.flush()
 

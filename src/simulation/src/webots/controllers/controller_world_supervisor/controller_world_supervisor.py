@@ -112,8 +112,7 @@ class WebotsVehicleManager:
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
                 * (
-                    sum(c.OBS_SPECS[k] for k in c.active_obs if k in ("Lidar", "Cam", "Internal_Speed"))
-                    + 1  # Collision
+                    c.obs_size
                 )
             ),
             dtype=np.float32,
@@ -149,8 +148,7 @@ class WebotsVehicleManager:
             self.fifo_r.read(
                 np.dtype(np.float32).itemsize
                 * (
-                    sum(c.OBS_SPECS[k] for k in c.active_obs if k in ("Lidar", "Cam", "Internal_Speed"))
-                    + 1  # Collision
+                    c.obs_size
                 )
             ),
             dtype=np.float32,

@@ -14,6 +14,8 @@ from extractors import (  # noqa: F401
     TemporalResNetExtractor,
 )
 
+
+
 # Webots environments config
 n_map = 1
 n_simulations = 1
@@ -28,22 +30,22 @@ target_speed = 5.0  # m/s
 speed_factor = 2.0  # reward for maintaining target speed
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 #extra_context_channels = 2  # number of extra context channels (speed_command, steering_command)
-active_obs = ["Lidar", "Cam", "Collision", "Speed_Cmd", "Steer_Cmd"]
 
-# Master registry of every possible observation field and its 1-frame length
-OBS_SPECS = {
-    "Collision": 1,
-    "Lidar": 1080,
-    "Cam": 1080,
-    # "Internal_Speed": 1,  # Future wheel-encoder speed from Webots
-    "Speed_Cmd": 1,       # Self-known in VehicleEnv
-    "Steer_Cmd": 1,       # Self-known in VehicleEnv
-}
 
-# Only fields that originate inside Webots cross the FIFO pipe:
-WEBOTS_PIPE_FIELDS = ["Collision"] + [
-    k for k in active_obs if k in ("Lidar", "Cam", "Internal_Speed")
-]
+"""
+    New architecture of the observation space:
+
+    - Config defines the active_obs, which is a list of the observation fields that are actually used in the environment.
+    - OBS_SPECS defines the length of each observation field in 1 frame so one observation has the shape : 
+    Dict[str, np.ndarray] where 
+            - each key is an observation field in active_obs
+            - the value is a 1D array of length OBS_SPECS[key].
+    - Env holds self.obs_context, which is a dictionary of the active_obs, each of which is a 3D array of shape (context_size, 1, length)
+    - Each field of obs is considered as float32 inside a pipe
+    - For example if active_obs = ["Lidar", "Cam", "Collision"], then 
+    - the pipe sends (1080 + 1080 + 1) * 4 bytes
+    
+"""
 
 # Training config
 device = "cuda" if is_available() else "cpu"
@@ -69,6 +71,21 @@ lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
 sensor_channel_count = 1 + (camera_horizontal_resolution != 0)
 n_sensors = ExtractorClass.n_sensors
+
+# Master registry of every possible observation field and its 1-frame length
+OBS_SPECS = {
+    "Collision": n_sensors,
+    "Lidar": lidar_horizontal_resolution,
+    "Cam": camera_horizontal_resolution,
+    # "Internal_Speed": 1,  # Future wheel-encoder speed from Webots
+    "Speed_Cmd": 1,       # Self-known in VehicleEnv
+    "Steer_Cmd": 1,       # Self-known in VehicleEnv
+}
+active_obs = ["Lidar", "Cam", "Speed_Cmd", "Steer_Cmd"]
+# collision is still active but we don't need to carry the information that it was 1 as the pipe is reset anyway after a crash
+obs_size = n_sensors + sum(OBS_SPECS[k] for k in active_obs)
+
+
 
 if (
     lidar_horizontal_resolution != camera_horizontal_resolution
