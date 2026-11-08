@@ -29,8 +29,11 @@ class Driver:
         self._loaded = False
         self.ai_session: InferenceSession
         self.context: np.ndarray
+        self.context_dict: np.Dict
         self.input_infos = None
         self.nb_inputs = 0
+        self.last_angle = 0.0
+        self.last_speed = 0.0
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
@@ -91,8 +94,15 @@ class Driver:
             self.context = np.zeros(
                 [2, self.context_size, self.horizontal_size], dtype=np.float32
             )
-        elif self.nb_inputs == 2:
-            self.model_kind = "two_inputs"
+        elif len(first_shape) == 3:
+            self.model_kind = "dict_inputs"
+            self.context_size = int(first_shape[1])
+            # Find horizontal resolution from Lidar/Cam input (or first input)
+            self.horizontal_size = max(int(info.shape[-1]) for info in self.input_infos)
+            self.context_dict = {
+                info.name: np.zeros((1, int(info.shape[1]), int(info.shape[2])), dtype=np.float32)
+                for info in self.input_infos
+            }
         else:
             raise ValueError(
                 f"Unsupported model format: nb_inputs={self.nb_inputs}, shape={first_shape}"
@@ -142,10 +152,17 @@ class Driver:
         return self.nb_inputs
 
     def reset(self):
-        self.context = np.zeros(
-            [2, self.context_size, self.horizontal_size], dtype=np.float32
-        )
-        pass
+        self.last_angle = 0.0
+        self.last_speed = 0.0
+        if getattr(self, "model_kind", None) == "dict_inputs" and self.input_infos is not None:
+            self.context_dict = {
+                info.name: np.zeros((1, int(info.shape[1]), int(info.shape[2])), dtype=np.float32)
+                for info in self.input_infos
+            }
+        else:
+            self.context = np.zeros(
+                [2, self.context_size, self.horizontal_size], dtype=np.float32
+            )
 
     def omniscent(
         self, lidar_data_m: np.ndarray, camera_data: np.ndarray
@@ -170,51 +187,69 @@ class Driver:
         if not self._loaded or self.input_infos is None:
             raise RuntimeError("Driver not initialized (AI model not loaded)")
 
-        target_width = self.horizontal_size
-
+        # 1. Clean & resize sensors
         lidar_data_m = self._resize_lidar_like_webots(lidar_data_m)[::-1]
-        # print("lidar_data_m =", lidar_data_m)
+        lidar_data_m[np.where(lidar_data_m == 0)] = 30.0
         camera_data = self._resize_camera_like_webots(camera_data)
-        camera_data = np.zeros_like(camera_data)
-        new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
 
-        if self.context_size > 1:
-            self.context = np.concatenate(
-                [self.context[:, 1:], [lidar_data_m, camera_data]], axis=1
-            )
+        # 2. Update context & run ONNX depending on model_kind
+        if self.model_kind == "dict_inputs":
+            # Map possible ONNX input names to current 1D step arrays
+            step_sources = {
+                "Lidar": lidar_data_m,
+                "lidar": lidar_data_m,
+                "Cam": camera_data,
+                "cam": camera_data,
+                "Speed_Cmd": np.array([self.last_speed], dtype=np.float32),
+                "Steer_Cmd": np.array([self.last_angle], dtype=np.float32),
+            }
+            for info in self.input_infos:
+                name = info.name
+                # Fallback if SB3 exported positional names like "input.1", "input.2"
+                if name in step_sources:
+                    raw_1d = step_sources[name]
+                else:
+                    raw_1d = lidar_data_m if info == self.input_infos[0] else camera_data
+                new_frame = raw_1d.reshape(1, 1, -1)
+                if self.context_size > 1:
+                    self.context_dict[name] = np.concatenate(
+                        [self.context_dict[name][:, 1:, :], new_frame], axis=1
+                    )
+                else:
+                    self.context_dict[name] = new_frame
+
+            vect = cast(
+                np.ndarray,
+                self.ai_session.run(None, self.context_dict)[0],
+            )[0]
+
+        elif self.model_kind == "fused":
+            new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
+            if self.context_size > 1:
+                self.context = np.concatenate(
+                    [self.context[:, 1:], new_frame], axis=1
+                )
+            else:
+                self.context = new_frame
+            input_name = self.input_infos[0].name
+            vect = cast(
+                np.ndarray,
+                self.ai_session.run(None, {input_name: self.context[None]})[0],
+            )[0]
         else:
-            self.context = new_frame
+            return self.ai_update_lidar(lidar_data_m)
 
-        input_name = self.input_infos[0].name
-        # print(lidar_data_m.tolist())
-        # print(len(np.where(lidar_data_m == 0)[0]))
-        lidar_data_m[np.where(lidar_data_m == 0)] = 30
-        # print(
-        #     "min_lidar",
-        #     np.min(lidar_data_m),
-        #     "max_lidar",
-        #     np.max(lidar_data_m),
-        #     "mean_lidar",
-        #     np.mean(lidar_data_m),
-        # )
-        vect = cast(
-            np.ndarray,
-            self.ai_session.run(None, {input_name: self.context[None]})[0],
-        )[0]
-
+        # 3. Decode 32 logits -> physical angle & speed via Temperature Softmax
         vect_dir, vect_prop = vect[:16], vect[16:]
-        vect_dir = softmax(vect_dir / Temperature_steer)  # probability distribution
+        vect_dir = softmax(vect_dir / Temperature_steer)
         vect_prop = softmax(vect_prop / Temperature_vitesse)
-        # steer_idx = int(np.argmax(vect_dir))
-        # speed_idx = int(np.argmax(vect_prop))
-        # print("vect_dir =" ,  vect_dir)
-        # print(" vect_prop = ", vect_prop )
-        # #angle = float(ANGLE_LOOKUP[steer_idx])
-        # vitesse = float(SPEED_LOOKUP[speed_idx])
-        # best_idx = int(np.argmax(vect_dir))
-        vitesse = sum(SPEED_LOOKUP * vect_prop)
-        angle = sum(ANGLE_LOOKUP * vect_dir)
-        # self.log.info(f"best_idx={best_idx}, angle={angle:.2f}")
+
+        vitesse = float(sum(SPEED_LOOKUP * vect_prop))
+        angle = float(sum(ANGLE_LOOKUP * vect_dir))
+
+        # Store for next step's Speed_Cmd / Steer_Cmd memory!
+        self.last_angle = angle
+        self.last_speed = vitesse
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data) -> Tuple[float, float]:

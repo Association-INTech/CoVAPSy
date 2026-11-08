@@ -1,4 +1,5 @@
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -25,10 +26,8 @@ def init_onnx_runtime_session(onnx_path: Path) -> ort.InferenceSession:
 
 
 if __name__ == "__main__":
-    if not os.path.exists("/tmp/autotech/"):
-        os.mkdir("/tmp/autotech/")
-
-    os.system('if [ -n "$(ls /tmp/autotech)" ]; then rm /tmp/autotech/*; fi')
+    shutil.rmtree(c.FIFO_DIR, ignore_errors=True)
+    os.makedirs(c.FIFO_DIR, exist_ok=True)
 
     # Starting the ONNX session
     try:
@@ -49,7 +48,7 @@ if __name__ == "__main__":
     step_count = 0
 
     while True:
-        raw_action = run_onnx_model(ort_session, obs[None])
+        raw_action = run_onnx_model(ort_session, obs)
         logits = np.array(raw_action).flatten()
 
         steer_logits = logits[: c.n_actions_steering]
@@ -67,10 +66,6 @@ if __name__ == "__main__":
         if done:
             print(f"Episode(s) finished after {step_count} steps.")
             step_count = 0
-
-            fresh_frame = next_obs[:, -1:]
             obs, _ = env.reset()
-            env.context[:, -1:] = fresh_frame
-            obs = env.context
         else:
             obs = next_obs

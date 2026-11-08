@@ -72,8 +72,9 @@ class VehicleDriver(Driver):
         self.simulation_rank = get_simulation_rank()
 
         # Logger
+        fifo_dir = c.FIFO_DIR
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"{fifo_dir}/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
@@ -84,12 +85,12 @@ class VehicleDriver(Driver):
 
         self.log.debug("Connection to the server")
         self.fifo_r = open(
-            f"/tmp/autotech/serverto{self.simulation_rank}_{self.vehicle_rank}.pipe",
+            f"{fifo_dir}/serverto{self.simulation_rank}_{self.vehicle_rank}.pipe",
             "rb",
         )
         self.log.debug("Connection with the supervisor")
         self.fifo_w = open(
-            f"/tmp/autotech/{self.simulation_rank}_{self.vehicle_rank}tosupervisor.pipe",
+            f"{fifo_dir}/{self.simulation_rank}_{self.vehicle_rank}tosupervisor.pipe",
             "wb",
         )
 
@@ -121,6 +122,8 @@ class VehicleDriver(Driver):
             "Collision": sensor_data,
             "Lidar": lidar_data,
             "Cam": camera_data,
+            "Speed_Cmd": np.array([self.internal_observation["speed_cmd"]], dtype=np.float32),
+            "Steer_Cmd": np.array([self.internal_observation["steering_cmd"]], dtype=np.float32),
         }
 
         # except:
@@ -175,18 +178,11 @@ class VehicleDriver(Driver):
         self._send_observation(obs)
         return 0
 
-    def _send_observation(self, obs):
-        # writes (external sensor datas) :: (internal sensor data) to pipe
-
-        external_sensor_data = np.concatenate(
-            [obs["Collision"],
-            obs["Lidar"],
-            obs["Cam"],
-            ]
-        )
-        internal_sensor_data = np.concatenate([np.array(v, dtype=np.float32) for v in self.internal_sensor.values()], axis=0)
-        state = np.concatenate([external_sensor_data, internal_sensor_data], axis = 0)
-
+    def _send_observation(self, obs: Dict[str, np.ndarray]):
+        state = np.concatenate(
+            [obs["Collision"]] + [obs[key] for key in c.active_obs],
+            axis=0,
+        ).astype(np.float32, copy=False)
         self.fifo_w.write(state.tobytes())
         self.fifo_w.flush()
 

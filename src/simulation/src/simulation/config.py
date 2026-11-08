@@ -2,6 +2,7 @@
 import logging
 from pathlib import Path
 from typing import Any, Dict
+import os
 
 import torch.nn as nn
 from torch.cuda import is_available
@@ -10,6 +11,7 @@ from extractors import (  # noqa: F401
 
     CNN1DAlexNetExtractor,
     CNN1DResNetExtractor,
+    CNN1DResNetExtractorMemory,
     CNN1DResNetNoCamExtractor,
     TemporalResNetExtractor,
 )
@@ -29,8 +31,13 @@ v_max = 9.0
 target_speed = 5.0  # m/s
 speed_factor = 2.0  # reward for maintaining target speed
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
-#extra_context_channels = 2  # number of extra context channels (speed_command, steering_command)
 
+# Fifo model specifications
+ARCH_LIST = ["res", "resmemo", "alex"]
+MODEL_ARCH = os.environ.get("AUTOTECH_ARCH", "resmemo")
+# Automatically gives 0 for resnet, 100 for alexnet, 200 for cnn1d, etc.!
+# PORT_OFFSET = (ARCH_LIST.index(MODEL_ARCH) if MODEL_ARCH in ARCH_LIST else 0) * 100
+FIFO_DIR = f"/tmp/autotech/{MODEL_ARCH}"
 
 """
     New architecture of the observation space:
@@ -65,13 +72,22 @@ ppo_args: Dict[str, Any] = dict(
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = CNN1DResNetExtractor
+EXTRACTOR_CLASSES = {
+    "res": CNN1DResNetExtractor,
+    "alex": CNN1DAlexNetExtractor,
+    "resmemo": CNN1DResNetExtractorMemory,
+}
+try:
+    ExtractorClass = EXTRACTOR_CLASSES[MODEL_ARCH]
+except KeyError as exc:
+    raise ValueError(
+        f"Unsupported AUTOTECH_ARCH {MODEL_ARCH!r}; expected one of {ARCH_LIST}"
+    ) from exc
 context_size = ExtractorClass.context_size
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
 sensor_channel_count = 1 + (camera_horizontal_resolution != 0)
 n_sensors = ExtractorClass.n_sensors
-
 # Master registry of every possible observation field and its 1-frame length
 OBS_SPECS = {
     "Collision": n_sensors,
@@ -81,7 +97,11 @@ OBS_SPECS = {
     "Speed_Cmd": 1,       # Self-known in VehicleEnv
     "Steer_Cmd": 1,       # Self-known in VehicleEnv
 }
-active_obs = ["Lidar", "Cam", "Speed_Cmd", "Steer_Cmd"]
+active_obs = [
+    "Lidar",
+    "Cam",
+    "Speed_Cmd",
+    "Steer_Cmd"]
 # collision is still active but we don't need to carry the information that it was 1 as the pipe is reset anyway after a crash
 obs_size = n_sensors + sum(OBS_SPECS[k] for k in active_obs)
 

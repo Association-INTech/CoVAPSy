@@ -46,9 +46,10 @@ class VehicleEnv(gym.Env):
         self.vehicle_rank = vehicle_rank
         self.speed_history = np.array([], dtype=np.float32)  # to keep track of speed for reward adjustment
         self._initial_observation_pending = True  # flag to indicate if the initial observation has been received
-
+        fifo_dir = c.FIFO_DIR
+        os.makedirs(fifo_dir, exist_ok=True)
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"{fifo_dir}/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
@@ -73,19 +74,23 @@ class VehicleEnv(gym.Env):
             [c.n_actions_steering, c.n_actions_speed]
         )
 
-        if not os.path.exists("/tmp/autotech"):
-            os.mkdir("/tmp/autotech")
-
         #self.log.debug("Creation of the pipes")
 
-        os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe")
-        os.mkfifo(f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe")
-        os.mkfifo(f"/tmp/autotech/{simulation_rank}_{vehicle_rank}tosupervisor.pipe")
+        for vr in ([ range(c.n_vehicles) ] if vehicle_rank == 0 else [ [vehicle_rank] ])[0]:
+            for pipe_path in (
+                f"{fifo_dir}/{simulation_rank}_{vr}toserver.pipe",
+                f"{fifo_dir}/serverto{simulation_rank}_{vr}.pipe",
+                f"{fifo_dir}/{simulation_rank}_{vr}tosupervisor.pipe",
+            ):
+                try:
+                    os.mkfifo(pipe_path)
+                except FileExistsError:
+                    pass
 
         #  --mode=fast --minimize --no-rendering --batch --stdout
         if vehicle_rank == 0:
             webots_env = os.environ.copy()
-            webots_log = open(f"/tmp/autotech/webots_{simulation_rank}.log", "w")
+            webots_log = open(f"{fifo_dir}/webots_{simulation_rank}.log", "w")
             proc = subprocess.Popen(
                 [
                     "webots",
@@ -101,16 +106,16 @@ class VehicleEnv(gym.Env):
                 stdout=webots_log,
                 stderr=webots_log,
             )
-            with open("/tmp/autotech/simulationranks", "a") as f:
+            with open(f"{fifo_dir}/simulationranks", "a") as f:
                 f.write(f"{proc.pid} {simulation_rank}_{vehicle_rank}\n")
 
         #self.log.debug("Connection to the vehicle")
         self.fifo_w = open(
-            f"/tmp/autotech/serverto{simulation_rank}_{vehicle_rank}.pipe", "wb"
+            f"{fifo_dir}/serverto{simulation_rank}_{vehicle_rank}.pipe", "wb"
         )
         #self.log.debug("Connection to the supervisor")
         self.fifo_r = open(
-            f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb"
+            f"{fifo_dir}/{simulation_rank}_{vehicle_rank}toserver.pipe", "rb"
         )
 
         #self.log.info("Initialisation finished\n")
@@ -120,9 +125,12 @@ class VehicleEnv(gym.Env):
         for key in c.active_obs:
             length = c.OBS_SPECS[key]
             frame = cur_state[idx : idx + length][None, :]  # shape (1, length)
-            self.context[key] = np.concatenate([self.context[key][1:], frame], axis=0)
+            if key == "Lidar":
+                frame = np.nan_to_num(frame, nan=0.0, posinf=30.0, neginf=0.0)
+                frame = np.clip(frame, 0.0, 30.0) # clip lidar data so inf / nan doesnt results in nan gradients in PyTorch
+            self.obs_context[key] = np.concatenate([self.obs_context[key][1:], frame], axis=0)
             idx += length
-        return self.context
+        return {key: self.obs_context[key].copy() for key in c.active_obs}
 
     def reset(self, seed: int | None = None, **options) -> Tuple[ObsType, Dict]:
         
@@ -146,7 +154,11 @@ class VehicleEnv(gym.Env):
             for key in c.active_obs:
                 self.obs_context[key] = np.repeat(self.obs_context[key][-1:, :], c.context_size, axis=0)
         
-        info = {}
+        info = {
+            "sim_rank": self.simulation_rank,
+            "vehicle_rank": self.vehicle_rank,
+            "map": f"piste{self.simulation_rank % c.n_map}",
+        }
         obs = {key: self.obs_context[key].copy() for key in c.active_obs}
         #self.log.info("reset finished\n")
         return obs, info
@@ -173,16 +185,20 @@ class VehicleEnv(gym.Env):
         )[0]  # scalar
         #self.log.info(f"received {reward=}")
         done = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
+            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
         )[0]  # scalar
         #self.log.info(f"received {done=}")
         truncated = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
+            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
         )[0]  # scalar
         #self.log.info(f"received {truncated=}")
 
         obs = self._append_observation(cur_state)
-        info = {}
+        info = {
+            "sim_rank": self.simulation_rank,
+            "vehicle_rank": self.vehicle_rank,
+            "map": f"piste{self.simulation_rank % c.n_map}",
+        }
         #self.log.info("step over")
 
         return obs, reward, done, truncated, info

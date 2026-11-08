@@ -1,6 +1,6 @@
 import os
 import re
-
+from simulation import config as c
 import psutil
 
 import __main__
@@ -36,7 +36,7 @@ def get_simulation_rank():
     pppid = str(grandparent.pid)
 
     # Simulation rank
-    with open("/tmp/autotech/simulationranks", "r") as f:
+    with open(f"{c.FIFO_DIR}/simulationranks", "r") as f:
         matches = re.search(
             pppid + r" (\d+)",
             f.read(),

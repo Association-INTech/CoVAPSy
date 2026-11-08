@@ -1,5 +1,5 @@
 import logging
-
+import os
 import numpy as np
 from controller import Supervisor
 
@@ -76,9 +76,10 @@ class WebotsVehicleManager:
         self.last_reset = -1e6
 
         self.simulation_rank = get_simulation_rank()
-
+        fifo_dir = c.FIFO_DIR
+        os.makedirs(fifo_dir, exist_ok=True)
         self.handler = logging.FileHandler(
-            f"/tmp/autotech/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
+            f"{fifo_dir}/vehicle_{self.simulation_rank}_{self.vehicle_rank}.log"
         )
         self.handler.setFormatter(c.FORMATTER)
         self.log = logging.getLogger(
@@ -89,12 +90,12 @@ class WebotsVehicleManager:
 
         self.log.debug("Connection to the vehicle")
         self.fifo_r = open(
-            f"/tmp/autotech/{self.simulation_rank}_{self.vehicle_rank}tosupervisor.pipe",
+            f"{fifo_dir}/{self.simulation_rank}_{self.vehicle_rank}tosupervisor.pipe",
             "rb",
         )
         self.log.debug("Connection to the server")
         self.fifo_w = open(
-            f"/tmp/autotech/{simulation_rank}_{vehicle_rank}toserver.pipe", "wb"
+            f"{fifo_dir}/{simulation_rank}_{vehicle_rank}toserver.pipe", "wb"
         )
 
         self.translation_field = supervisor.getFromDef(
@@ -143,18 +144,8 @@ class WebotsVehicleManager:
 
             vehicle.resetPhysics()
             #self.log.info("vehicle reset done")
-        # obs is now modulable based on the active_obs in config.py
-        obs = np.frombuffer(
-            self.fifo_r.read(
-                np.dtype(np.float32).itemsize
-                * (
-                    c.obs_size
-                )
-            ),
-            dtype=np.float32,
-        )
         info = {}
-        return obs, info
+        return info
 
     # step function of the gym environment
     def step(self):
@@ -176,7 +167,7 @@ class WebotsVehicleManager:
             done = np.True_
         elif b_collided:
             reward = np.float32(-0.5)
-            done = np.bool(c.respawn_on_crash)
+            done = np.bool_(c.respawn_on_crash)
         elif b_past_checkpoint:
             pos = self.translation_field.getSFVec3f()
             cur_pos = np.array([pos[0], pos[1]], dtype=np.float32)

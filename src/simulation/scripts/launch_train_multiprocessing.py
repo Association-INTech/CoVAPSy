@@ -3,6 +3,7 @@ import shutil
 import sys
 from logging import DEBUG
 from pathlib import Path
+from simulation import config as c
 
 from simulation import VehicleEnv
 
@@ -17,18 +18,23 @@ if __name__ == "__main__":
     sys.path.insert(0, str(PITWALL_DIR))
     from sb3_callback import TelemetryCallback
 
-    shutil.rmtree("/tmp/autotech", ignore_errors=True)
-    os.makedirs("/tmp/autotech", exist_ok=True)
+    shutil.rmtree(c.FIFO_DIR, ignore_errors=True)
+    os.makedirs(c.FIFO_DIR, exist_ok=True)
 
     model_name = f"{c.ExtractorClass.__name__}"
     if (c.context_size > 1):
-        model_name += f"{"context_"}" + f"{c.context_size}"
+        model_name += f"context_{c.context_size}"
     # to change if we go back to no context or no motion, but for now we are using context5 and motion
     telemetry_cb = TelemetryCallback(
         run_name=f"PPO_{model_name}",
         n_checkpoints=31,
         log_dir=str(PITWALL_DIR / "logs"),
-        meta={"map": "piste0", "lidar_res": c.lidar_horizontal_resolution},
+        meta={
+            "map": "piste0",
+            "lidar_res": c.lidar_horizontal_resolution,
+            "n_sims": c.n_simulations,
+            "n_vehicles": c.n_vehicles,
+        },
     )
 
     print("[2/4] Launching Webots (--no-rendering) & waiting for pipes...", flush=True)
