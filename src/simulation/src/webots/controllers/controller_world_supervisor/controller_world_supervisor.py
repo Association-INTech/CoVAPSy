@@ -4,6 +4,7 @@ import numpy as np
 from controller import Supervisor
 
 from simulation import config as c
+from utils.fifo import FifoClosedError, read_exact
 from utils.simulation_rank import get_simulation_rank
 
 # I cannot use relative imports because the file is directly launched by webots
@@ -110,11 +111,10 @@ class WebotsVehicleManager:
         # gets from Vehicle
         #self.log.info(f"Waiting for obs from VEHICLE_{self.simulation_rank}_{self.vehicle_rank}")
         obs = np.frombuffer(
-            self.fifo_r.read(
-                np.dtype(np.float32).itemsize
-                * (
-                    c.obs_size
-                )
+            read_exact(
+                self.fifo_r,
+                np.dtype(np.float32).itemsize * c.obs_size,
+                "Observation from vehicle controller",
             ),
             dtype=np.float32,
         )
@@ -153,14 +153,19 @@ class WebotsVehicleManager:
         #self.log.debug("getting observation")
         obs = self.observe()
         #self.log.info(f"observed {obs=}")
-        sensor_data = obs[: c.n_sensors]
+        collision_index = c.active_obs.index("Collision")
+        collision_start = sum(
+            c.OBS_SPECS[key] for key in c.active_obs[:collision_index]
+        )
+        collision_end = collision_start + c.OBS_SPECS["Collision"]
+        sensor_data = obs[collision_start:collision_end]
         reward = 0
         done = np.False_
         truncated = np.False_
 
         x, y, z = self.translation_field.getSFVec3f()
         b_past_checkpoint = self.checkpoint_manager.update(x, y)
-        (b_collided,) = sensor_data  # unpack sensor data
+        (b_collided,) = sensor_data
 
         if z < -10:
             reward = np.float32(0.0)
@@ -198,6 +203,18 @@ class WebotsVehicleManager:
             {},
         )
 
+    def send_to_server(self, *values: np.ndarray | np.generic) -> bool:
+        try:
+            for value in values:
+                self.fifo_w.write(value.tobytes())
+            self.fifo_w.flush()
+        except BrokenPipeError:
+            self.log.warning(
+                "Vehicle environment closed its FIFO; stopping Webots supervisor"
+            )
+            return False
+        return True
+
 
 def main():
     envs = [WebotsVehicleManager(i) for i in range(c.n_vehicles)]
@@ -209,9 +226,13 @@ def main():
     # that the vehicles are in the right position before starting the simulation
     supervisor.step()
     for e in envs:
-        initial_obs = e.observe()
-        e.fifo_w.write(initial_obs.tobytes())
-        e.fifo_w.flush()
+        try:
+            initial_obs = e.observe()
+        except FifoClosedError as exc:
+            e.log.warning("%s; stopping Webots supervisor", exc)
+            return
+        if not e.send_to_server(initial_obs):
+            return
 
     # We also need to reset the position of the stupid vehicles at t = 0
     for i in range(c.n_vehicles, c.n_vehicles + c.n_stupid_vehicles):
@@ -227,22 +248,21 @@ def main():
         for e in envs:
             #e.log.info("starting new step")
 
-            (obs, 
-            reward, 
-            done, 
-            truncated, 
-            info,
-            ) = e.step()
+            try:
+                (
+                    obs,
+                    reward,
+                    done,
+                    truncated,
+                    info,
+                ) = e.step()
+            except FifoClosedError as exc:
+                e.log.warning("%s; stopping Webots supervisor", exc)
+                return
 
             #e.log.info(f"sending {obs=}")
-            e.fifo_w.write(obs.tobytes())
-            #e.log.info(f"sending {reward=}")
-            e.fifo_w.write(reward.tobytes())
-            #e.log.info(f"sending {done=}")
-            e.fifo_w.write(done.tobytes())
-            #e.log.info(f"sending {truncated=}")
-            e.fifo_w.write(truncated.tobytes())
-            e.fifo_w.flush()
+            if not e.send_to_server(obs, reward, done, truncated):
+                return
 
             #e.log.info("finished sending everything")
             if done:

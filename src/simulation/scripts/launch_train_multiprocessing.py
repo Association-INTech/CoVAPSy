@@ -3,8 +3,13 @@ import shutil
 import sys
 from logging import DEBUG
 from pathlib import Path
-from simulation import config as c
 
+# Make the project source root importable when this script is run directly.
+SRC_DIR = Path(__file__).resolve().parents[2]
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from simulation import config as c
 from simulation import VehicleEnv
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ import numpy as np
 from webots import webots_path
 
 from . import config as c
+from utils.fifo import read_exact
 
 ObsType = Dict[str, np.ndarray]  # dict of 2D arrays (context_size, length)
 ActType = np.ndarray  # int64 array
@@ -91,6 +92,7 @@ class VehicleEnv(gym.Env):
         if vehicle_rank == 0:
             webots_env = os.environ.copy()
             webots_log = open(f"{fifo_dir}/webots_{simulation_rank}.log", "w")
+            port = 1234 + getattr(c, "PORT_OFFSET", 0) + simulation_rank
             proc = subprocess.Popen(
                 [
                     "webots",
@@ -101,6 +103,7 @@ class VehicleEnv(gym.Env):
                     "--no-rendering",
                     "--stdout",
                     "--stderr",
+                    f"--port={port}",
                 ],
                 env=webots_env,
                 stdout=webots_log,
@@ -121,7 +124,7 @@ class VehicleEnv(gym.Env):
         #self.log.info("Initialisation finished\n")
 
     def _append_observation(self, cur_state: np.ndarray) -> dict[str, np.ndarray]:
-        idx = c.n_sensors  # Skip the collision boolean at index 0
+        idx = 0
         for key in c.active_obs:
             length = c.OBS_SPECS[key]
             frame = cur_state[idx : idx + length][None, :]  # shape (1, length)
@@ -140,11 +143,10 @@ class VehicleEnv(gym.Env):
 
         if self._initial_observation_pending:
             initial_state = np.frombuffer(
-                self.fifo_r.read(
-                    np.dtype(np.float32).itemsize
-                    * (
-                       c.obs_size
-                    )
+                read_exact(
+                    self.fifo_r,
+                    np.dtype(np.float32).itemsize * c.obs_size,
+                    "Initial observation from Webots supervisor",
                 ),
                 dtype=np.float32,
             )
@@ -171,25 +173,39 @@ class VehicleEnv(gym.Env):
         # communication with the supervisor
         #self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
         cur_state = np.frombuffer(
-            self.fifo_r.read(
-                np.dtype(np.float32).itemsize
-                * (
-                    c.obs_size
-                )
+            read_exact(
+                self.fifo_r,
+                np.dtype(np.float32).itemsize * c.obs_size,
+                "Observation from Webots supervisor",
             ),
             dtype=np.float32,
         )
         #self.log.info(f"received {cur_state=}")
         reward = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32
+            read_exact(
+                self.fifo_r,
+                np.dtype(np.float32).itemsize,
+                "Reward from Webots supervisor",
+            ),
+            dtype=np.float32,
         )[0]  # scalar
         #self.log.info(f"received {reward=}")
         done = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
+            read_exact(
+                self.fifo_r,
+                np.dtype(np.bool_).itemsize,
+                "Done flag from Webots supervisor",
+            ),
+            dtype=np.bool_,
         )[0]  # scalar
         #self.log.info(f"received {done=}")
         truncated = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
+            read_exact(
+                self.fifo_r,
+                np.dtype(np.bool_).itemsize,
+                "Truncated flag from Webots supervisor",
+            ),
+            dtype=np.bool_,
         )[0]  # scalar
         #self.log.info(f"received {truncated=}")
 

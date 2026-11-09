@@ -7,6 +7,7 @@ from controller import Camera, Lidar, TouchSensor
 from vehicle import Driver
 
 from simulation import config as c
+from utils.fifo import FifoClosedError, read_exact
 from utils.simulation_rank import get_simulation_rank
 
 
@@ -140,9 +141,16 @@ class VehicleDriver(Driver):
         # then would have forwarded it to env that would compute the next action
         # so the reward would be for the previous action, not the current one
         # self.log.debug("Waiting for action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
-        action = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.int64).itemsize * 2), dtype=np.int64,
-        )
+        try:
+            action_data = read_exact(
+                self.fifo_r,
+                np.dtype(np.int64).itemsize * 2,
+                "Action from vehicle environment",
+            )
+        except FifoClosedError as exc:
+            self.log.warning("%s; stopping vehicle controller", exc)
+            return -1
+        action = np.frombuffer(action_data, dtype=np.int64)
         # self.log.info(f"received {action=}")
 
         action_steering = np.linspace(
@@ -180,7 +188,7 @@ class VehicleDriver(Driver):
 
     def _send_observation(self, obs: Dict[str, np.ndarray]):
         state = np.concatenate(
-            [obs["Collision"]] + [obs[key] for key in c.active_obs],
+            [obs[key] for key in c.active_obs],
             axis=0,
         ).astype(np.float32, copy=False)
         self.fifo_w.write(state.tobytes())

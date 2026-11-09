@@ -23,6 +23,10 @@ class CNN1DAlexNetExtractor(BaseFeaturesExtractor):
         space: spaces.Box,
         device: str = "cpu",
     ):
+        self.use_sg_velocity = self.context_size >= 5
+        self.use_controls = "Speed_Cmd" in space.spaces and "Steer_Cmd" in space.spaces
+        in_channels = (1 + int(self.use_sg_velocity)) + (self.camera_horizontal_resolution != 0)
+        motion_dim = 4 if self.use_controls else 0
         cnn = nn.Sequential(
             # shape = [batch_size, 3, 1080]
             # we now have 3 channels : lidar, camera and savitzky-golay velocity of lidar
@@ -45,17 +49,23 @@ class CNN1DAlexNetExtractor(BaseFeaturesExtractor):
             nn.Flatten(),
             # shape = [batch_size, 1920]
         )
-
         # Compute shape by doing one forward pass
         with torch.no_grad():
-            n_flatten = cnn(
-                torch.zeros([1, 3, self.horizontal_resolution], device=device)
+            n_flatten = net(
+                torch.zeros(
+                    [1, in_channels, self.horizontal_resolution]
+                )
             ).shape[1]
 
-        super().__init__(space, n_flatten + self.motion_feature_size)
+        features_dim = 64 + (16 if self.use_controls else 0)
+
+        super().__init__(space, features_dim)
 
         # we cannot assign this directly to self.cnn before calling the super constructor
-        self.net = cnn
+        self.net = net
+        self.spatial_proj = nn.Sequential(nn.Linear(n_flatten, 64), nn.ReLU())
+        if self.use_controls:
+            self.motion_proj = nn.Sequential(nn.Linear(motion_dim, 16), nn.ReLU())
 
 
     def forward(self, observations: dict[str, torch.Tensor]) -> torch.Tensor:
@@ -85,7 +95,7 @@ class CNN1DAlexNetExtractor(BaseFeaturesExtractor):
 
         # Stack the 3 spatial channels -> [B, 3, 1080] and Conv1D + Flatten -> [B, 1920]
         spatial_in = torch.stack([lidar_normalized, lidar_velocity, cam_t], dim=1)
-        flattened_cnn = self.net(spatial_in)  # shape: [B, 1920]
+        features = self.net(spatial_in)  # shape: [B, 1920]
 
         # Extract the 4 Control Scalars (Normalized to [-1, 1])
         speed_cmd_mps = controls[:, :, 0] / 3.6          # [B, 5] in m/s (0.28 to 2.5)
@@ -102,4 +112,9 @@ class CNN1DAlexNetExtractor(BaseFeaturesExtractor):
         )  # shape: [B, 4]
 
         # Concatenate right after Flatten() -> shape: [B, 1924]
-        return torch.cat([flattened_cnn, control_features], dim=1)
+        # Features and control_features projection into a balanced embedding to increase control_features weight
+        features = self.spatial_proj(features)
+        control_features = self.motion_proj(control_features)
+        # 80% features, 20% motion
+        features = torch.cat([features, control_features], dim=1)
+        return features

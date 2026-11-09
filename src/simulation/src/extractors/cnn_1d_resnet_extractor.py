@@ -19,7 +19,6 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
     def __init__(
         self,
         space: spaces.Dict,
-        device: str = "cpu",
     ):
 
         self.use_sg_velocity = self.context_size >= 5
@@ -27,48 +26,48 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
         in_channels = (1 + int(self.use_sg_velocity)) + (self.camera_horizontal_resolution != 0)
         motion_dim = 4 if self.use_controls else 0
 
-        net = nn.Sequential(
-            # shape = [batch_size, in_channels, 1024]
-            Compressor(in_channels, device=device),
-            # shape = [batch_size, 64, 256]
-            ResidualBlock(64, 64, device=device),
-            ResidualBlock(64, 64, device=device),
-            ResidualBlock(64, 64, downsample=True, device=device),
-            # shape = [batch_size, 128, 128]
-            ResidualBlock(64, 64, device=device),
-            ResidualBlock(64, 64, device=device),
-            ResidualBlock(64, 128, downsample=True, device=device),
-            # shape = [batch_size, 128, 64]
-            ResidualBlock(128, 128, device=device),
-            ResidualBlock(128, 128, device=device),
-            ResidualBlock(128, 128, downsample=True, device=device),
-            # shape = [batch_size, 256, 32]
-            ResidualBlock(128, 128, device=device),
-            ResidualBlock(128, 128, device=device),
-            ResidualBlock(128, 256, downsample=True, device=device),
-            # shape = [batch_size, 256, 16]
-            ResidualBlock(256, 256, device=device),
-            ResidualBlock(256, 256, device=device),
-            ResidualBlock(256, 256, downsample=True, device=device),
-            # shape = [batch_size, 256, 8]
-            nn.AvgPool1d(8),
-            # shape = [batch_size, 256, 1]
-            nn.Flatten(),
-            # shape = [batch_size, 256]
-        )
+        """
+        The idea behind ResNet sequence : 
+        we want to increase context channel (in_channel) and decrease spatial resolution (1024)
+        the goal is to have something like ~30 angular sector and ~60 context channel so
+        the model essentially have enough weights to know that something is a wall and where it is
+        so ideally we want the last shape to be [batch size, 64, 30]
 
+        we usually want to keep the compute per layer to be constant
+        that's why we want to either be dividing res either scaling context so we first need
+        to upscale context to a reasonable value ~16 and downscale res to a reasonable value ~512
+        """
+        net = nn.Sequential(
+            # [B, in_channels, 1024] -> [B, 16, 256]
+            Compressor(in_channels, out_channels=16),
+            # Stage 1: [B, 16, 256] -> [B, 32, 128]
+            ResidualBlock(16, 32, downsample=True),
+            ResidualBlock(32, 32),
+            # Stage 2: [B, 32, 128] -> [B, 64, 64]
+            ResidualBlock(32, 64, downsample=True),
+            ResidualBlock(64, 64),
+            # Stage 3: [B, 64, 64] -> [B, 64, 32] (Preserves 32 angular sectors!)
+            ResidualBlock(64, 64, downsample=True),
+            ResidualBlock(64, 64),
+            nn.Flatten(),  # [B, 64 * 32 = 2048]
+        )
         # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = net(
                 torch.zeros(
-                    [1, in_channels, self.horizontal_resolution], device=device
+                    [1, in_channels, self.horizontal_resolution]
                 )
             ).shape[1]
 
-        super().__init__(space, n_flatten + motion_dim)
+        features_dim = 64 + (16 if self.use_controls else 0)
+
+        super().__init__(space, features_dim)
 
         # we cannot assign this directly to self.cnn before calling the super constructor
         self.net = net
+        self.spatial_proj = nn.Sequential(nn.Linear(n_flatten, 64), nn.ReLU())
+        if self.use_controls:
+            self.motion_proj = nn.Sequential(nn.Linear(motion_dim, 16), nn.ReLU())
 
     def forward(self, observations: dict[str, torch.Tensor]) -> torch.Tensor:
         lidar_all = observations["Lidar"]          # [B, T, W]
@@ -100,23 +99,23 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
                 accel_cmd = torch.zeros_like(cur_speed_norm)
             yaw_rate = (speed_cmd_mps[:, -1:] * torch.tan(steer_cmd[:, -1:]) / self.wheelbase).clamp(-4.0, 4.0) / 4.0
             control_features = torch.cat([cur_speed_norm, cur_steer_norm, accel_cmd, yaw_rate], dim=1)
+            
+            # Features and control_features projection into a balanced embedding to increase control_features weight
+            features = self.spatial_proj(features)
+            control_features = self.motion_proj(control_features)
+            # 80% features, 20% motion
             features = torch.cat([features, control_features], dim=1)
         return features
 
 
 class Compressor(nn.Module):
-    def __init__(self, in_channels: int = 2, device: str = "cpu"):
+    def __init__(self, in_channels: int = 2, out_channels: int = 16):
         super().__init__()
-        # WARNING : do not use inplace=True because it would modify the rollout buffer
-        self.conv = nn.Conv1d(in_channels, 64, kernel_size=7, stride=2, padding=3, device=device)
-        self.dropout = nn.Dropout1d(0.3)
+        self.conv = nn.Conv1d(in_channels, out_channels, kernel_size=5, stride=2, padding=2)
         self.pool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.conv(x)
-        x = self.dropout(x)
-        x = self.pool(x)
-        return x
+        return self.pool(self.conv(x))
 
 
 class ResidualBlock(nn.Module):
@@ -128,52 +127,22 @@ class ResidualBlock(nn.Module):
         self,
         in_channels: int,
         out_channels: int,
-        downsample: bool = False,
-        device: str = "cpu",
+        downsample: bool = False
     ):
         super().__init__()
-        if downsample:
-            stride = 2
-            self.downsample = nn.Conv1d(
-                in_channels, out_channels, kernel_size=1, stride=2, device=device
-            )
-        elif in_channels == out_channels:
-            stride = 1
-            self.downsample = nn.Identity()
+        stride = 2 if downsample else 1
+        if downsample or in_channels != out_channels:
+            self.downsample = nn.Conv1d(in_channels, out_channels, kernel_size=1, stride=stride)
         else:
-            stride = 1
-            self.downsample = nn.Conv1d(
-                in_channels, out_channels, kernel_size=1, stride=1, device=device
-            )
+            self.downsample = nn.Identity()
 
-        self.bn1 = nn.BatchNorm1d(in_channels, device=device)
-        self.conv1 = nn.Conv1d(
-            in_channels,
-            out_channels,
-            kernel_size=3,
-            stride=stride,
-            padding=1,
-            device=device,
-        )
-
-        self.bn2 = nn.BatchNorm1d(out_channels, device=device)
-        self.conv2 = nn.Conv1d(
-            out_channels, out_channels, kernel_size=3, padding=1, device=device
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-        self.dropout = nn.Dropout1d(0.4)
+        self.gn1 = nn.GroupNorm(8, in_channels)
+        self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size=3, stride=stride, padding=1)
+        self.gn2 = nn.GroupNorm(8, out_channels)
+        self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size=3, stride=1, padding=1)
+        self.relu = nn.ReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        y = self.bn1(x)
-        y = self.relu(y)
-        y = self.conv1(y)
-
-        y = self.bn2(y)
-        y = self.relu(y)
-        y = self.dropout(y)
-        y = self.conv2(y)
-
-        y += self.downsample(x)
-
-        return y
+        y = self.conv1(self.relu(self.gn1(x)))
+        y = self.conv2(self.relu(self.gn2(y)))
+        return y + self.downsample(x)

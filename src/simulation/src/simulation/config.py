@@ -20,7 +20,7 @@ from extractors import (  # noqa: F401
 
 # Webots environments config
 n_map = 1
-n_simulations = 1
+n_simulations = 2
 n_vehicles = 2
 n_stupid_vehicles = 0
 n_actions_steering = 16
@@ -36,7 +36,7 @@ respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 ARCH_LIST = ["res", "resmemo", "alex"]
 MODEL_ARCH = os.environ.get("AUTOTECH_ARCH", "resmemo")
 # Automatically gives 0 for resnet, 100 for alexnet, 200 for cnn1d, etc.!
-# PORT_OFFSET = (ARCH_LIST.index(MODEL_ARCH) if MODEL_ARCH in ARCH_LIST else 0) * 100
+PORT_OFFSET = (ARCH_LIST.index(MODEL_ARCH) if MODEL_ARCH in ARCH_LIST else 0) * 100
 FIFO_DIR = f"/tmp/autotech/{MODEL_ARCH}"
 
 """
@@ -61,7 +61,7 @@ total_timesteps = 100_000
 ppo_args: Dict[str, Any] = dict(
     n_steps=1024,
     n_epochs=10,
-    batch_size=256,
+    batch_size=512,
     learning_rate=1e-3,
     gamma=0.99,
     verbose=1,
@@ -98,12 +98,12 @@ OBS_SPECS = {
     "Steer_Cmd": 1,       # Self-known in VehicleEnv
 }
 active_obs = [
+    "Collision",
     "Lidar",
     "Cam",
     "Speed_Cmd",
     "Steer_Cmd"]
-# collision is still active but we don't need to carry the information that it was 1 as the pipe is reset anyway after a crash
-obs_size = n_sensors + sum(OBS_SPECS[k] for k in active_obs)
+obs_size = sum(OBS_SPECS[k] for k in active_obs)
 
 
 
