@@ -26,40 +26,39 @@ def camera_color_profile(image: np.ndarray) -> np.ndarray:
 
         red = (
             (red_channel > 40)
-            & (red_channel > green_channel * 1.3)
-            & (red_channel > blue_channel * 1.3)
+            & (red_channel > green_channel * 1.1)
+            & (red_channel > blue_channel * 1.1)
         )
         green = (
             (green_channel > 40)
-            & (green_channel > red_channel * 1.3)
-            & (green_channel > blue_channel * 1.3)
+            & (green_channel > red_channel * 1.1)
+            & (green_channel > blue_channel * 1.1)
         )
 
         signed = green.astype(np.float32) - red.astype(np.float32)
         colored_count = (red | green).sum(axis=0)
         return signed.sum(axis=0) / np.maximum(colored_count, 1)
 
-    else : 
-        # The 1-D camera view has one row per color channel and one column per position.
-        image = np.asarray(image, dtype=np.int16).reshape(
-            3,
-            c.camera_horizontal_resolution,
-        )
-        red_channel = image[0, :]
-        green_channel = image[1, :]
-        blue_channel = image[2, :]
-    
-        red = (
-            (red_channel > 40)
-            & (red_channel > green_channel * 1.3)
-            & (red_channel > blue_channel * 1.3)
-        )
-        green = (
-            (green_channel > 40)
-            & (green_channel > red_channel * 1.3)
-            & (green_channel > blue_channel * 1.3)
-        )
-    
-        # There is one RGB sample per position, so each score is -1, 0, or +1.
-        return green.astype(np.float32) - red.astype(np.float32)
-    
+    #else : 
+    #    # The 1-D camera view has one row per color channel and one column per position.
+    #    image = np.asarray(image, dtype=np.int16).reshape(
+    #        3,
+    #        c.camera_horizontal_resolution,
+    #    )
+    #    red_channel = image[0, :]
+    #    green_channel = image[1, :]
+    #    blue_channel = image[2, :]
+#
+    #    red = (
+    #        (red_channel > 40)
+    #        & (red_channel > green_channel * 1.1)
+    #        & (red_channel > blue_channel * 1.1)
+    #    )
+    #    green = (
+    #        (green_channel > 40)
+    #        & (green_channel > red_channel * 1.1)
+    #        & (green_channel > blue_channel * 1.1)
+    #    )
+#
+    #    # There is one RGB sample per position, so each score is -1, 0, or +1.
+    #    return green.astype(np.float32) - red.astype(np.float32)

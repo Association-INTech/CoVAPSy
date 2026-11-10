@@ -16,26 +16,30 @@ from extractors import (  # noqa: F401
 )
 
 # Webots environments config
-n_map = 4 
-n_simulations = 5
-n_vehicles = 5
+n_map = 1
+n_simulations = 4
+n_vehicles = 4
 n_stupid_vehicles = 0
 n_actions_steering = 16
 n_actions_speed = 16
 lidar_max_range = 30
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 
+context_size = 1  # number of previous observations to feed to the model (1 means no memory)
+extra_context_channels = 0  # number of extra channels to add to the context (e.g. speed, steering angle, etc.)
+
 
 # Rewards
 speed_window = 10     # average the speed over the last 10 checkpoints
-speed_bonus = 0.02    # extra reward at reference speed (the checkpoint reward is 1.0)
-collision_reward = -2.0  # penalty for colliding with another vehicle or obstacle
+speed_bonus = 0.0  # extra reward at reference speed (the checkpoint reward is 1.0)
+collision_reward = -5.0  # penalty for colliding with another vehicle or obstacle
 step_reward = 0.0  # reward for taking a step 
 checkpoint_reward = 1.0  # reward for passing a checkpoint
 
 
 # Camera config
 camera_refresh_rate_divider = 4  # the camera is refreshed every sensorTime / camera
+
 
 
 # Training config
@@ -51,13 +55,15 @@ ppo_args: Dict[str, Any] = dict(
     verbose=1,
     normalize_advantage=True,
     device=device,
+    #entropy_coef=0.02,
+    #clip_range=0.15,
 )
 
 
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = DAVE2Extractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor, CameraOnlyExtractor, TemporalResNetExtractor
+ExtractorClass = CameraOnlyExtractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor, CameraOnlyExtractor, TemporalResNetExtractor
 context_size = getattr(ExtractorClass, "context_size", 1)
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
@@ -89,8 +95,6 @@ policy_kwargs: Dict[str, Any] = dict(
     net_arch=[512, 512, 512],
 )
 
-
-#TODO Fix debug mode
 
 
 # Logging config

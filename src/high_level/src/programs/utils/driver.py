@@ -76,6 +76,9 @@ class Driver:
         self.input_infos = self.ai_session.get_inputs()
         self.nb_inputs = len(self.input_infos)
 
+        metadata = self.ai_session.get_modelmeta().custom_metadata_map
+        self.input_type = metadata.get("input_type")
+
         for i, info in enumerate(self.input_infos):
             self.log.info(
                 f"Input {i}: name={info.name}, shape={info.shape}, type={info.type}"
@@ -83,7 +86,20 @@ class Driver:
 
         first_shape = self.input_infos[0].shape
 
-        if len(first_shape) == 2:
+        if self.input_type == "image":
+            if self.nb_inputs != 1 or len(first_shape) != 4:
+                raise ValueError(
+                    "Camera image models must have exactly one rank-4 input, "
+                    f"got nb_inputs={self.nb_inputs}, shape={first_shape}"
+                )
+            if isinstance(first_shape[1], int) and first_shape[1] != 3:
+                raise ValueError(
+                    f"Camera image model must have 3 channels, got {first_shape[1]}"
+                )
+            self.model_kind = "camera"
+            self.vertical_size = first_shape[-2]
+            self.horizontal_size = first_shape[-1]
+        elif len(first_shape) == 2:
             self.model_kind = "lidar_only"
             self.horizontal_size = first_shape[-1]
         elif len(first_shape) == 4 and self.nb_inputs == 1:
@@ -151,6 +167,9 @@ class Driver:
         self, lidar_data_m: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:
         return self.ai_update_lidar_camera(lidar_data_m, camera_data)
+
+    def camera_only(self, image: np.ndarray) -> Tuple[float, float]:
+        return self.camera_image(image)
 
     def ai(
         self, lidar_data: np.ndarray, camera_data: np.ndarray
@@ -283,3 +302,35 @@ class Driver:
             steering_angle = 0.0
 
         return steering_angle, speed
+
+    def camera_image(self, image: np.ndarray) -> Tuple[float, float]:
+        if not self._loaded or self.input_infos is None:
+            raise RuntimeError("Driver not initialized (AI model not loaded)")
+        if self.model_kind != "camera":
+            raise RuntimeError("Loaded model is not a camera image model")
+
+        image = np.asarray(image, dtype=np.float32)
+        if image.ndim != 3 or image.shape[0] != 3:
+            raise ValueError(f"Expected RGB image in CHW format, got {image.shape}")
+
+        model_input = self.input_infos[0]
+        expected_shape = model_input.shape[1:]
+        if all(isinstance(size, int) for size in expected_shape) and tuple(
+            image.shape
+        ) != tuple(expected_shape):
+            raise ValueError(
+                f"Camera image shape {image.shape} does not match model input {expected_shape}"
+            )
+
+        outputs = self.ai_session.run(
+            None, {model_input.name: image[np.newaxis, ...]}
+        )
+        actions = np.asarray(outputs[0], dtype=np.float32).reshape(-1)
+        if actions.size != 32:
+            raise ValueError(f"Expected 32 policy outputs, got {actions.size}")
+
+        steer_probs = softmax(actions[:16] / Temperature_steer)
+        speed_probs = softmax(actions[16:] / Temperature_vitesse)
+        angle = float(np.dot(ANGLE_LOOKUP, steer_probs))
+        speed = float(np.dot(SPEED_LOOKUP, speed_probs))
+        return angle, speed

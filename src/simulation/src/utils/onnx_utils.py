@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import onnx
 import onnxruntime as ort
 import torch
 import torch.nn as nn
@@ -34,6 +35,14 @@ def export_onnx(sb_model: OnPolicyAlgorithm, path: str):
             output_names=["output"],
             dynamic_shapes={"input": {0: "batch_size"}},
         )
+
+    onnx_model = onnx.load(path)
+    onnx.helper.set_model_props(onnx_model, {
+        "input_type": str(c.input_type),
+        "vertical_resolution": str(c.camera_vertical_resolution),
+        "horizontal_resolution": str(c.camera_horizontal_resolution),
+    })
+    onnx.save(onnx_model, path)
 
     torch_model.to(device)
     sb_model.policy.to(device)

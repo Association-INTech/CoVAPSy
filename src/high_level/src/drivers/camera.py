@@ -25,6 +25,7 @@ from high_level.autotech_constant import (
     LIMIT_COUNT_WINDOW,
 )
 
+
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
 DEBUG_DIR = "Debug"  # Directory for debug images
