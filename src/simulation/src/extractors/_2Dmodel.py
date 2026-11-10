@@ -8,8 +8,8 @@ class CameraOnlyExtractor(BaseFeaturesExtractor):
     # Read by config.py on the class itself (before any instance exists) to
     # build the environment's observation space, same as in the template.
     lidar_horizontal_resolution = 0
-    camera_horizontal_resolution = 320
-    camera_vertical_resolution = 240
+    camera_horizontal_resolution = 200
+    camera_vertical_resolution = 100
     n_sensors = 1
 
     features_dim_out = 64

@@ -23,11 +23,11 @@ SPEED_LOOKUP_MM_S = np.linspace(1.0, 9.0, 16, dtype=np.float32) * (1000.0 / 3.6)
 model_types = ["LiDAR", "LiDAR_Camera", "Camera"]
 
 class Driver:
-    def __init__(self, vertical_size = 0, horizontal_size=0):
+    def __init__(self, context_size = 0 , vertical_size = 0, horizontal_size=0):
         self.log = logging.getLogger(__name__)
         self.vertical_size = vertical_size
         self.horizontal_size = horizontal_size
-        self.context_size = 1
+        self.context_size = context_size
         self.context: np.ndarray | None = None
         self.model_kind = None
         self._loaded = False
@@ -87,9 +87,9 @@ class Driver:
         first_shape = self.input_infos[0].shape
 
         if self.input_type == "image":
-            if self.nb_inputs != 1 or len(first_shape) != 4:
+            if self.nb_inputs != 1 or len(first_shape) not in (4, 5):
                 raise ValueError(
-                    "Camera image models must have exactly one rank-4 input, "
+                    "Camera image models must have exactly one rank-4 or rank-5 input, "
                     f"got nb_inputs={self.nb_inputs}, shape={first_shape}"
                 )
             if isinstance(first_shape[1], int) and first_shape[1] != 3:
@@ -99,6 +99,17 @@ class Driver:
             self.model_kind = "camera"
             self.vertical_size = first_shape[-2]
             self.horizontal_size = first_shape[-1]
+            if len(first_shape) == 5:
+                context_size = first_shape[2]
+                if not isinstance(context_size, int) or context_size < 1:
+                    raise ValueError(
+                        "Temporal camera models must have a fixed positive context "
+                        f"dimension, got {context_size}"
+                    )
+                self.context_size = context_size
+                self.context = None
+            else:
+                self.context_size = 1
         elif len(first_shape) == 2:
             self.model_kind = "lidar_only"
             self.horizontal_size = first_shape[-1]
@@ -162,6 +173,12 @@ class Driver:
             self.context = np.zeros(
                 [2, self.context_size, self.horizontal_size], dtype=np.float32
             )
+        elif (
+            self.model_kind == "camera"
+            and self.input_infos is not None
+            and len(self.input_infos[0].shape) == 5
+        ):
+            self.context = None
 
     def omniscent(
         self, lidar_data_m: np.ndarray, camera_data: np.ndarray
@@ -315,15 +332,32 @@ class Driver:
 
         model_input = self.input_infos[0]
         expected_shape = model_input.shape[1:]
-        if all(isinstance(size, int) for size in expected_shape) and tuple(
-            image.shape
-        ) != tuple(expected_shape):
-            raise ValueError(
-                f"Camera image shape {image.shape} does not match model input {expected_shape}"
+        expected_image_shape = (
+            expected_shape[0],
+            expected_shape[-2],
+            expected_shape[-1],
+        )
+        for actual, expected in zip(image.shape, expected_image_shape):
+            if isinstance(expected, int) and actual != expected:
+                raise ValueError(
+                    f"Camera image shape {image.shape} does not match model input "
+                    f"{expected_shape}"
+                )
+
+        if len(model_input.shape) == 5:
+            if self.context is None:
+                self.context = np.zeros(
+                    (3, self.context_size, *image.shape[1:]), dtype=np.float32
+                )
+            self.context = np.concatenate(
+                [self.context[:, 1:, :, :], image[:, None, :, :]], axis=1
             )
+            model_input_data = self.context[np.newaxis, ...]
+        else:
+            model_input_data = image[np.newaxis, ...]
 
         outputs = self.ai_session.run(
-            None, {model_input.name: image[np.newaxis, ...]}
+            None, {model_input.name: model_input_data}
         )
         actions = np.asarray(outputs[0], dtype=np.float32).reshape(-1)
         if actions.size != 32:
