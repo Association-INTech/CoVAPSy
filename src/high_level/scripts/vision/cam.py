@@ -93,6 +93,6 @@ def run_test(resolution):
 if __name__ == "__main__":
     N = 100  # Number of iterations to measure
 
-    for resolution in [(3280, 2464), (1280, 720), (1920, 1080), (640, 480), (320, 240)]:
+    for resolution in [(3280, 2464), (1280, 720), (1920, 1080), (640, 480), (320, 240),(200, 100)]:  # Test different resolutions
         print(f"Testing resolution: {resolution}")
         run_test(resolution)
