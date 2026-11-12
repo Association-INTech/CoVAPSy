@@ -1,7 +1,9 @@
 import os
+import sys
 from logging import DEBUG
 from pathlib import Path
 from typing import Any, Dict
+import signal
 
 import torch.nn as nn
 from stable_baselines3 import PPO
@@ -76,3 +78,11 @@ if __name__ == "__main__":
         model.save(save_path / str(i))
 
         i += 1
+        print("RESTART", flush=True)
+
+        
+
+        try:
+            signal.pause()
+        except KeyboardInterrupt:
+            pass
