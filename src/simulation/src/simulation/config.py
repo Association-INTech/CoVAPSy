@@ -10,24 +10,42 @@ from extractors import (  # noqa: F401
     CNN1DExtractor,
     CNN1DResNetExtractor,
     CNN1DResNetNoCamExtractor,
+    DAVE2Extractor,
+    CameraOnlyExtractor,
     TemporalResNetExtractor,
 )
 
 # Webots environments config
-n_map = 4
+n_map = 1
 n_simulations = 4
-n_vehicles = 1
+n_vehicles = 4
 n_stupid_vehicles = 0
 n_actions_steering = 16
 n_actions_speed = 16
-lidar_max_range = 12.0
+lidar_max_range = 30
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
+
+context_size = 1  # number of previous observations to feed to the model (1 means no memory)
+extra_context_channels = 0  # number of extra channels to add to the context (e.g. speed, steering angle, etc.)
+
+
+# Rewards
+speed_window = 10     # average the speed over the last 10 checkpoints
+speed_bonus = 0.0  # extra reward at reference speed (the checkpoint reward is 1.0)
+collision_reward = -5.0  # penalty for colliding with another vehicle or obstacle
+step_reward = 0.0  # reward for taking a step 
+checkpoint_reward = 1.0  # reward for passing a checkpoint
+
+
+# Camera config
+camera_refresh_rate_divider = 4  # the camera is refreshed every sensorTime / camera
+
 
 
 # Training config
 device = "cuda" if is_available() else "cpu"
 save_dir = Path("~/.cache/autotech").expanduser()
-total_timesteps = 100_000
+total_timesteps = 500_000
 ppo_args: Dict[str, Any] = dict(
     n_steps=1024,
     n_epochs=10,
@@ -37,20 +55,33 @@ ppo_args: Dict[str, Any] = dict(
     verbose=1,
     normalize_advantage=True,
     device=device,
+    #entropy_coef=0.02,
+    #clip_range=0.15,
 )
+
 
 
 # Common extractor shared between the policy and value networks
 # (cf: https://stable-baselines3.readthedocs.io/en/master/guide/custom_policy.html)
-ExtractorClass = CNN1DResNetNoCamExtractor
-context_size = ExtractorClass.context_size
+ExtractorClass = CameraOnlyExtractor  # CNN1DExtractor, CNN1DResNetExtractor, CNN1DResNetNoCamExtractor, DAVE2Extractor, CameraOnlyExtractor, TemporalResNetExtractor
+context_size = getattr(ExtractorClass, "context_size", 1)
 lidar_horizontal_resolution = ExtractorClass.lidar_horizontal_resolution
 camera_horizontal_resolution = ExtractorClass.camera_horizontal_resolution
+camera_vertical_resolution = ExtractorClass.camera_vertical_resolution
+input_type = ExtractorClass.input_type
 n_sensors = ExtractorClass.n_sensors
+
+camera_data_size = (
+    camera_horizontal_resolution * camera_vertical_resolution * 3
+    if input_type == "image"
+    else camera_horizontal_resolution
+)
+observation_data_size = n_sensors + lidar_horizontal_resolution + camera_data_size
 
 if (
     lidar_horizontal_resolution != camera_horizontal_resolution
     and camera_horizontal_resolution != 0
+    and input_type != "image"
 ):
     raise NotImplementedError(
         "Unhomogenous lidar and camera shape is only supported if camera_horizontal_resolution == 0"
@@ -65,6 +96,7 @@ policy_kwargs: Dict[str, Any] = dict(
 )
 
 
+
 # Logging config
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.ERROR  # Available levels: DEBUG, INFO, WARNING, ERROR, CRITICAL, NOTSET
 FORMATTER = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")

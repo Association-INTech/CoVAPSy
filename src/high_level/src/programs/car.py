@@ -3,6 +3,7 @@ import os
 import time
 from threading import Thread
 from typing import Optional
+import cv2
 
 import numpy as np
 
@@ -59,7 +60,7 @@ def too_close(lidar_m, dir):
 
     cos = nearest / straight
 
-    # wwe never know
+    # we never know
     if not np.isfinite(cos):
         return True
 
@@ -131,18 +132,20 @@ class CrashCar:
 
 
 class Car:
-    def __init__(self, driving_strategy, server) -> None:
+    def __init__(self, driving_strategy, server, input_type) -> None:
         self.log = logging.getLogger(__name__)
         self.target_speed = 0  # Speed in millimeters per second
         self.direction = 0  # Steering angle in degrees
         self.server = server
         self.reverse_count = 0
         self.driving = driving_strategy
+        self.input_type = input_type
         self.state = 0
         self.crash_time = time.time()
         self.times_not_working = time.time()
         self.stuck = 0
         self.not_working = False
+        self.reverse_turn_attempted = False
         self.log.info("Car initialization complete")
         self.id_worst_zone = 0
 
@@ -220,6 +223,31 @@ class Car:
                 else (MIN_ANGLE, BACKWARD_IA_SPEED)
             )
 
+        return 0, 0
+
+
+    #TODO : implement an actual back function that only relies on camera and not LiDAR
+    def back_camera(self):
+        if self.tof is None or self.tof.distance <= 20:
+            self.log.warning("Reverse skipped: rear ToF unavailable or obstacle too close")
+            self.state = 0
+            return 0, 0
+    
+        self.log.info("Backing up briefly; camera policy will choose the next action")
+        self.direction = 0
+        self.target_speed = -500  # mm/s
+    
+        deadline = time.monotonic() + 1.0
+        try:
+            while time.monotonic() < deadline:
+                if self.tof.distance <= 20:
+                    self.log.warning("Reverse stopped: rear obstacle too close")
+                    break
+                time.sleep(0.05)
+        finally:
+            self.stop()
+            self.state = 0
+    
         return 0, 0
 
         # S = sum(cam)
@@ -338,132 +366,196 @@ class Car:
             pass
         self.log.info("Stopped moving forward after 1 second")
 
+
+    def reverse_camera(self) -> None:
+        timeout = 5.0
+        deadline = time.monotonic() + timeout
+        self.log.info("Starting camera-guided U-turn")
+        self.direction = MAX_ANGLE
+        self.target_speed = 500  # mm/s
+        try:
+            while (
+                self.server.camera_red_or_green.is_reverse
+                and time.monotonic() < deadline
+            ):
+                time.sleep(0.05)
+            if self.server.camera_red_or_green.is_reverse:
+                self.log.warning("U-turn timed out before camera detected forward")
+            else:
+                self.log.info("U-turn complete; camera detected forward")
+        finally:
+            self.stop()
+
     def main(self) -> None:
-        # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
-        if self.camera is None or self.lidar is None:
-            self.log.debug("Sensors not yet ready")
-            return
-        lidar_data = self.lidar.r_distance.copy()  # convert to meters
-        # print(
-        #     "len(np.where(lidar_data == 0)[0]) =", len(np.where(lidar_data_m == 0)[0])
-        # )
-        lidar_data_m = lidar_data / 1000
-        # convert to meters and add Gaussian noise. We manipulate the data provided to the AI
-        camera_data = self.camera.camera_matrix()  # retrieve camera data
 
-        if self.server.arduino_I2C.current_speed == 0 and not self.not_working:
-            self.times_not_working = time.time()
-            self.not_working = True
+        if self.input_type == "image":
+            if self.camera is None :
+                self.log.debug("Camera not yet ready")
+                return
+            camera_data = self.camera.get_last_image() # retrieve camera data
+            #shape = (3, self.camera_vertical_resolution, self.camera_horizontal_resolution)
+            camera_data = camera_data.transpose(2, 0, 1).astype(np.float32) / 255.0
+            #shape = (3, self.camera_vertical_resolution, self.camera_horizontal_resolution)
 
-        if self.server.arduino_I2C.current_speed > 0:
-            self.not_working = False
+            if self.server.arduino_I2C.current_speed == 0 and not self.not_working:
+                self.times_not_working = time.time()
+                self.not_working = True
+        
+            if self.server.arduino_I2C.current_speed > 0:
+                self.not_working = False
 
-        # if self.not_working and time.time() - self.times_not_working > 3:
-        #     self.log.info("Car seems to be stuck, trying to reverse")
+            if self.server.camera_red_or_green.is_reverse:
+                if not self.reverse_turn_attempted:
+                    self.reverse_turn_attempted = True
+                    self.reverse_camera()
+                else:
+                    self.stop()
+                return
+            else:
+                self.reverse_turn_attempted = False
+            self.ancien_state = self.state
 
-        #     if self.stuck == 0:
-        #         self.direction = MIN_ANGLE
-        #         self.target_speed = MAX_IA_SPEED
-        #     elif self.stuck == 1:
-        #         self.direction = MAX_ANGLE
-        #         self.target_speed = MAX_IA_SPEED
-        #     elif self.stuck == 2:
-        #         self.direction = 0
-        #         self.target_speed = MAX_IA_SPEED
-        #     elif self.stuck == 3:
-        #         self.direction = MIN_ANGLE
-        #         self.target_speed = BACKWARD_IA_SPEED
-        #     elif self.stuck == 1:
-        #         self.direction = MAX_ANGLE
-        #         self.target_speed = BACKWARD_IA_SPEED
-        #     elif self.stuck == 2:
-        #         self.direction = 0
-        #         self.target_speed = BACKWARD_IA_SPEED
+            if (
+                self.server.crash_car.crashed
+                and self.server.arduino_I2C.current_speed < 1000
+            ):
+                self.crash_time = time.time()
+                self.state = 1
 
-        if self.server.camera_red_or_green.is_reverse:
-            self.reverse_car()
-        self.ancien_state = self.state
-        if (
-            self.server.crash_car.crashed
-            and self.server.arduino_I2C.current_speed < 1000
-        ):
-            self.crash_time = time.time()
-            self.state = 1
+            if self.state == 1:
+                self.direction, self.target_speed = self.back_camera()
+                if time.time() - self.crash_time > 2:
+                    self.crash_time = time.time()
+                    self.state = 0
+            else:
+                self.direction, self.target_speed = self.driving(camera_data)
 
-        if self.ancien_state == 0 and self.state == 1:
-            lidar_mm = np.asarray(lidar_data_m, dtype=np.float32) * 1000.0
+        if self.input_type != "image":
+            # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
+            if self.camera is None or self.lidar is None:
+                self.log.debug("Sensors not yet ready")
+                return
+            lidar_data = self.lidar.r_distance.copy()  # convert to meters
+            # print(
+            #     "len(np.where(lidar_data == 0)[0]) =", len(np.where(lidar_data_m == 0)[0])
+            # )
+            lidar_data_m = lidar_data / 1000
+            # convert to meters and add Gaussian noise. We manipulate the data provided to the AI
+            camera_data = self.camera.camera_matrix()  # retrieve camera data
 
-            ref = self.server.crash_car.reference_lidar
+            if self.server.arduino_I2C.current_speed == 0 and not self.not_working:
+                self.times_not_working = time.time()
+                self.not_working = True
 
-            zone_bounds = [
-                Border_zone.ZONE1,
-                Border_zone.ZONE2,
-                Border_zone.ZONE3,
-                Border_zone.ZONE4,
-            ]
+            if self.server.arduino_I2C.current_speed > 0:
+                self.not_working = False
 
-            zone_scores = []
-            zone_counts = []
-            zone_max_pen = []
+            # if self.not_working and time.time() - self.times_not_working > 3:
+            #     self.log.info("Car seems to be stuck, trying to reverse")
 
-            for start, end in zone_bounds:
-                score, count, max_pen = self._zone_penetration_score(
-                    lidar_mm, ref, start, end
+            #     if self.stuck == 0:
+            #         self.direction = MIN_ANGLE
+            #         self.target_speed = MAX_IA_SPEED
+            #     elif self.stuck == 1:
+            #         self.direction = MAX_ANGLE
+            #         self.target_speed = MAX_IA_SPEED
+            #     elif self.stuck == 2:
+            #         self.direction = 0
+            #         self.target_speed = MAX_IA_SPEED
+            #     elif self.stuck == 3:
+            #         self.direction = MIN_ANGLE
+            #         self.target_speed = BACKWARD_IA_SPEED
+            #     elif self.stuck == 1:
+            #         self.direction = MAX_ANGLE
+            #         self.target_speed = BACKWARD_IA_SPEED
+            #     elif self.stuck == 2:
+            #         self.direction = 0
+            #         self.target_speed = BACKWARD_IA_SPEED
+
+            if self.server.camera_red_or_green.is_reverse:
+                self.reverse_car()
+            self.ancien_state = self.state
+            if (
+                self.server.crash_car.crashed
+                and self.server.arduino_I2C.current_speed < 1000
+            ):
+                self.crash_time = time.time()
+                self.state = 1
+
+            if self.ancien_state == 0 and self.state == 1:
+                lidar_mm = np.asarray(lidar_data_m, dtype=np.float32) * 1000.0
+
+                ref = self.server.crash_car.reference_lidar
+
+                zone_bounds = [
+                    Border_zone.ZONE1,
+                    Border_zone.ZONE2,
+                    Border_zone.ZONE3,
+                    Border_zone.ZONE4,
+                ]
+
+                zone_scores = []
+                zone_counts = []
+                zone_max_pen = []
+
+                for start, end in zone_bounds:
+                    score, count, max_pen = self._zone_penetration_score(
+                        lidar_mm, ref, start, end
+                    )
+                    zone_scores.append(score)
+                    zone_counts.append(count)
+                    zone_max_pen.append(max_pen)
+
+                self.log.debug(
+                    f"Back zone scores={zone_scores}, counts={zone_counts}, max_pen={zone_max_pen}"
                 )
-                zone_scores.append(score)
-                zone_counts.append(count)
-                zone_max_pen.append(max_pen)
+
+                self.id_worst_zone = int(np.argmax(zone_scores))
+
+            if self.state == 1:
+                self.direction, self.target_speed = self.back(lidar_data_m, camera_data)
+                if time.time() - self.crash_time > 2:
+                    self.crash_time = time.time()
+                    self.state = 0
+            else:
+                self.direction, self.target_speed = self.driving(lidar_data_m, camera_data)
 
             self.log.debug(
-                f"Back zone scores={zone_scores}, counts={zone_counts}, max_pen={zone_max_pen}"
+                f"Min Lidar: {min(lidar_data_m)}, Max Lidar: {max(lidar_data_m)}"
             )
 
-            self.id_worst_zone = int(np.argmax(zone_scores))
+            """
+            if self.camera.is_running_in_reversed():
+                self.reverse_count += 1
+            else:
+                self.reverse_count = 0
+            if self.reverse_count > 2:
+                self.turn_around()
+                self.reverse_count = 0
 
-        if self.state == 1:
-            self.direction, self.target_speed = self.back(lidar_data_m, camera_data)
-            if time.time() - self.crash_time > 2:
-                self.crash_time = time.time()
-                self.state = 0
-        else:
-            self.direction, self.target_speed = self.driving(lidar_data_m, camera_data)
-
-        self.log.debug(
-            f"Min Lidar: {min(lidar_data_m)}, Max Lidar: {max(lidar_data_m)}"
-        )
-
-        """
-        if self.camera.is_running_in_reversed():
-            self.reverse_count += 1
-        else:
-            self.reverse_count = 0
-        if self.reverse_count > 2:
-            self.turn_around()
-            self.reverse_count = 0
-
-        if self.server.crash_car.crashed:
-            self.log.info("Obstacle detected")
-            color = self.camera.is_green_or_red(lidar_data)
-            if color == 0:
-                small_distances = [
-                    d for d in self.lidar.r_distance if 0 < d < CRASH_DIST
-                ]
-                if len(small_distances) == 0:
-                    self.log.info("No obstacle detected")
-                    return
-                min_index = np.argmin(small_distances)
-                direction = (
-                    MAX_ANGLE if min_index < 540 else -MAX_ANGLE
-                )  # 540 is the middle of the lidar
-                color = direction / direction
-                self.log.info("Obstacle detected, Lidar Fallback")
-            if color == -1:
-                self.log.info("Red obstacle detected")
-            if color == 1:
-                self.log.info("Green obstacle detected")
-            angle = -color * MAX_ANGLE
-            self.target_speed = -2
-            self.direction = angle"""
+            if self.server.crash_car.crashed:
+                self.log.info("Obstacle detected")
+                color = self.camera.is_green_or_red(lidar_data)
+                if color == 0:
+                    small_distances = [
+                        d for d in self.lidar.r_distance if 0 < d < CRASH_DIST
+                    ]
+                    if len(small_distances) == 0:
+                        self.log.info("No obstacle detected")
+                        return
+                    min_index = np.argmin(small_distances)
+                    direction = (
+                        MAX_ANGLE if min_index < 540 else -MAX_ANGLE
+                    )  # 540 is the middle of the lidar
+                    color = direction / direction
+                    self.log.info("Obstacle detected, Lidar Fallback")
+                if color == -1:
+                    self.log.info("Red obstacle detected")
+                if color == 1:
+                    self.log.info("Green obstacle detected")
+                angle = -color * MAX_ANGLE
+                self.target_speed = -2
+                self.direction = angle"""
 
 
 class AIProgram(Program):
@@ -513,9 +605,12 @@ class AIProgram(Program):
         self.model = model
         self.driver.load_model(model)
 
-        driving_strategy = self.driver.omniscent
+        if self.driver.model_kind == "camera":
+            driving_strategy = self.driver.camera_only
+        else:
+            driving_strategy = self.driver.omniscent
 
-        self.GR86 = Car(driving_strategy, self.server)
+        self.GR86 = Car(driving_strategy, self.server, input_type=self.driver.input_type)
 
     def start(self, model_give: Optional[str] = None) -> None:
 

@@ -5,10 +5,12 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 
 class CNN1DResNetExtractor(BaseFeaturesExtractor):
-    context_size = 1
     lidar_horizontal_resolution = 1024
     camera_horizontal_resolution = 1024
+    camera_vertical_resolution = 1
     n_sensors = 1
+
+    input_type = "LiDAR+Camera"
 
     # just an alias to avoid confusion because
     # the lidar and camera have the same resolution
@@ -53,7 +55,7 @@ class CNN1DResNetExtractor(BaseFeaturesExtractor):
         with torch.no_grad():
             n_flatten = net(
                 torch.zeros(
-                    [1, 2, self.context_size, self.horizontal_resolution], device=device
+                    [1, 2, self.horizontal_resolution], device=device
                 )
             ).shape[1]
 
@@ -75,7 +77,7 @@ class Compressor(nn.Module):
         self.pool = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x[:, :, 0]
+        # expect x.shape = [batch_size, 2, 1024]
         x = self.conv(x)
         x = self.dropout(x)
         x = self.pool(x)

@@ -20,15 +20,18 @@ from high_level.autotech_constant import (
 STEER_LOOKUP_DEG = np.rad2deg(np.linspace(-0.4, 0.4, 16, dtype=np.float32))
 SPEED_LOOKUP_MM_S = np.linspace(1.0, 9.0, 16, dtype=np.float32) * (1000.0 / 3.6)
 
+model_types = ["LiDAR", "LiDAR_Camera", "Camera"]
 
 class Driver:
-    def __init__(self, context_size=0, horizontal_size=0):
+    def __init__(self, context_size = 0 , vertical_size = 0, horizontal_size=0):
         self.log = logging.getLogger(__name__)
-        self.context_size = context_size
+        self.vertical_size = vertical_size
         self.horizontal_size = horizontal_size
+        self.context_size = context_size
+        self.context: np.ndarray | None = None
+        self.model_kind = None
         self._loaded = False
         self.ai_session: InferenceSession
-        self.context: np.ndarray
         self.input_infos = None
         self.nb_inputs = 0
 
@@ -73,6 +76,9 @@ class Driver:
         self.input_infos = self.ai_session.get_inputs()
         self.nb_inputs = len(self.input_infos)
 
+        metadata = self.ai_session.get_modelmeta().custom_metadata_map
+        self.input_type = metadata.get("input_type")
+
         for i, info in enumerate(self.input_infos):
             self.log.info(
                 f"Input {i}: name={info.name}, shape={info.shape}, type={info.type}"
@@ -80,13 +86,38 @@ class Driver:
 
         first_shape = self.input_infos[0].shape
 
-        if len(first_shape) == 2:
+        if self.input_type == "image":
+            if self.nb_inputs != 1 or len(first_shape) not in (4, 5):
+                raise ValueError(
+                    "Camera image models must have exactly one rank-4 or rank-5 input, "
+                    f"got nb_inputs={self.nb_inputs}, shape={first_shape}"
+                )
+            if isinstance(first_shape[1], int) and first_shape[1] != 3:
+                raise ValueError(
+                    f"Camera image model must have 3 channels, got {first_shape[1]}"
+                )
+            self.model_kind = "camera"
+            self.vertical_size = first_shape[-2]
+            self.horizontal_size = first_shape[-1]
+            if len(first_shape) == 5:
+                context_size = first_shape[2]
+                if not isinstance(context_size, int) or context_size < 1:
+                    raise ValueError(
+                        "Temporal camera models must have a fixed positive context "
+                        f"dimension, got {context_size}"
+                    )
+                self.context_size = context_size
+                self.context = None
+            else:
+                self.context_size = 1
+        elif len(first_shape) == 2:
             self.model_kind = "lidar_only"
-            self.context_size = 1
             self.horizontal_size = first_shape[-1]
         elif len(first_shape) == 4 and self.nb_inputs == 1:
             self.model_kind = "fused"
-            self.context_size = first_shape[-2]
+            self.context_size = (
+                first_shape[-2] if isinstance(first_shape[-2], int) else 1
+            )
             self.horizontal_size = first_shape[-1]
             self.context = np.zeros(
                 [2, self.context_size, self.horizontal_size], dtype=np.float32
@@ -100,9 +131,6 @@ class Driver:
 
         self._loaded = True
         self.log.info(f"AI model loaded with {self.nb_inputs} real input(s)")
-        # self.context = np.zeros(
-        #     [2, self.context_size, self.horizontal_size], dtype=np.float32
-        # )
 
     def _resize_1d(self, arr: np.ndarray, target_width: int) -> np.ndarray:
         arr = np.asarray(arr, dtype=np.float32).reshape(-1)
@@ -118,7 +146,6 @@ class Driver:
         Like Webots:
         convert in meters, replace nan with 0, inf with 30, and resize to horizontal_size
         """
-        # print("len(np.where(lidar_data == 0)[0]) =", len(np.where(lidar_data == 0)[0]))
         lidar_m = np.asarray(lidar_data, dtype=np.float32).reshape(-1)
         lidar_m = np.nan_to_num(lidar_m, nan=0.0, posinf=30.0, neginf=0.0)
         lidar_m = np.clip(lidar_m, 0.0, 30.0)
@@ -142,15 +169,24 @@ class Driver:
         return self.nb_inputs
 
     def reset(self):
-        self.context = np.zeros(
-            [2, self.context_size, self.horizontal_size], dtype=np.float32
-        )
-        pass
+        if self.model_kind == "fused":
+            self.context = np.zeros(
+                [2, self.context_size, self.horizontal_size], dtype=np.float32
+            )
+        elif (
+            self.model_kind == "camera"
+            and self.input_infos is not None
+            and len(self.input_infos[0].shape) == 5
+        ):
+            self.context = None
 
     def omniscent(
         self, lidar_data_m: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:
         return self.ai_update_lidar_camera(lidar_data_m, camera_data)
+
+    def camera_only(self, image: np.ndarray) -> Tuple[float, float]:
+        return self.camera_image(image)
 
     def ai(
         self, lidar_data: np.ndarray, camera_data: np.ndarray
@@ -175,28 +211,17 @@ class Driver:
         lidar_data_m = self._resize_lidar_like_webots(lidar_data_m)[::-1]
         # print("lidar_data_m =", lidar_data_m)
         camera_data = self._resize_camera_like_webots(camera_data)
-        camera_data = np.zeros_like(camera_data)
         new_frame = np.stack([lidar_data_m, camera_data], axis=0)[:, None, :]  # (2,1,W)
-
         if self.context_size > 1:
+            if self.context is None:
+                raise RuntimeError("Temporal model context has not been initialized")
             self.context = np.concatenate(
-                [self.context[:, 1:], [lidar_data_m, camera_data]], axis=1
+                [self.context[:, 1:, :], new_frame], axis=1
             )
         else:
             self.context = new_frame
 
         input_name = self.input_infos[0].name
-        # print(lidar_data_m.tolist())
-        # print(len(np.where(lidar_data_m == 0)[0]))
-        lidar_data_m[np.where(lidar_data_m == 0)] = 30
-        # print(
-        #     "min_lidar",
-        #     np.min(lidar_data_m),
-        #     "max_lidar",
-        #     np.max(lidar_data_m),
-        #     "mean_lidar",
-        #     np.mean(lidar_data_m),
-        # )
         vect = cast(
             np.ndarray,
             self.ai_session.run(None, {input_name: self.context[None]})[0],
@@ -229,8 +254,8 @@ class Driver:
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in
 
-        vect_dir = softmax(vect_dir / Temperature)  # probability distribution
-        vect_prop = softmax(vect_prop)
+        vect_dir = softmax(vect_dir / Temperature_steer)  # probability distribution
+        vect_prop = softmax(vect_prop / Temperature_vitesse)
 
         angle = sum(ANGLE_LOOKUP * vect_dir)  # weighted average of angles
         # weighted average of speeds
@@ -294,3 +319,52 @@ class Driver:
             steering_angle = 0.0
 
         return steering_angle, speed
+
+    def camera_image(self, image: np.ndarray) -> Tuple[float, float]:
+        if not self._loaded or self.input_infos is None:
+            raise RuntimeError("Driver not initialized (AI model not loaded)")
+        if self.model_kind != "camera":
+            raise RuntimeError("Loaded model is not a camera image model")
+
+        image = np.asarray(image, dtype=np.float32)
+        if image.ndim != 3 or image.shape[0] != 3:
+            raise ValueError(f"Expected RGB image in CHW format, got {image.shape}")
+
+        model_input = self.input_infos[0]
+        expected_shape = model_input.shape[1:]
+        expected_image_shape = (
+            expected_shape[0],
+            expected_shape[-2],
+            expected_shape[-1],
+        )
+        for actual, expected in zip(image.shape, expected_image_shape):
+            if isinstance(expected, int) and actual != expected:
+                raise ValueError(
+                    f"Camera image shape {image.shape} does not match model input "
+                    f"{expected_shape}"
+                )
+
+        if len(model_input.shape) == 5:
+            if self.context is None:
+                self.context = np.zeros(
+                    (3, self.context_size, *image.shape[1:]), dtype=np.float32
+                )
+            self.context = np.concatenate(
+                [self.context[:, 1:, :, :], image[:, None, :, :]], axis=1
+            )
+            model_input_data = self.context[np.newaxis, ...]
+        else:
+            model_input_data = image[np.newaxis, ...]
+
+        outputs = self.ai_session.run(
+            None, {model_input.name: model_input_data}
+        )
+        actions = np.asarray(outputs[0], dtype=np.float32).reshape(-1)
+        if actions.size != 32:
+            raise ValueError(f"Expected 32 policy outputs, got {actions.size}")
+
+        steer_probs = softmax(actions[:16] / Temperature_steer)
+        speed_probs = softmax(actions[16:] / Temperature_vitesse)
+        angle = float(np.dot(ANGLE_LOOKUP, steer_probs))
+        speed = float(np.dot(SPEED_LOOKUP, speed_probs))
+        return angle, speed

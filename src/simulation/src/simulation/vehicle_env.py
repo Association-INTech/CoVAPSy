@@ -57,27 +57,34 @@ class VehicleEnv(gym.Env):
 
         self.log.info("Initialisation started")
 
-        # 2 channels if camera_horizontal_resolution != 0
-        # 1 channel otherwise
-        box_min = np.zeros(
-            [
+        if c.input_type != "image":
+            # 2 channels if camera_horizontal_resolution != 0
+            # 1 channel otherwise
+            observation_shape = [
                 1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
                 c.lidar_horizontal_resolution,
-            ],
-            dtype=np.float32,
-        )
-        box_max = np.full(
-            [
-                1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
-                c.lidar_horizontal_resolution,
-            ],
-            30,
-            dtype=np.float32,
-        )
+            ]
+            if c.context_size > 1:
+                observation_shape.insert(1, c.context_size)
+            box_min = np.zeros(
+                observation_shape,
+                dtype=np.float32,
+            )
+            if c.camera_horizontal_resolution:
+                box_min[1] = -1
+            box_max = np.full(observation_shape, 1, dtype=np.float32)
 
-        self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
+            self.observation_space = gym.spaces.Box(box_min, box_max, dtype=np.float32)
+        else:
+            shape = (
+                3,
+                c.camera_vertical_resolution,
+                c.camera_horizontal_resolution,
+            )
+            self.observation_space = gym.spaces.Box(
+                0.0, 1.0, shape=shape, dtype=np.float32
+            )
+
         self.action_space = gym.spaces.MultiDiscrete(
             [c.n_actions_steering, c.n_actions_speed]
         )
@@ -123,14 +130,25 @@ class VehicleEnv(gym.Env):
 
         # 2 channels if camera_horizontal_resolution != 0
         # 1 channel otherwise
-        self.context = obs = np.zeros(
-            [
+        if c.input_type != "image":
+            observation_shape = [
                 1 + (c.camera_horizontal_resolution != 0),
-                c.context_size,
                 c.lidar_horizontal_resolution,
-            ],
-            dtype=np.float32,
-        )
+            ]
+            if c.context_size > 1:
+                observation_shape.insert(1, c.context_size)
+            obs = np.zeros(observation_shape, dtype=np.float32)
+            if c.context_size > 1:
+                self.context = obs
+        else:
+            obs = np.zeros(
+                [
+                    3,
+                    c.camera_vertical_resolution,
+                    c.camera_horizontal_resolution,
+                ],
+                dtype=np.float32,
+            )
 
         info = {}
         self.log.info("reset finished\n")
@@ -138,52 +156,80 @@ class VehicleEnv(gym.Env):
 
     def step(self, action: ActType):
         self.log.info("Starting step")
-        self.log.info(f"sending {action=}")
-        self.fifo_w.write(action.tobytes())
+        self.log.info("sending action=%r", action)
+        action_bytes = action.tobytes()
+        self.fifo_w.write(action_bytes)
         self.fifo_w.flush()
 
         # communication with the supervisor
-        self.log.info(f"Waiting for (obs, reward, done, truncated) from SUPERVISOR_{self.simulation_rank}_{self.vehicle_rank}")
+        self.log.info(
+            "Waiting for (obs, reward, done, truncated) from SUPERVISOR_%s_%s",
+            self.simulation_rank,
+            self.vehicle_rank,
+        )
+        observation_bytes = self.fifo_r.read(
+            np.dtype(np.float32).itemsize * c.observation_data_size
+        )
         cur_state = np.frombuffer(
-            self.fifo_r.read(
-                np.dtype(np.float32).itemsize
-                * (
-                    c.n_sensors
-                    + c.lidar_horizontal_resolution
-                    + c.camera_horizontal_resolution
-                )
-            ),
+            observation_bytes,
             dtype=np.float32,
         )
-        self.log.info(f"received {cur_state=}")
+        self.log.info("received cur_state=%r", cur_state)
         reward = np.frombuffer(
             self.fifo_r.read(np.dtype(np.float32).itemsize), dtype=np.float32
         )[0]  # scalar
-        self.log.info(f"received {reward=}")
+        self.log.info("received reward=%r", reward)
         done = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
+            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
         )[0]  # scalar
-        self.log.info(f"received {done=}")
+        self.log.info("received done=%r", done)
         truncated = np.frombuffer(
-            self.fifo_r.read(np.dtype(np.bool).itemsize), dtype=np.bool
+            self.fifo_r.read(np.dtype(np.bool_).itemsize), dtype=np.bool_
         )[0]  # scalar
-        self.log.info(f"received {truncated=}")
+        self.log.info("received truncated=%r", truncated)
         info = {}
 
-        cur_state = np.nan_to_num(cur_state[c.n_sensors :], nan=0.0, posinf=30.0)
+        cur_state = np.nan_to_num(cur_state[c.n_sensors :], nan=0.0, posinf=1.0)
 
-        lidar_obs = cur_state[: c.lidar_horizontal_resolution]
-        camera_obs = cur_state[c.lidar_horizontal_resolution :]
+        if c.input_type == "LiDAR":
+            lidar_obs = cur_state[: c.lidar_horizontal_resolution]
+            lidar_obs = np.clip(lidar_obs, 0.0, c.lidar_max_range)
+            lidar_obs = lidar_obs / c.lidar_max_range
+            frame = lidar_obs[None, :]
 
-        if c.camera_horizontal_resolution == 0:
-            self.context = obs = np.concatenate(
-                [self.context[:, 1:], lidar_obs[None, None]], axis=1
+            self.log.info("step over")
+            return self._with_context(frame), reward, done, truncated, info
+
+        elif c.input_type == "LiDAR+Camera":
+            lidar_obs = cur_state[: c.lidar_horizontal_resolution]
+            lidar_obs = np.clip(lidar_obs, 0.0, c.lidar_max_range)
+            lidar_obs = lidar_obs / c.lidar_max_range
+
+            camera_obs = cur_state[c.lidar_horizontal_resolution :]
+
+            frame = np.stack([lidar_obs, camera_obs], axis=0)
+
+            self.log.info("step over")
+            return self._with_context(frame), reward, done, truncated, info
+
+        elif c.input_type == "image":
+            camera_obs = cur_state[c.lidar_horizontal_resolution :]
+            camera_obs = camera_obs.reshape(
+                c.camera_vertical_resolution,
+                c.camera_horizontal_resolution,
+                3,
             )
-        else:
-            self.context = obs = np.concatenate(
-                [self.context[:, 1:], [lidar_obs[None], camera_obs[None]]], axis=1
-            )
+            obs = camera_obs.transpose(2, 0, 1) / 255.0
 
-        self.log.info("step over")
+            self.log.info("step over")
 
-        return obs, reward, done, truncated, info
+            return obs, reward, done, truncated, info
+
+    def _with_context(self, frame: np.ndarray) -> np.ndarray:
+        if c.context_size <= 1:
+            return frame
+
+        self.context = np.concatenate(
+            [self.context[:, 1:, :], frame[:, None, :]], axis=1
+        )
+        return self.context

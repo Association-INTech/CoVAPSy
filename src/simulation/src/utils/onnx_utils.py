@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import onnx
 import onnxruntime as ort
 import torch
 import torch.nn as nn
@@ -22,12 +23,7 @@ def export_onnx(sb_model: OnPolicyAlgorithm, path: str):
     torch_model = get_torch_model(sb_model)
     torch_model.eval()
 
-    example_input = torch.randn(
-        1,
-        1 + (c.camera_horizontal_resolution != 0),
-        c.context_size,
-        c.lidar_horizontal_resolution,
-    )
+    example_input = torch.randn(1, *sb_model.observation_space.shape)
 
     with torch.no_grad():
         torch.onnx.export(
@@ -39,6 +35,14 @@ def export_onnx(sb_model: OnPolicyAlgorithm, path: str):
             output_names=["output"],
             dynamic_shapes={"input": {0: "batch_size"}},
         )
+
+    onnx_model = onnx.load(path)
+    onnx.helper.set_model_props(onnx_model, {
+        "input_type": str(c.input_type),
+        "vertical_resolution": str(c.camera_vertical_resolution),
+        "horizontal_resolution": str(c.camera_horizontal_resolution),
+    })
+    onnx.save(onnx_model, path)
 
     torch_model.to(device)
     sb_model.policy.to(device)
@@ -55,12 +59,7 @@ def test_onnx(model: OnPolicyAlgorithm):
     true_model = get_torch_model(model)
 
     loss_fn = nn.MSELoss()
-    x = torch.randn(
-        1000,
-        1 + (c.camera_horizontal_resolution != 0),
-        c.context_size,
-        c.lidar_horizontal_resolution,
-    )
+    x = torch.randn(1000, *model.observation_space.shape)
 
     try:
         class_name = model.policy.features_extractor.__class__.__name__

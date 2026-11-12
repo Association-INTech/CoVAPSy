@@ -8,7 +8,6 @@ import onnxruntime as ort
 import simulation.config as c
 from extractors import (  # noqa: F401
     CNN1DResNetExtractor,
-    TemporalResNetExtractor,
 )
 from simulation import VehicleEnv
 from utils import run_onnx_model
@@ -68,9 +67,6 @@ if __name__ == "__main__":
             print(f"Episode(s) finished after {step_count} steps.")
             step_count = 0
 
-            fresh_frame = next_obs[:, -1:]
             obs, _ = env.reset()
-            env.context[:, -1:] = fresh_frame
-            obs = env.context
         else:
             obs = next_obs

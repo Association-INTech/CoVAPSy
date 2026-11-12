@@ -25,6 +25,7 @@ from high_level.autotech_constant import (
     LIMIT_COUNT_WINDOW,
 )
 
+
 N_IMAGES = 100  # Number of images to capture
 SAVE_DIR = "Captured_Frames"  # Directory to save frames
 DEBUG_DIR = "Debug"  # Directory for debug images
@@ -169,7 +170,7 @@ class Camera:
             img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
 
             # optional but recommended (algorithm stability)
-            img_rgb = cv2.resize(img_rgb, (320, 240))
+            img_rgb = cv2.resize(img_rgb, (200, 100))
 
             with self._lock:
                 self.last_frame = img_rgb

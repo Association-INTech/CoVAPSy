@@ -1,15 +1,15 @@
-#VRML_SIM R2023b utf8
+#VRML_SIM R2025a utf8
 
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 IMPORTABLE EXTERNPROTO "../protos/TT02_2023b.proto"
 
 WorldInfo {
-  basicTimeStep 25.0
+  basicTimeStep 25
 }
 Viewpoint {
   orientation -0.15612198054631546 0.9765966041367921 -0.1479357968132854 1.0925600380817375
-  position -4.358310869136509 0.22057219692934066 6.606172543946735
+  position -14.770451621843817 4.919714567666571 25.402923899261722
   followType "Mounted Shot"
 }
 TexturedBackground {
@@ -2214,6 +2214,7 @@ Solid {
   children [
     Shape {
       appearance PBRAppearance {
+        roughness 1
       }
       geometry Box {
         size 10 10 0.1
@@ -2228,9 +2229,7 @@ Solid {
   }
 }
 DEF WorldInit Robot {
-  supervisor TRUE
   name "WorldInit"
   controller "controller_world_init"
-  children [
-  ]
+  supervisor TRUE
 }

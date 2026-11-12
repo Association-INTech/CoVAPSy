@@ -12,6 +12,8 @@ from webots.controllers.controller_world_supervisor import (
     checkpoints,
 )
 
+from collections import deque
+
 supervisor = Supervisor()
 
 checkpoint_positions = [
@@ -102,22 +104,21 @@ class WebotsVehicleManager:
             f"TT02_{self.vehicle_rank}"
         ).getField("rotation")  # may cause access issues ...
 
+        # (time, x, y) at each checkpoint passed; window of N checkpoints = N intervals
+        self.passed = deque(maxlen=c.speed_window + 1)
+        self.v_ref = self.v_max / 3.6   # km/h -> m/s, the top speed the car can command
+
     # returns the lidar data of all vehicles
     def observe(self):
-        # gets from Vehicle
-        self.log.info(f"Waiting for obs from VEHICLE_{self.simulation_rank}_{self.vehicle_rank}")
-        obs = np.frombuffer(
-            self.fifo_r.read(
-                np.dtype(np.float32).itemsize
-                * (
-                    c.n_sensors
-                    + c.lidar_horizontal_resolution
-                    + c.camera_horizontal_resolution
-                )
-            ),
-            dtype=np.float32,
+        expected_bytes = np.dtype(np.float32).itemsize * c.observation_data_size
+        self.log.info(
+            "Waiting for obs from VEHICLE_%s_%s",
+            self.simulation_rank,
+            self.vehicle_rank,
         )
-        self.log.debug(f"observing {obs=}")
+        obs_bytes = self.fifo_r.read(expected_bytes)
+        obs = np.frombuffer(obs_bytes, dtype=np.float32)
+        self.log.debug("observing obs=%r", obs)
         return obs
 
     # reset the gym environment reset
@@ -138,30 +139,41 @@ class WebotsVehicleManager:
             self.rotation_field.setSFRotation(rot)
             self.checkpoint_manager.update()
 
+            self.passed.clear()
+
             vehicle.resetPhysics()
             self.log.info("vehicle reset done")
 
-        obs = np.zeros(
-            c.n_sensors
-            + c.lidar_horizontal_resolution
-            + c.camera_horizontal_resolution,
-            dtype=np.float32,
-        )
+        obs = np.zeros(c.observation_data_size, dtype=np.float32)
         info = {}
         return obs, info
+
+
+    def speed_bonus(self):
+        """Average speed (m/s) over the last checkpoints, mapped to [0, 1.5] * c.speed_bonus"""
+        if len(self.passed) < 2:
+            return 0.0
+        pts = np.array(self.passed)                       # shape (n, 3): t, x, y
+        dt = pts[-1, 0] - pts[0, 0]
+        dist = np.linalg.norm(np.diff(pts[:, 1:], axis=0), axis=1).sum()
+        v = dist / max(dt, 1e-3)
+        return c.speed_bonus * float(np.clip(v / self.v_ref, 0.0, 1.5))
 
     # step function of the gym environment
     def step(self):
         # we should add a beacon sensor pointing upwards to detect the beacon
         self.log.debug("getting observation")
         obs = self.observe()
-        self.log.info(f"observed {obs=}")
+        self.log.info("observed obs=%r", obs)
         sensor_data = obs[: c.n_sensors]
         reward = 0
         done = np.False_
         truncated = np.False_
 
         x, y, z = self.translation_field.getSFVec3f()
+        t = supervisor.getTime()
+        if not self.passed:                      # first step after a reset: start the window at the spawn point
+                self.passed.append((t, x, y))
         b_past_checkpoint = self.checkpoint_manager.update(x, y)
         (b_collided,) = sensor_data  # unpack sensor data
 
@@ -169,13 +181,14 @@ class WebotsVehicleManager:
             reward = np.float32(0.0)
             done = np.True_
         elif b_collided:
-            reward = np.float32(-0.5)
-            done = np.bool(c.respawn_on_crash)
+            reward = np.float32(c.collision_reward)
+            done = np.bool_(c.respawn_on_crash)
         elif b_past_checkpoint:
-            reward = np.float32(1.0)
+            self.passed.append((t, x, y))
+            reward = np.float32(c.checkpoint_reward + self.speed_bonus())
             done = np.False_
         else:
-            reward = np.float32(0.05)
+            reward = np.float32(c.step_reward)
             done = np.False_
 
         return obs, reward, done, truncated, {}
@@ -206,13 +219,14 @@ def main():
             if done:
                 obs, info = e.reset()
 
-            e.log.info(f"sending {obs=}")
-            e.fifo_w.write(obs.tobytes())
-            e.log.info(f"sending {reward=}")
+            e.log.info("sending obs=%r", obs)
+            obs_bytes = obs.tobytes()
+            e.fifo_w.write(obs_bytes)
+            e.log.info("sending reward=%r", reward)
             e.fifo_w.write(reward.tobytes())
-            e.log.info(f"sending {done=}")
+            e.log.info("sending done=%r", done)
             e.fifo_w.write(done.tobytes())
-            e.log.info(f"sending {truncated=}")
+            e.log.info("sending truncated=%r", truncated)
             e.fifo_w.write(truncated.tobytes())
             e.fifo_w.flush()
 

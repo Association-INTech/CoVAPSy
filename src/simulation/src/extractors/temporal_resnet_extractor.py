@@ -8,10 +8,9 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
     context_size = 128
     lidar_horizontal_resolution = 128
     camera_horizontal_resolution = 128
+    camera_vertical_resolution = 1
     n_sensors = 1
-
-    # just an alias to avoid confusion because
-    # the lidar and camera have the same resolution
+    input_type = "LiDAR+Camera"
     horizontal_resolution = 128
 
     def __init__(
@@ -20,38 +19,28 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
         device: str = "cpu",
     ):
         net = nn.Sequential(
-            # shape = [batch_size, 2, 128, 128]
             Compressor(device),
-            # shape = [batch_size, 64, 32, 32]
             ResidualBlock(64, 64, device=device),
             ResidualBlock(64, 64, device=device),
-            # shape = [batch_size, 64, 32, 32]
             ResidualBlock(64, 128, downsample=True, device=device),
             ResidualBlock(128, 128, device=device),
-            # shape = [batch_size, 128, 16, 16]
             ResidualBlock(128, 256, downsample=True, device=device),
             ResidualBlock(256, 256, device=device),
-            # shape = [batch_size, 256, 8, 8]
             ResidualBlock(256, 512, downsample=True, device=device),
             ResidualBlock(512, 512, device=device),
-            # shape = [batch_size, 512, 4, 4]
             nn.AvgPool2d(4),
-            # shape = [batch_size, 512, 1, 1]
             nn.Flatten(),
-            # shape = [batch_size, 512]
         )
 
-        # Compute shape by doing one forward pass
         with torch.no_grad():
             n_flatten = net(
                 torch.zeros(
-                    [1, 2, self.context_size, self.horizontal_resolution], device=device
+                    [1, 2, self.context_size, self.lidar_horizontal_resolution],
+                    device=device,
                 )
             ).shape[1]
 
         super().__init__(space, n_flatten)
-
-        # we cannot assign this directly to self.net before calling the super constructor
         self.net = net
 
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
@@ -61,7 +50,6 @@ class TemporalResNetExtractor(BaseFeaturesExtractor):
 class Compressor(nn.Module):
     def __init__(self, device: str = "cpu"):
         super().__init__()
-        # WARNING : do not use inplace=True because it would modify the rollout buffer
         self.conv = nn.Conv2d(2, 64, kernel_size=7, stride=2, padding=3, device=device)
         self.bn = nn.BatchNorm2d(64, device=device)
         self.relu = nn.ReLU(inplace=True)
@@ -73,15 +61,10 @@ class Compressor(nn.Module):
         x = self.bn(x)
         x = self.relu(x)
         x = self.dropout(x)
-        x = self.pool(x)
-        return x
+        return self.pool(x)
 
 
 class ResidualBlock(nn.Module):
-    """
-    basic block with a residual connection
-    """
-
     def __init__(
         self,
         in_channels: int,
@@ -113,25 +96,19 @@ class ResidualBlock(nn.Module):
             padding=1,
             device=device,
         )
-
         self.bn2 = nn.BatchNorm2d(out_channels, device=device)
         self.conv2 = nn.Conv2d(
             out_channels, out_channels, kernel_size=3, padding=1, device=device
         )
-
         self.relu = nn.ReLU(inplace=True)
         self.dropout = nn.Dropout2d(0.5)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         y = self.bn1(x)
         y = self.relu(y)
-        y = self.conv1(x)
-
+        y = self.conv1(y)
         y = self.bn2(y)
         y = self.relu(y)
         y = self.dropout(y)
         y = self.conv2(y)
-
-        y += self.downsample(x)
-
-        return y
+        return y + self.downsample(x)

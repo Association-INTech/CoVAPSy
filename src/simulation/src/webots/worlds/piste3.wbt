@@ -1,14 +1,15 @@
-#VRML_SIM R2023b utf8
+#VRML_SIM R2025a utf8
 
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2022b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 IMPORTABLE EXTERNPROTO "../protos/TT02_2023b.proto"
 
 WorldInfo {
+  basicTimeStep 25
 }
 Viewpoint {
-  orientation 0.49510834283857236 0.5424779560066733 -0.6786644208284862 2.0598719524459836
-  position 3.5618213013838633 5.806940499586064 20.959261693393685
+  orientation 0.5025582986887077 0.5491959084722152 -0.6676967953618544 2.0754060166659816
+  position 3.540015082389681 5.192288323972553 20.971140048712392
   followType "Mounted Shot"
 }
 TexturedBackground {
@@ -25,9 +26,9 @@ DEF elements_pistes Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -52,9 +53,9 @@ DEF elements_pistes Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -77,7 +78,7 @@ DEF elements_pistes Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -96,7 +97,7 @@ DEF elements_pistes Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -115,7 +116,7 @@ DEF elements_pistes Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -134,7 +135,7 @@ DEF elements_pistes Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -157,7 +158,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -176,7 +177,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -195,7 +196,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -214,7 +215,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -233,7 +234,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -252,7 +253,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -271,7 +272,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -290,7 +291,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -309,7 +310,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -328,7 +329,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -347,7 +348,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -366,7 +367,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -385,7 +386,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -404,7 +405,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -423,7 +424,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -442,7 +443,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -461,7 +462,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -480,7 +481,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -499,7 +500,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -518,7 +519,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -537,7 +538,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -556,7 +557,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -575,7 +576,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -594,7 +595,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -613,7 +614,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -632,7 +633,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -651,7 +652,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -670,7 +671,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -689,7 +690,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -708,7 +709,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -727,7 +728,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -746,7 +747,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -765,7 +766,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -784,7 +785,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -803,7 +804,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -822,7 +823,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -841,7 +842,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -860,7 +861,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -879,7 +880,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -898,7 +899,7 @@ DEF piste_exterieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  1 0 0
+            baseColor 1 0 0
             metalness 0
           }
           geometry Box {
@@ -919,9 +920,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -946,9 +947,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -973,9 +974,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1000,9 +1001,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1027,9 +1028,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1054,9 +1055,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1081,9 +1082,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1108,9 +1109,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1135,9 +1136,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1162,9 +1163,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1189,9 +1190,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1216,9 +1217,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1243,9 +1244,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1270,9 +1271,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1297,9 +1298,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1324,9 +1325,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1351,9 +1352,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1378,9 +1379,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1405,9 +1406,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1432,9 +1433,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1459,9 +1460,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1486,9 +1487,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1513,9 +1514,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1540,9 +1541,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1567,9 +1568,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1594,9 +1595,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1621,9 +1622,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1648,9 +1649,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1675,9 +1676,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1702,9 +1703,9 @@ DEF piste_exterieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0.9 0 0
-              emissiveColor  0.9 0 0
-              specularColor  0.9 0 0
+              diffuseColor 0.9 0 0
+              emissiveColor 0.9 0 0
+              specularColor 0.9 0 0
             }
           }
           geometry Mesh {
@@ -1733,9 +1734,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1760,9 +1761,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1787,9 +1788,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1814,9 +1815,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1841,9 +1842,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1868,9 +1869,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1895,9 +1896,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1922,9 +1923,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1949,9 +1950,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -1976,9 +1977,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2003,9 +2004,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2030,9 +2031,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2057,9 +2058,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2084,9 +2085,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2111,9 +2112,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2138,9 +2139,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2165,9 +2166,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2192,9 +2193,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2219,9 +2220,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2246,9 +2247,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2273,9 +2274,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2300,9 +2301,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2327,9 +2328,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2354,9 +2355,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2381,9 +2382,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2408,9 +2409,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2435,9 +2436,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2462,9 +2463,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2489,9 +2490,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2516,9 +2517,9 @@ DEF piste_interieure Group {
           appearance Appearance {
             material Material {
               ambientIntensity 0.5
-              diffuseColor  0 0.6 0
-              emissiveColor  0 0.6 0
-              specularColor  0 0.6 0
+              diffuseColor 0 0.6 0
+              emissiveColor 0 0.6 0
+              specularColor 0 0.6 0
             }
           }
           geometry Mesh {
@@ -2541,7 +2542,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2560,7 +2561,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2579,7 +2580,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2598,7 +2599,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2617,7 +2618,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2636,7 +2637,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2655,7 +2656,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2674,7 +2675,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2693,7 +2694,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2712,7 +2713,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2731,7 +2732,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2750,7 +2751,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2769,7 +2770,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2788,7 +2789,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2807,7 +2808,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2826,7 +2827,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2845,7 +2846,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2864,7 +2865,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2883,7 +2884,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2902,7 +2903,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2921,7 +2922,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2940,7 +2941,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2959,7 +2960,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2978,7 +2979,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -2997,7 +2998,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3016,7 +3017,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3035,7 +3036,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3054,7 +3055,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3073,7 +3074,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3092,7 +3093,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3111,7 +3112,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3130,7 +3131,7 @@ DEF piste_interieure Group {
       children [
         Shape {
           appearance PBRAppearance {
-            baseColor  0 1 0
+            baseColor 0 1 0
             metalness 0
           }
           geometry Box {
@@ -3150,6 +3151,7 @@ Solid {
   children [
     Shape {
       appearance PBRAppearance {
+        roughness 1
       }
       geometry Box {
         size 15 15 0.1
@@ -3164,9 +3166,7 @@ Solid {
   }
 }
 DEF WorldInit Robot {
-  supervisor TRUE
   name "WorldInit"
   controller "controller_world_init"
-  children [
-  ]
+  supervisor TRUE
 }

@@ -54,7 +54,7 @@ TEXT_LEFT_OFFSET = 3  # Offset from the left of the screen to ensure no cuttoff
 script_dir = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = "/home/intech/CoVAPSy/src/high_level/models/"  # Allows the model to be loaded from the same directory as the script regardless of the current working directory (aka where the script is run from)
 
-IP = "192.168.1.10"
+IP = "192.168.1.20"
 LIDAR_SOCKET_ADRESS = {"IP": "192.168.0.10", "PORT": 10940}
 CAMERA_SOCKET_ADRESS = {"IP": IP, "PORT": PORT_STREAMING_CAMERA}
 

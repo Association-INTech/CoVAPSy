@@ -24,8 +24,8 @@ class CameraProxy:
     def __init__(
         self,
         whep_url: str,
-        w: int = 320,
-        h: int = 240,
+        w: int = 200,
+        h: int = 100,
         rpc_addr=("127.0.0.1", 6000),
         authkey=b"covapsy",
     ):
