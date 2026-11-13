@@ -48,6 +48,7 @@ def export_onnx(sb_model: OnPolicyAlgorithm, path: str):
                 **{k: {0: "batch_size"} for k in c.active_obs},
                 "output": {0: "batch_size"},
             },
+            dynamo=False,
         )
 
     torch_model.to(device)
@@ -57,9 +58,11 @@ def export_onnx(sb_model: OnPolicyAlgorithm, path: str):
 
 def run_onnx_model(session: ort.InferenceSession, x: dict[str, np.ndarray] | np.ndarray):
     if isinstance(x, dict):
+        valid_inputs = {inp.name for inp in session.get_inputs()}
         feed = {
             k: (v[None] if v.ndim == 2 else v).astype(np.float32, copy=False)
             for k, v in x.items()
+            if k in valid_inputs  # <-- Ignores unused active_obs like "Collision"!
         }
         return session.run(None, feed)[0]
     return session.run(None, {"input": x})[0]

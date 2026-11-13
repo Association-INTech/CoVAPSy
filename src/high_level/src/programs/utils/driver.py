@@ -19,7 +19,9 @@ from high_level.autotech_constant import (
 
 STEER_LOOKUP_DEG = np.rad2deg(np.linspace(-0.4, 0.4, 16, dtype=np.float32))
 SPEED_LOOKUP_MM_S = np.linspace(1.0, 9.0, 16, dtype=np.float32) * (1000.0 / 3.6)
-
+# Webots training bins: steer in [-0.4, 0.4] rad, speed in [1.0, 9.0] km/h (or your config speed range)
+WEBOTS_STEER_RAD = np.linspace(-0.4, 0.4, 16, dtype=np.float32)
+WEBOTS_SPEED_KMH = np.linspace(1.0, 9.0, 16, dtype=np.float32)
 
 class Driver:
     def __init__(self, context_size=0, horizontal_size=0):
@@ -32,8 +34,8 @@ class Driver:
         self.context_dict: np.Dict
         self.input_infos = None
         self.nb_inputs = 0
-        self.last_angle = 0.0
-        self.last_speed = 0.0
+        self.last_angle = WEBOTS_SPEED_KMH
+        self.last_speed = WEBOTS_STEER_RAD
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
@@ -135,16 +137,22 @@ class Driver:
         lidar_m = self._resize_1d(lidar_m, self.horizontal_size)
         return lidar_m
 
-    def _resize_camera_like_webots(self, camera_data: np.ndarray) -> np.ndarray:
-        """
-        Like Webots:
-        - float32
-        - nan -> 0, +inf -> 30
-        - resize into horizontal_size
-        """
-        cam = np.asarray(camera_data, dtype=np.float32).reshape(-1)
-        cam = self._resize_1d(cam, self.horizontal_size)
-        return cam
+        def _resize_lidar_like_webots(self, lidar_data: np.ndarray) -> np.ndarray:
+        lidar_m = np.asarray(lidar_data, dtype=np.float32).reshape(-1)
+        lidar_m = np.nan_to_num(lidar_m, nan=0.0, posinf=30.0, neginf=0.0)
+        # Auto-convert mm to meters if raw LiDAR is in millimeters
+        if np.max(lidar_m) > 50.0:
+            lidar_m = lidar_m / 1000.0
+        lidar_m = np.clip(lidar_m, 0.0, 30.0)
+        lidar_m = self._resize_1d(lidar_m, self.horizontal_size)
+        return lidar_m
+
+    def ai(
+        self, lidar_data: np.ndarray, camera_data: np.ndarray
+    ) -> Tuple[float, float]:
+        if getattr(self, "model_kind", None) == "dict_inputs":
+            return self.ai_update_lidar_camera(lidar_data, camera_data)
+        return self.ai_update_lidar(lidar_data)
 
     def get_nb_inputs(self) -> int:
         if not self._loaded:
@@ -169,11 +177,6 @@ class Driver:
     ) -> Tuple[float, float]:
         return self.ai_update_lidar_camera(lidar_data_m, camera_data)
 
-    def ai(
-        self, lidar_data: np.ndarray, camera_data: np.ndarray
-    ) -> Tuple[float, float]:
-        # take the camera data for uniformity with the omniscent driver but we dont use it in this driver
-        return self.ai_update_lidar(lidar_data)
 
     def simple_minded(
         self, lidar_data: np.ndarray, camera_data: np.ndarray
@@ -247,9 +250,9 @@ class Driver:
         vitesse = float(sum(SPEED_LOOKUP * vect_prop))
         angle = float(sum(ANGLE_LOOKUP * vect_dir))
 
-        # Store for next step's Speed_Cmd / Steer_Cmd memory!
-        self.last_angle = angle
-        self.last_speed = vitesse
+        # Store in Webots units (rad in [-0.4, 0.4] and km/h in [1.0, 9.0]) for Speed_Cmd / Steer_Cmd!
+        self.last_angle = float(sum(WEBOTS_STEER_RAD * vect_dir))
+        self.last_speed = float(sum(WEBOTS_SPEED_KMH * vect_prop))
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data) -> Tuple[float, float]:

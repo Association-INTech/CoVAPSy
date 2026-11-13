@@ -79,11 +79,11 @@ if __name__ == "__main__":
 
     while True:
         print(f"[4/4] Iteration {i}: exporting ONNX & starting PPO learn()...", flush=True)
-        # onnx_utils.export_onnx(
-        #     model,
-        #     str(c.save_dir / f"model_{c.ExtractorClass.__name__}.onnx"),
-        # )
-        # onnx_utils.test_onnx(model)
+        onnx_utils.export_onnx(
+            model,
+            str(c.save_dir / f"model_{c.ExtractorClass.__name__}.onnx"),
+        )
+        onnx_utils.test_onnx(model)
 
         if c.LOG_LEVEL <= DEBUG:
             from utils import PlotModelIO
