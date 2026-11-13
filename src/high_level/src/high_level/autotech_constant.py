@@ -9,7 +9,33 @@ MAX_CONTROL_SPEED = 3  # maximum speed for controling devices in meters per seco
 MIN_CONTROL_SPEED = -2  # minimum speed for controlig devices in meters per second
 MAX_ANGLE = 18  # angle from the center to the right direction in degree
 MIN_ANGLE = -MAX_ANGLE  # angle from the center to the left direction in degree
+CRASH_MARGIN = 0.02
 
+
+# Car geometry
+LIDAR_X = 0.195
+BOX_CENTER_X = 0.1275
+BOX_HALF_LENGTH = 0.395 / 2
+BOX_HALF_WIDTH = 0.186 / 2
+BOX_REAR_X  = BOX_CENTER_X - BOX_HALF_LENGTH
+BOX_FRONT_X = BOX_CENTER_X + BOX_HALF_LENGTH 
+X_WHEELS    = LIDAR_X + 0.03                   
+ZONE_FRONT_HALF_WIDTH = 0.06
+
+# --- Stratégie de crash ---
+CRASH_SIDE_SPEED = 800 # mm/s, avance pendant le décollage (zones 0/4)
+CRASH_SIDE_STEER_TIME = 0.4 # s, braquage rapide (zones 0/4)
+CRASH_SIDE_STRAIGHT_TIME = 0.3 # s, roues droites ensuite (zones 0/4)
+
+CRASH_CORNER_BACK_TIME = 0.8 # s, recul braqué (zones 1/3)
+CRASH_CORNER_REALIGN_TIME = 0.5 # s, recul roues dans l'autre sens (zones 1/3)
+
+CRASH_FRONT_BACK_TIME = 1.0 # s, recul braqué (zone 2)
+CRASH_FRONT_REALIGN_TIME = 0.5 # s, recul roues dans l'autre sens (zone 2)
+
+CRASH_COOLDOWN = 1.0 # s, pas de nouveau crash juste après une manœuvre
+CRASH_MAX_DURATION = 4.0 # s, sécurité : on coupe la manœuvre
+TOF_REAR_STOP = 9 
 
 # I2C
 I2C_NUMBER_DATA_RECEIVED = 3  # the number of info data sent by the arduino
@@ -24,7 +50,7 @@ PORT_REMOTE_CONTROL = (
     5556  # Port to send data for remote control on <IP>:PORT_REMOTE_CONTROL
 )
 
-# Camera
+# CameraFOV_DEG = 270
 PORT_STREAMING_CAMERA = 8889  # adresse where to see the stream of the camera if activate is <IP>:PORT_STREAMIN_CAMERA/STREAM_PATH/cam
 STREAM_PATH = "map"
 SIZE_CAMERA_X = 1280
@@ -40,11 +66,13 @@ CRASH_DIST = 110
 REAR_BACKUP_DIST = (
     100  # mm Distance at which the car will NOT reverse due to the obstacle behind it
 )
+LIMIT_CRASH_RATIO = 0.5
 
 # Lidar
 LIDAR_DATA_AMPLITUDE = 1
 LIDAR_DATA_SIGMA = 45
 LIDAR_DATA_OFFSET = 0.5
+FOV_DEG = 270
 
 # Screen car
 TEXT_HEIGHT = 11

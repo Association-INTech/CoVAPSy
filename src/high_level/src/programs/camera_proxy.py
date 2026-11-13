@@ -6,7 +6,7 @@ from multiprocessing.connection import Client
 import logging
 import os
 from PIL import Image
-import scipy as sp
+import scipy.ndimage as ndi
 
 from drivers.camera import run_camera
 
@@ -19,6 +19,11 @@ COLOUR_KEY = {"green": -1, "red": 1, "none": 0}
 COLOR_THRESHOLD = 20  # Threshold for color intensity difference
 Y_OFFSET = -40  # Offset for the y-axis in the image
 
+# TODO : Tester / trouver les bonnes valeurs
+WALL_ROI = (0.5, 1.0, 0.2, 0.8)  # (y_min, y_max, x_min, x_max) en fraction de l'image
+WALL_DOMINANCE = 40              # écart min entre le canal dominant et les deux autres
+WALL_MIN_RATIO = 0.05            # fraction min de pixels colorés dans la ROI
+WALL_AMBIGUITY = 1.5             # le gagnant doit avoir 1.5x plus de pixels que l'autre
 
 class CameraProxy:
     def __init__(
@@ -219,6 +224,29 @@ class CameraProxy:
         self.debug_counter += 1
         return Image.fromarray(combined_image).convert("RGB")
 
+    def wall_color(self, image=None) -> int:
+        """Couleur du mur de face : COLOUR_KEY["green"] (-1), ["red"] (+1) ou ["none"] (0)."""
+        if image is None:
+            image = self.get_last_image()
+        h, w, _ = image.shape
+        y0, y1, x0, x1 = WALL_ROI
+        # int16 pour éviter le dépassement uint8 dans les soustractions/additions
+        roi = image[int(h * y0):int(h * y1), int(w * x0):int(w * x1), :].astype(np.int16)
+
+        r, g, b = roi[:, :, 0], roi[:, :, 1], roi[:, :, 2] # TODO: camera est en rgb ou gbr ?
+
+        red_ratio = float(np.mean((r > g + WALL_DOMINANCE) & (r > b + WALL_DOMINANCE)))
+        green_ratio = float(np.mean((g > r + WALL_DOMINANCE) & (g > b + WALL_DOMINANCE)))
+        self.log.info(f"Wall color ratios: red={red_ratio:.2f} green={green_ratio:.2f}")
+
+        if max(red_ratio, green_ratio) < WALL_MIN_RATIO:
+            return COLOUR_KEY["none"]
+        if red_ratio > green_ratio * WALL_AMBIGUITY:
+            return COLOUR_KEY["red"]
+        if green_ratio > red_ratio * WALL_AMBIGUITY:
+            return COLOUR_KEY["green"]
+        return COLOUR_KEY["none"]
+
     def is_green_or_red(self, lidar) -> int:
         """
         Check if the car is facing a green or red wall by analyzing the bottom half of the image.
@@ -227,13 +255,11 @@ class CameraProxy:
         height, _, _ = image.shape
         bottom_half = image[height // 2 :, :, :]  # Slice the bottom half of the image
         lidar = np.max(
-            sp.ndimage.zoom(
+            ndi.zoom(
                 lidar[595:855], image.shape[1] / len(lidar[595:855]), mode="nearest"
             )[None, :],
             0,
         )  # Resize lidar data to match the image size
-        print((lidar < 0.5).sum())
-        print(f"min lidar: {lidar.min()}, max lidar: {lidar.max()}")
         red_intensity = np.mean(
             bottom_half[:, :, 0] * (lidar < 0.5)
         )  # Red channel in RGB
