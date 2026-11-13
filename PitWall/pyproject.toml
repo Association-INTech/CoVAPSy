@@ -1,0 +1,17 @@
+[project]
+name = "covapsy-pitwall"
+version = "0.1.0"
+description = "Real-time telemetry & architecture comparison dashboard for headless Webots RL runs (CoVAPSy)"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+]
+
+[project.optional-dependencies]
+# only needed for sb3_callback.py (already present in the CoVAPSy simulation env)
+sb3 = ["stable-baselines3>=2.0", "torch"]
+
+[tool.uv]
+package = false

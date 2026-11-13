@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CoVAPSy Pit-Wall · RL Telemetry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-stripe"></span>
+      <span class="brand-name">CoVAPSy <b>PIT-WALL</b></span>
+      <span class="brand-sub">Headless RL Telemetry · Architecture Comparison</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-ctl">
+        <span class="ctl-lbl mono dim">X-AXIS</span>
+        <div class="seg small" data-ctl="x">
+          <button data-v="sim_time" class="active">SIM TIME (min)</button>
+          <button data-v="step">TIMESTEPS (k)</button>
+          <button data-v="episode">EPISODES</button>
+        </div>
+      </div>
+      <div class="topbar-ctl" id="map-filter-wrap" style="display:none">
+        <span class="ctl-lbl mono dim">MAP</span>
+        <div class="seg small" id="map-filter" data-ctl="mapFilter">
+          <button data-v="ALL" class="active">ALL</button>
+        </div>
+      </div>
+      <span id="logdir" class="mono dim"></span>
+      <span id="status-dot" class="dot"></span>
+      <span id="status-text" class="mono">connecting…</span>
+      <button id="btn-refresh" class="chip active" title="Toggle 2 s auto-refresh">⟳ AUTO 2s</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- ================= SIDEBAR ================= -->
+    <aside class="sidebar">
+      <section>
+        <h3>Runs <span class="dim">logs/*.jsonl</span></h3>
+        <div class="run-actions">
+          <button class="chip" id="sel-all">All</button>
+          <button class="chip" id="sel-live">Live</button>
+          <button class="chip" id="sel-none">None</button>
+        </div>
+        <div id="run-list" class="run-list"></div>
+      </section>
+
+      <section>
+        <h3>X-Axis</h3>
+        <div class="seg" data-ctl="x">
+          <button data-v="sim_time" class="active">Sim Time</button>
+          <button data-v="step">Steps (k)</button>
+          <button data-v="episode">Episodes</button>
+        </div>
+      </section>
+
+      <section>
+        <h3>Rolling window <span id="window-val" class="mono accent">50</span> <span class="dim">rounds</span></h3>
+        <input type="range" id="window" min="1" max="300" value="50" />
+      </section>
+
+      <section>
+        <h3>Checkpoint panels use last <span id="cplast-val" class="mono accent">300</span> <span class="dim">ep</span></h3>
+        <input type="range" id="cplast" min="0" max="2000" step="25" value="300" />
+        <p class="hint">0 = all episodes. Use a short window to see the <i>current</i> policy, not early exploration.</p>
+      </section>
+
+      <section class="legend-box">
+        <h3>Thresholds</h3>
+        <div><span class="sw red"></span> 25 ms · 40 Hz Hokuyo ceiling</div>
+        <div><span class="sw amber"></span> 100 ms · 10 Hz legacy loop</div>
+        <div><span class="sw teal"></span> Clearance in metres (LiDAR min)</div>
+      </section>
+    </aside>
+
+    <!-- ================= MAIN ================= -->
+    <main class="main">
+      <div id="kpis" class="kpis"></div>
+
+      <div class="grid">
+        <!-- 1 -->
+        <div class="panel wide">
+          <div class="panel-head">
+            <div><span class="pnum">01</span> Checkpoint Speed &amp; Safety Radar
+              <span class="sub">mean speed (m/s, lines) · min LiDAR clearance (m, bars / ▼ worst)</span></div>
+            <div class="seg small" data-ctl="cpview">
+              <button data-v="cart" class="active">Track strip</button>
+              <button data-v="polar">Polar radar</button>
+            </div>
+          </div>
+          <div id="p1" class="plot tall"></div>
+        </div>
+
+        <!-- 2 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div><span class="pnum">02</span> Track Crash Blackspots <span class="sub" id="p2-sub"></span></div>
+            <div class="seg small" data-ctl="crash">
+              <button data-v="visit" class="active">Hazard / visit</button>
+              <button data-v="pct">% of crashes</button>
+            </div>
+          </div>
+          <div id="p2" class="plot"></div>
+        </div>
+
+        <!-- 3 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div><span class="pnum">03</span> Physical Performance vs Survival
+              <span class="sub">── speed (±1σ cohort) · ┈ survival steps · ╌ crash rate</span></div>
+            <div class="seg small" data-ctl="crashrate">
+              <button data-v="cum" class="active">Cumulative</button>
+              <button data-v="roll">Rolling</button>
+            </div>
+          </div>
+          <div id="p3" class="plot"></div>
+        </div>
+
+        <!-- 4 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div><span class="pnum">04</span> Control Smoothness
+              <span class="sub">oscillation index (1/T)·Σ|δₜ − δₜ₋₁|  [mrad/step]</span></div>
+            <div class="seg small" data-ctl="smooth">
+              <button data-v="scatter" class="active">vs Speed</button>
+              <button data-v="ts">Time-series</button>
+            </div>
+          </div>
+          <div id="p4" class="plot"></div>
+        </div>
+
+        <!-- 5 -->
+        <div class="panel">
+          <div class="panel-head">
+            <div><span class="pnum">05</span> Hardware Real-Time Budget
+              <span class="sub">inference latency · gauge = rolling p95</span></div>
+          </div>
+          <div id="p5g" class="plot gauges"></div>
+          <div id="p5" class="plot short"></div>
+        </div>
+
+        <!-- 6 -->
+        <div class="panel wide">
+          <div class="panel-head">
+            <div><span class="pnum">06</span> Brain Diagnostics
+              <span class="sub">reward-hacking detectors · policy entropy · optional distillation / world-model slots</span></div>
+          </div>
+          <div class="mini-grid">
+            <div><div class="mini-title">Reward/CP vs Speed <span class="dim">(sector density)</span></div><div id="p6a" class="plot mini"></div></div>
+            <div><div class="mini-title">Reward/CP ↔ Speed trend <span class="dim">(norm, ── rew/CP ┈ speed)</span></div><div id="p6b" class="plot mini"></div></div>
+            <div><div class="mini-title">Pearson r(reward/CP, speed) <span class="dim">rolling window ±1σ</span></div><div id="p6c" class="plot mini"></div></div>
+            <div><div class="mini-title">Policy Entropy &amp; Active Bins <span class="dim">(K<sub>eff</sub> = e<sup>H/2</sup>)</span></div><div id="p6d" class="plot mini"></div></div>
+            <div><div class="mini-title">Teacher-Student gap ‖π<sub>S</sub> − π<sub>T</sub>‖₂</div><div id="p6e" class="plot mini"></div></div>
+            <div><div class="mini-title">World-Model Reconstruction Error</div><div id="p6f" class="plot mini"></div></div>
+          </div>
+        </div>
+      </div>
+      <footer class="foot mono dim">CoVAPSy Pit-Wall · dt = 25 ms · data: <span id="foot-info"></span></footer>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
