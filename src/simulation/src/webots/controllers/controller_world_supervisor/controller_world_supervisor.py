@@ -10,7 +10,7 @@ from utils.simulation_rank import get_simulation_rank
 # I cannot use relative imports because the file is directly launched by webots
 from webots.controllers.controller_world_supervisor import (
     CheckpointManager,
-    checkpoints,
+    tracks,
 )
 
 supervisor = Supervisor()
@@ -51,6 +51,47 @@ checkpoint_positions = [
 
 simulation_rank = get_simulation_rank()
 
+class RaceTracker:
+    """Tracks (x, y), current checkpoint, n_lap, and unwrapped progress for ALL cars (RL + bots)."""
+    def __init__(self, total_cars: int, checkpoints_list):
+        self.total_cars = total_cars
+        # Extract [N_cp, 2] array of (x0, y0) from Checkpoint objects
+        self.cp_xy = np.array([[cp.x0, cp.y0] for cp in checkpoints_list], dtype=np.float32)
+        self.nb_cp = len(self.cp_xy)
+        self.pos_xy = np.zeros((total_cars, 2), dtype=np.float32)
+        self.cp_idx = np.zeros(total_cars, dtype=np.int32)
+        self.n_lap = np.zeros(total_cars, dtype=np.int32)
+        self.progress = np.zeros(total_cars, dtype=np.int32)
+
+    def reset_car(self, car_idx: int):
+        node = supervisor.getFromDef(f"TT02_{car_idx}")
+        if node is not None:
+            x, y, _ = node.getField("translation").getSFVec3f()
+            self.pos_xy[car_idx] = [x, y]
+            dists = np.linalg.norm(self.cp_xy - self.pos_xy[car_idx], axis=1)
+            self.cp_idx[car_idx] = int(np.argmin(dists))
+        self.n_lap[car_idx] = 0
+        self.progress[car_idx] = self.cp_idx[car_idx]
+
+    def update_all(self):
+        for j in range(self.total_cars):
+            node = supervisor.getFromDef(f"TT02_{j}")
+            if node is None:
+                continue
+            x, y, _ = node.getField("translation").getSFVec3f()
+            self.pos_xy[j] = [x, y]
+            dists = np.linalg.norm(self.cp_xy - self.pos_xy[j], axis=1)
+            new_cp = int(np.argmin(dists))
+            prev_cp = self.cp_idx[j]
+
+            # Detect finish-line wrap-around (e.g., from CP 28..30 -> CP 0..3)
+            if prev_cp >= self.nb_cp - 5 and new_cp <= 4:
+                self.n_lap[j] += 1
+            elif prev_cp <= 4 and new_cp >= self.nb_cp - 5:
+                self.n_lap[j] -= 1
+
+            self.cp_idx[j] = new_cp
+            self.progress[j] = self.n_lap[j] * self.nb_cp + new_cp
 
 class WebotsVehicleManager:
     """
@@ -62,16 +103,22 @@ class WebotsVehicleManager:
 
     def __init__(self, vehicle_rank: int):
         self.vehicle_rank = vehicle_rank
+        map_idx = c.map_id if getattr(c, "map_id", None) is not None else (simulation_rank % c.n_map)
         self.checkpoint_manager = CheckpointManager(
-            supervisor, checkpoints[simulation_rank % c.n_map], vehicle_rank
+            supervisor, tracks[map_idx], vehicle_rank
         )
+        self.checkpoints = self.checkpoint_manager.checkpoints
+        self.next_cp_idx = self.checkpoint_manager.next_checkpoint
+        self.last_cp = self.checkpoint_manager.checkpoints[max((self.checkpoint_manager.next_checkpoint - 1), 0)]
 
         self.v_min = 1
         self.v_max = 9
         basicTimeStep = int(supervisor.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
-        self._last_cp_pos = np.array([0.0, 0.0])
+        self._last_cp_pos = np.array([self.last_cp.x0, self.last_cp.y0])
         self._last_cp_time = 0.0
+        self.n_lap = 0
+        self.progress = self.n_lap * len(self.checkpoints) + self.next_cp_idx
 
         # negative value so that the first reset is not skipped
         self.last_reset = -1e6
@@ -136,16 +183,65 @@ class WebotsVehicleManager:
             #self.log.debug("resetting vehicle physics")
             self.checkpoint_manager.reset(seed)
             trans = self.checkpoint_manager.getTranslation()
+            self._last_cp_pos = np.array([trans[0], trans[1]], dtype=np.float32)
             rot = self.checkpoint_manager.getRotation()
 
             self.translation_field.setSFVec3f(trans)
             self.rotation_field.setSFRotation(rot)
             self.checkpoint_manager.update()
+            self.tracker.reset_car(self.vehicle_rank)
 
             vehicle.resetPhysics()
             #self.log.info("vehicle reset done")
         info = {}
         return info
+
+    def speed_reward(self):
+        pos = self.translation_field.getSFVec3f()
+        cur_pos = np.array([pos[0], pos[1]], dtype=np.float32)
+        t_now = float(supervisor.getTime())
+
+        dt_sector = max(t_now - self._last_cp_time, 0.025)  # At least 1 sim step (25 ms)
+        dist_sector = float(np.linalg.norm(cur_pos - self._last_cp_pos))
+        v_sector = dist_sector / dt_sector  # Real physical average speed (m/s) across the sector!
+
+        # Update memory for the next checkpoint
+        self._last_cp_pos = cur_pos
+        self._last_cp_time = t_now
+
+        # Quadratic bonus on real achieved sector speed (with v_ref ≈ 1.25 m/s)
+        v_ref = c.target_speed
+        lambda_v = c.speed_factor
+        reward = np.float32(1.0 + lambda_v * ((v_sector / v_ref) ** 2))
+        return reward
+
+    def closest_opp(self) -> float:
+        if self.tracker.total_cars <= 1:
+            return 999.0
+        ego_xy = self.tracker.pos_xy[self.vehicle_rank]
+        opp_dists = [
+            float(np.linalg.norm(ego_xy - self.tracker.pos_xy[j]))
+            for j in range(self.tracker.total_cars)
+            if j != self.vehicle_rank
+        ]
+        return min(opp_dists) if opp_dists else 999.0
+
+    def overtook(self) -> float:
+        total_opp = self.tracker.total_cars - 1
+        if total_opp <= 0:
+            return 0.0
+        ego_prog = self.tracker.progress[self.vehicle_rank]
+    
+        b_opp = sum(
+            1 for j in range(self.tracker.total_cars)
+            if j != self.vehicle_rank and ego_prog > self.tracker.progress[j]
+        )
+        f_opp = sum(
+            1 for j in range(self.tracker.total_cars)
+            if j != self.vehicle_rank and ego_prog < self.tracker.progress[j]
+        )
+        return float(c.overtaking_factor * (((b_opp - f_opp) / total_opp) ** 3))
+             
 
     # step function of the gym environment
     def step(self):
@@ -164,32 +260,29 @@ class WebotsVehicleManager:
         truncated = np.False_
 
         x, y, z = self.translation_field.getSFVec3f()
-        b_past_checkpoint = self.checkpoint_manager.update(x, y)
-        (b_collided,) = sensor_data
 
+        last_cp_idx = self.next_cp_idx
+        b_past_checkpoint = self.checkpoint_manager.update(x, y)
+        self.next_cp_idx = self.checkpoint_manager.next_checkpoint
+
+        (b_collided,) = sensor_data
+        d_opp = self.closest_opp()
         if z < -10:
             reward = np.float32(0.0)
             done = np.True_
         elif b_collided:
-            reward = np.float32(-0.5)
-            done = np.bool_(c.respawn_on_crash)
+            if d_opp < 0.45:
+                # Bumped an opponent car
+                reward = np.float32(-0.2)
+                done = np.False_
+            else:
+                # Crashed into track wall
+                reward = np.float32(-0.5)
+                done = np.bool_(c.respawn_on_crash)
         elif b_past_checkpoint:
-            pos = self.translation_field.getSFVec3f()
-            cur_pos = np.array([pos[0], pos[1]], dtype=np.float32)
-            t_now = float(supervisor.getTime())
-
-            dt_sector = max(t_now - self._last_cp_time, 0.025)  # At least 1 sim step (25 ms)
-            dist_sector = float(np.linalg.norm(cur_pos - self._last_cp_pos))
-            v_sector = dist_sector / dt_sector  # Real physical average speed (m/s) across the sector!
-
-            # Update memory for the next checkpoint
-            self._last_cp_pos = cur_pos
-            self._last_cp_time = t_now
-
-            # Quadratic bonus on real achieved sector speed (with v_ref ≈ 1.25 m/s)
-            v_ref = c.target_speed
-            lambda_v = c.speed_factor
-            reward = np.float32(1.0 + lambda_v * ((v_sector / v_ref) ** 2))
+            if self.next_cp_idx < last_cp_idx:
+                self.n_lap += 1
+            reward = np.float32(self.speed_reward() + self.overtook())
             done = np.False_
         else:
             reward = np.float32(0.05)
@@ -218,7 +311,9 @@ class WebotsVehicleManager:
 
 def main():
     envs = [WebotsVehicleManager(i) for i in range(c.n_vehicles)]
-
+    tracker = RaceTracker(c.n_vehicles + c.n_stupid_vehicles, envs[0].checkpoints)
+    for e in envs:
+        e.tracker = tracker
     for i, e in enumerate(envs):
         e.reset(i)
     
@@ -245,7 +340,8 @@ def main():
     last_moved = np.zeros(c.n_stupid_vehicles)
 
     while supervisor.step() != -1:
-        for e in envs:
+        tracker.update_all()
+        for i, e in enumerate(envs):
             #e.log.info("starting new step")
 
             try:
@@ -269,19 +365,20 @@ def main():
                 info = e.reset()
 
         for i in range(c.n_stupid_vehicles):
-            tr_field = supervisor.getFromDef(f"TT02_{c.n_vehicles + i}").getField(
-                "translation"
-            )
-            speed = np.linalg.norm(tr_field.getSFVec3f())
+            bot_node = supervisor.getFromDef(f"TT02_{c.n_vehicles + i}")
+            tr_field = bot_node.getField("translation")
+            vel = bot_node.getVelocity()  # [vx, vy, vz, wx, wy, wz]
+            speed = np.hypot(vel[0], vel[1])
 
             if speed >= 0.1:
                 last_moved[i] = supervisor.getTime()
-            else:
-                envs[i].log.debug("did not move")
 
-            if supervisor.getTime() - last_moved[i]:
-                envs[i].log.info("resetting position because did not move for more than 1s")
-                tr_field.setSFVec3f(checkpoint_positions[0])
+            if supervisor.getTime() - last_moved[i] > 3.0:
+                envs[0].log.info("resetting bot position because stuck for > 3s")
+                tr_field.setSFVec3f(checkpoint_positions[i])
+                bot_node.resetPhysics()
+                last_moved[i] = supervisor.getTime()
+                tracker.reset_car(c.n_vehicles + i)
 
 
 if __name__ == "__main__":

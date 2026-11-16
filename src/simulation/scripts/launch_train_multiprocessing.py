@@ -35,7 +35,7 @@ if __name__ == "__main__":
         n_checkpoints=31,
         log_dir=str(PITWALL_DIR / "logs"),
         meta={
-            "map": "piste0",
+            "map": f"track{c.map_id}",
             "lidar_res": c.lidar_horizontal_resolution,
             "n_sims": c.n_simulations,
             "n_vehicles": c.n_vehicles,

@@ -3,8 +3,8 @@ import re
 
 # Fichiers à modifier
 FILES_TO_MODIFY = [
-    "src/Simulateur/worlds/piste2.wbt",
-    "src/Simulateur/worlds/piste3.wbt",
+    "src/Simulateur/worlds/track2.wbt",
+    "src/Simulateur/worlds/track3.wbt",
 ]
 
 

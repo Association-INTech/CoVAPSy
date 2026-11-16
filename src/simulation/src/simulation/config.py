@@ -19,10 +19,13 @@ from extractors import (  # noqa: F401
 
 
 # Webots environments config
-n_map = 1
-n_simulations = 2
-n_vehicles = 2
-n_stupid_vehicles = 0
+# Set to an int (0 = piste0, 1 = piste1 / map 2, 2 = piste2, 3 = piste3) to lock a single map,
+# or set to None to cycle across n_map using (simulation_rank % n_map)
+map_id: int | None = 1  # <-- 1 selects Map 2 (0-indexed: 0 is Map 1, 1 is Map 2)
+map_id = 2
+n_simulations = 1
+n_vehicles = 1
+n_stupid_vehicles = 4
 n_actions_steering = 16
 n_actions_speed = 16
 lidar_max_range = 12.0
@@ -30,6 +33,7 @@ v_min = 1.0
 v_max = 9.0
 target_speed = 5.0  # m/s
 speed_factor = 2.0  # reward for maintaining target speed
+overtaking_factor = 0.5
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
 
 # Fifo model specifications

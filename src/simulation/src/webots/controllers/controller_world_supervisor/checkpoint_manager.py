@@ -4,7 +4,7 @@ from typing import List
 import numpy as np
 from controller import Supervisor
 
-from . import Checkpoint
+from . import Checkpoint 
 
 np.random.seed(os.getpid())
 
@@ -53,7 +53,7 @@ class CheckpointManager:
         return [0, 0, 1, self.getAngle()]
 
     def reset(self, i=None):
-        if i:
+        if i is not None:
             self.next_checkpoint = i
         else:
             self.next_checkpoint = np.random.randint(0, len(self.checkpoints) - 1)
@@ -74,7 +74,7 @@ def create_reverse_track(original_checkpoints):
     return reversed_list
 
 
-piste0 = [  # piste0.wbt
+track0 = [  # track0.wbt
     Checkpoint(0, -0.314494, -2.47211),
     Checkpoint(0, 1.11162, -2.56708),
     Checkpoint(0.8, 2.54552, -2.27446),
@@ -107,7 +107,7 @@ piste0 = [  # piste0.wbt
     Checkpoint(-0.3, -2.89371, -2.49154),
     Checkpoint(0, -2.01029, -2.51669),
 ]
-piste1 = [  # piste1.wbt
+track1 = [  # track1.wbt
     Checkpoint(1.57, 5.52, -2.25),
     Checkpoint(1.57, 5.52, -1.25),
     Checkpoint(1.57, 5.52, -0.25),
@@ -167,9 +167,9 @@ piste1 = [  # piste1.wbt
     Checkpoint(1.57, 5.52, -4.25),
 ]
 
-checkpoints = [
-    piste0,
-    piste1,
-    create_reverse_track(piste0),  # piste2
-    create_reverse_track(piste1),  # piste3
+tracks = [
+    track0,
+    track1,
+    create_reverse_track(track0),  # track2
+    create_reverse_track(track1),  # track3
 ]

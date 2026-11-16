@@ -93,10 +93,11 @@ class VehicleEnv(gym.Env):
             webots_env = os.environ.copy()
             webots_log = open(f"{fifo_dir}/webots_{simulation_rank}.log", "w")
             port = 1234 + getattr(c, "PORT_OFFSET", 0) + simulation_rank
+            map_idx = c.map_id if getattr(c, "map_id", None) is not None else (self.simulation_rank % c.n_map)
             proc = subprocess.Popen(
                 [
                     "webots",
-                    f"{webots_path}/worlds/piste{simulation_rank % c.n_map}.wbt",
+                    f"{webots_path}/worlds/track{map_idx}.wbt",
                     "--mode=fast",
                     "--minimize",
                     "--batch",
@@ -159,7 +160,7 @@ class VehicleEnv(gym.Env):
         info = {
             "sim_rank": self.simulation_rank,
             "vehicle_rank": self.vehicle_rank,
-            "map": f"piste{self.simulation_rank % c.n_map}",
+            "map": f"track{c.map_id}",
         }
         obs = {key: self.obs_context[key].copy() for key in c.active_obs}
         #self.log.info("reset finished\n")
@@ -213,7 +214,7 @@ class VehicleEnv(gym.Env):
         info = {
             "sim_rank": self.simulation_rank,
             "vehicle_rank": self.vehicle_rank,
-            "map": f"piste{self.simulation_rank % c.n_map}",
+            "map": f"track{c.map_id}",
         }
         #self.log.info("step over")
 

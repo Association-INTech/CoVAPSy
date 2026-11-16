@@ -43,8 +43,8 @@ def create_nodes():
         proto_string = f"""
         DEF TT02_{i} TT02_2023b {{
             name "TT02_{i}"
-            controller "controller_violet"
-            color 0.0 0.0 0.0
+            controller "controller_red"
+            color 1.0 0.0 0.0
             lidar_horizontal_resolution {c.lidar_horizontal_resolution}
             camera_horizontal_resolution {c.camera_horizontal_resolution or 1}
         }}
