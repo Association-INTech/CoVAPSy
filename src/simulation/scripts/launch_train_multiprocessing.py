@@ -78,11 +78,5 @@ if __name__ == "__main__":
         model.save(save_path / str(i))
 
         i += 1
-        print("RESTART", flush=True)
-
-        
-
-        try:
-            signal.pause()
-        except KeyboardInterrupt:
-            pass
+        envs.close()   # close all simulations
+        sys.exit(3)   # exit and send a restart request
