@@ -439,6 +439,7 @@ class AIProgram(Program):
     def target_speed(self) -> float:
         if self.GR86 is None:
             return 0.0
+        self.log.info(f"target_speed lu par le serveur: {self.GR86.target_speed}")
         return self.GR86.target_speed
 
     @property
