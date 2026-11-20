@@ -13,16 +13,34 @@ class DictOnnxWrapper(nn.Module):
     def __init__(self, sb_model, keys: list[str]):
         super().__init__()
         self.keys = keys
-        self.extractor = sb_model.policy.features_extractor
-        self.policy_net = sb_model.policy.mlp_extractor.policy_net
-        self.action_net = sb_model.policy.action_net
+
+        if c.continuous_actions:
+            # SAC actor holds features_extractor, latent_pi, and mu
+            self.actor = sb_model.policy.actor
+        else:
+            # PPO specific features
+            self.extractor = sb_model.policy.features_extractor
+            self.policy_net = sb_model.policy.mlp_extractor.policy_net
+            self.action_net = sb_model.policy.action_net
+        
 
     def forward(self, *inputs: torch.Tensor) -> torch.Tensor:
         obs_dict = {k: t for k, t in zip(self.keys, inputs)}
-        features = self.extractor(obs_dict)
-        latent_pi = self.policy_net(features)
-        return self.action_net(latent_pi)
+        # PPO forward, features is a flat tensor given by the extractor's forward pass
+        # the features are then passed to the actor's hidden layers that undergoes tanh or relu transformations
+        # latent_pi is then the result of this tensor through a Linear projection to fit
+        # the action plan of the model (in PPO it's multidiscrete whereas in SAC it's continuous)
 
+        if c.continuous_actions:
+            features = self.actor.features_extractor(obs_dict)
+            latent_pi = self.actor.latent_pi(features)    
+            # tanh let us retrieve actions inside [-1 ,1]  
+            return torch.tanh(self.actor.mu(latent_pi))
+        else:    
+            features = self.extractor(obs_dict)
+            latent_pi = self.policy_net(features)
+            return self.action_net(latent_pi)
+ 
 
 def get_torch_model(sb_model):
     return DictOnnxWrapper(sb_model, list(c.active_obs)).to("cpu")
@@ -82,7 +100,12 @@ def test_onnx(model: OnPolicyAlgorithm):
     }
 
     try:
-        class_name = model.policy.features_extractor.__class__.__name__
+        extractor = (
+            model.policy.actor.features_extractor
+            if hasattr(model.policy, "actor")
+            else model.policy.features_extractor
+        )
+        class_name = extractor.__class__.__name__
         model_path = c.save_dir / f"model_{class_name}.onnx"
         session = ort.InferenceSession(model_path)
     except Exception as e:

@@ -71,7 +71,10 @@ class VehicleEnv(gym.Env):
             for key in c.active_obs
         }
 
-        self.action_space = gym.spaces.MultiDiscrete(
+        if c.continuous_actions:
+            self.action_space = gym.spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32)
+        else: 
+            self.action_space = gym.spaces.MultiDiscrete(
             [c.n_actions_steering, c.n_actions_speed]
         )
 

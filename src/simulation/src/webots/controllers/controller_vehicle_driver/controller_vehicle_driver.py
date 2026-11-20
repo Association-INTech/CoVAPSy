@@ -185,24 +185,26 @@ class VehicleDriver(Driver):
         # then would have forwarded it to env that would compute the next action
         # so the reward would be for the previous action, not the current one
         # self.log.debug("Waiting for action from SERVER_{self.simulation_rank}_{self.vehicle_rank}")
+        action_dtype = np.float32 if c.continuous_actions else np.int64
         try:
             action_data = read_exact(
                 self.fifo_r,
-                np.dtype(np.int64).itemsize * 2,
+                np.dtype(action_dtype).itemsize * 2,
                 "Action from vehicle environment",
             )
         except FifoClosedError as exc:
             self.log.warning("%s; stopping vehicle controller", exc)
             return -1
-        action = np.frombuffer(action_data, dtype=np.int64)
+        action = np.frombuffer(action_data, dtype=action_dtype)
         # self.log.info(f"received {action=}")
 
+        self.check_direction()
         # Simulation step
-        action_steering = np.linspace(
+        action_steering = action[0] * 0.4 if c.continuous_actions else np.linspace(
             -0.4, 0.4, c.n_actions_steering, dtype=np.float32
         )[action[0]]
         
-        action_speed = np.linspace(
+        action_speed = (5.0 + float(action[1]) * 4.0) if c.continuous_actions else np.linspace(
             c.v_min, c.v_max, c.n_actions_speed, dtype=np.float32
             )[action[1]]
         
@@ -225,11 +227,14 @@ class VehicleDriver(Driver):
         
         if super().step() == -1:
             return -1
-        
-        if self.touch_sensor.getValue() > 0:
-            self.state = State.BACK
-        
+
         obs = self.observe()
+        self.last_obs = obs
+
+        if self.crash() and self.state == State.AI: # TODO : Vérifier si le STATE.AI est utile ou non
+            self.log.info("Crash détécté")
+            self.state = State.BACK
+
         # self.log.info(f"observed {obs=}")
         self._send_observation(obs)
         return 0
@@ -243,12 +248,15 @@ class VehicleDriver(Driver):
         self.fifo_w.flush()
 
     def crash(self):
+        if self.last_obs is None:
+            return False
+
         # Touch sensor
-        if self.last_obs[0][0] > 0:
+        if self.last_obs["Collision"][0] > 0:
             return True
 
         # Lidar for the two front corners of the car
-        lidar = np.clip(self.last_obs[1], 0, 10)
+        lidar = np.clip(self.last_obs["Lidar"], 0, 10)
         n = len(lidar)
 
         def idx(angle_from_front):
@@ -262,7 +270,7 @@ class VehicleDriver(Driver):
             lidar[max(0, i_g - tol):i_g + tol + 1],
             lidar[max(0, i_d - tol):i_d + tol + 1],
         ))
-        return zones.min() <= self.crash_distance       
+        return zones.min() <= self.crash_distance
 
     def back(self):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
@@ -293,6 +301,7 @@ class VehicleDriver(Driver):
             return -1
         self.applied_steering = float(self.getSteeringAngle())
         initial_obs = self.observe()
+        self.last_obs = initial_obs
         # self.log.info(f"observed {initial_obs=}")
         self._send_observation(initial_obs)
         
@@ -300,9 +309,9 @@ class VehicleDriver(Driver):
             pass
 
     def check_direction(self):
-        if self.state != State.AI: 
+        if self.state != State.AI or self.last_obs is None: 
             return
-        score = track_score(self.last_obs[2])
+        score = track_score(self.last_obs["Cam"])
 
 
         # Calibration at the beginning of the race
@@ -324,7 +333,7 @@ class VehicleDriver(Driver):
 
         # Wrong direction
         if self.wrong_count >= WRONG_STEPS:
-            lidar = np.clip(self.last_obs[1], 0, 10)
+            lidar = np.clip(self.last_obs["Lidar"], 0, 10)
             h = len(lidar) // 2
             # Make a U-turn to the clearest side
             self.uturn_dir = 1 if lidar[h:].mean() > lidar[:h].mean() else -1
@@ -334,8 +343,10 @@ class VehicleDriver(Driver):
             self.log.info("Mauvaise direction détéctée")
 
     def uturn(self):
-        lidar = np.clip(self.last_obs[1], 0, 10)
-        rel = track_score(self.last_obs[2]) * self.ref_sign
+        if self.last_obs is None:
+            return
+        lidar = np.clip(self.last_obs["Lidar"], 0, 10)
+        rel = track_score(self.last_obs["Cam"]) * self.ref_sign
 
         self.ok_count = self.ok_count + 1 if rel > SCORE_MIN else 0
         if self.ok_count >= UTURN_OK_STEPS:

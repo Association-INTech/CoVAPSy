@@ -35,6 +35,7 @@ target_speed = 5.0  # m/s
 speed_factor = 2.0  # reward for maintaining target speed
 overtaking_factor = 0.5
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
+continuous_actions:bool = True
 
 # Fifo model specifications
 ARCH_LIST = ["res", "resmemo", "alex"]
@@ -60,12 +61,27 @@ FIFO_DIR = f"/tmp/autotech/{MODEL_ARCH}"
 
 # Training config
 device = "cuda" if is_available() else "cpu"
-save_dir = Path("~/.cache/autotech").expanduser()
+save_dir = Path("~/.cache/autotech/").expanduser()
 total_timesteps = 100_000
+
+sac_args = dict(
+    learning_rate=3e-4,
+    buffer_size=6_000,       # Stores 10k steps (~70 min of Webots driving)
+    batch_size=256,            # GPU samples transitions per update
+    learning_starts=1_000,     # Collect 1000 random steps before first GPU update
+    tau=0.005,                 # Soft target network update rate
+    gamma=0.99,                # Horizon reward coeff
+    train_freq=(4, "step"),    # Update on GPU every 4 Webots steps
+    gradient_steps=1,
+    ent_coef="auto",           # Magic: SAC tunes entropy temperature alpha automatically!
+    verbose=1,
+    device=device,
+)
+
 ppo_args: Dict[str, Any] = dict(
     n_steps=1024,
     n_epochs=10,
-    batch_size=512,
+    batch_size=256,
     learning_rate=1e-3,
     gamma=0.99,
     verbose=1,
@@ -100,13 +116,18 @@ OBS_SPECS = {
     # "Internal_Speed": 1,  # Future wheel-encoder speed from Webots
     "Speed_Cmd": 1,       # Self-known in VehicleEnv
     "Steer_Cmd": 1,       # Self-known in VehicleEnv
+    #"Internal_Speed": 1,
+    #"Internal_Steer": 1,
 }
 active_obs = [
     "Collision",
     "Lidar",
     "Cam",
     "Speed_Cmd",
-    "Steer_Cmd"]
+    "Steer_Cmd",
+    #"Internal_Speed",
+    #"Internal_Steer",
+    ]
 obs_size = sum(OBS_SPECS[k] for k in active_obs)
 
 

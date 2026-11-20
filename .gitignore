@@ -227,3 +227,5 @@ Debug_Wayfinding
 .venv
 checkpoints
 *.wbproj
+PitWall/logs/
+*:Zone.Identifier
