@@ -10,9 +10,39 @@ from simulation import config as c
 from utils.fifo import FifoClosedError, read_exact
 from utils.simulation_rank import get_simulation_rank
 
+FOV_DEG = 270
+WIDTH_LIDAR_CAR = 0.2 # TODO : mesurer
+LENGTH_LIDAR_CAR = 0.2 # TODO : mesurer
+ANGLE_TOLERANCE_CRASH = 5 # TODO : mesurer (en degre)
+
+CALIB_STEPS = 150 
+WRONG_STEPS = 50      
+UTURN_OK_STEPS = 30   
+SCORE_MIN = 0.05
+
+V_MIN = 1
+V_MAX = 5
+V_BACK = -2
+V_UTURN = 2
+
+
+class State(Enum):
+    AI = auto()
+    BACK = auto()
+    UTURN = auto()
+
+
+def track_score(cam):
+    """ > 0 : green rather on the right and red on the left
+        < 0 : the opposite."""
+    if len(cam) == 0:
+        return 0.0
+    h = len(cam) // 2
+    return float((cam[h:].sum() - cam[:h].sum()) / len(cam))
+    
 
 def too_close(lidar, dir):
-    R = 0.83
+    R = 2 # Minimum circle radius for the car to turn
     length = len(lidar)
     straight = lidar[length // 2]
     if dir:
@@ -31,10 +61,6 @@ def too_close(lidar, dir):
     return nearest < L
 
 
-class State(Enum):
-    AI = auto()
-    BACK = auto()
-
 
 class VehicleDriver(Driver):
     """
@@ -48,6 +74,7 @@ class VehicleDriver(Driver):
 
         basicTimeStep = int(self.getBasicTimeStep())
         self.sensorTime = basicTimeStep // 4
+        self.step_count = 0
 
         self.internal_observation = {
             "speed_cmd": 0.0,
@@ -56,6 +83,9 @@ class VehicleDriver(Driver):
         # will be able to hold odometry derived applied_speed (most of the time different from wanted speed)
         # and applied_steering which can also be diff from wanted_steer if jitter / imprecisions
 
+        self.crash_distance = np.sqrt(WIDTH_LIDAR_CAR**2 + LENGTH_LIDAR_CAR**2) + 0.05 # TODO : mesurer la marge d'erreur
+        self.crash_angle = np.degrees(np.arctan2(WIDTH_LIDAR_CAR, LENGTH_LIDAR_CAR)) 
+        
         self.vehicle_rank = int(self.getName().split("_")[-1])
         # Lidar
         self.lidar = cast(Lidar, self.getDevice("Hokuyo"))
@@ -94,6 +124,19 @@ class VehicleDriver(Driver):
             f"{fifo_dir}/{self.simulation_rank}_{self.vehicle_rank}tosupervisor.pipe",
             "wb",
         )
+
+        # Common Sense Check
+        self.last_obs = None
+        self.ref_sign = 0        
+        self.calib_sum = 0.0
+        self.calib_n = 0
+        self.score_ema = 0.0
+        self.wrong_count = 0
+        self.ok_count = 0
+        self.uturn_dir = 1
+        self.uturn_reverse = False
+
+
 
     # Check the state of the car
     def observe(self) -> Dict[str, np.ndarray]:
@@ -136,6 +179,7 @@ class VehicleDriver(Driver):
 
     # Step function of the GYM environment
     def step(self):
+        self.step_count += 1
         # we cannot obs until an action has been applied,
         # otherwise, supervisor would have computed the reward for the previous action
         # then would have forwarded it to env that would compute the next action
@@ -153,6 +197,7 @@ class VehicleDriver(Driver):
         action = np.frombuffer(action_data, dtype=np.int64)
         # self.log.info(f"received {action=}")
 
+        # Simulation step
         action_steering = np.linspace(
             -0.4, 0.4, c.n_actions_steering, dtype=np.float32
         )[action[0]]
@@ -174,6 +219,9 @@ class VehicleDriver(Driver):
 
         if self.state == State.BACK:
             self.back()
+
+        if self.state == State.UTURN:
+            self.uturn();
         
         if super().step() == -1:
             return -1
@@ -194,6 +242,28 @@ class VehicleDriver(Driver):
         self.fifo_w.write(state.tobytes())
         self.fifo_w.flush()
 
+    def crash(self):
+        # Touch sensor
+        if self.last_obs[0][0] > 0:
+            return True
+
+        # Lidar for the two front corners of the car
+        lidar = np.clip(self.last_obs[1], 0, 10)
+        n = len(lidar)
+
+        def idx(angle_from_front):
+            # Calculate the index in the lidar array of the point that is on the angle angle_from_front
+            return int(round((FOV_DEG / 2 + angle_from_front) / FOV_DEG * (n - 1)))
+
+        tol = int(n * ANGLE_TOLERANCE_CRASH / FOV_DEG) + 1
+        i_g, i_d = idx(-self.crash_angle), idx(self.crash_angle)
+
+        zones = np.concatenate((
+            lidar[max(0, i_g - tol):i_g + tol + 1],
+            lidar[max(0, i_d - tol):i_d + tol + 1],
+        ))
+        return zones.min() <= self.crash_distance       
+
     def back(self):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
         lidar, cam = self.observe()["Lidar"], self.observe()["Cam"]
@@ -203,13 +273,13 @@ class VehicleDriver(Driver):
         if dir:
             self.setSteeringAngle(0.33)
             if too_close(lidar, dir):
-                self.setCruisingSpeed(-2)
+                self.setCruisingSpeed(V_BACK)
             else:
                 self.state = State.AI
         else:
             self.setSteeringAngle(-0.33)
             if too_close(lidar, dir):
-                self.setCruisingSpeed(-2)
+                self.setCruisingSpeed(V_BACK)
             else:
                 self.state = State.AI
 
@@ -229,6 +299,61 @@ class VehicleDriver(Driver):
         while self.step() != -1:
             pass
 
+    def check_direction(self):
+        if self.state != State.AI: 
+            return
+        score = track_score(self.last_obs[2])
+
+
+        # Calibration at the beginning of the race
+        if self.ref_sign == 0:
+            self.calib_sum += score
+            self.calib_n += 1
+            if self.calib_n >= CALIB_STEPS:
+                mean = self.calib_sum / self.calib_n
+                self.ref_sign = 1 if mean > 0 else -1
+                self.log.info(f"Sens de référence: {self.ref_sign}")
+
+            return
+
+        rel = score * self.ref_sign
+        if rel < -SCORE_MIN:
+            self.wrong_count += 1
+        else:
+            self.wrong_count = 0
+
+        # Wrong direction
+        if self.wrong_count >= WRONG_STEPS:
+            lidar = np.clip(self.last_obs[1], 0, 10)
+            h = len(lidar) // 2
+            # Make a U-turn to the clearest side
+            self.uturn_dir = 1 if lidar[h:].mean() > lidar[:h].mean() else -1
+            self.uturn_reverse = False
+            self.ok_count = 0
+            self.state = State.UTURN
+            self.log.info("Mauvaise direction détéctée")
+
+    def uturn(self):
+        lidar = np.clip(self.last_obs[1], 0, 10)
+        rel = track_score(self.last_obs[2]) * self.ref_sign
+
+        self.ok_count = self.ok_count + 1 if rel > SCORE_MIN else 0
+        if self.ok_count >= UTURN_OK_STEPS:
+            self.score_ema, self.wrong_count = 0.0, 0
+            self.state = State.AI
+            return
+
+        front = lidar[len(lidar) // 2]
+        if self.uturn_reverse:
+            self.setSteeringAngle(-0.33 * self.uturn_dir)
+            self.setCruisingSpeed(-1 * V_UTURN)
+            if front > 1.0:
+                self.uturn_reverse = False
+        else:
+            self.setSteeringAngle(0.33 * self.uturn_dir)
+            self.setCruisingSpeed(V_UTURN)
+            if front < 0.5:
+                self.uturn_reverse = True
 
 # ----------------Main Program--------------------
 def main():
