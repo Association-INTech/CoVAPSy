@@ -15,7 +15,7 @@ from drivers.master_i2c import I2CArduino
 from drivers.tof import ToF
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
 from programs.camera_proxy import CameraProxy
-from programs.car import AIProgram, CrashCar
+from programs.car import AIProgram, Crashcar
 from programs.initialization import Initialization
 from programs.poweroff import Poweroff
 from programs.ps4_controller_program import PS4ControllerProgram

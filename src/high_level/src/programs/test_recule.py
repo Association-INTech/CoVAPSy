@@ -5,8 +5,7 @@ import threading
 import time
 
 from high_level.autotech_constant import LIDAR_RESOLUTION, FOV_DEG
-from car import Crashcar  # <- adapte "ai" au nom du fichier où est défini Crashcar
-
+from programs.car import Crashcar
 
 class Test_recule(Program):
     def __init__(self, server):
