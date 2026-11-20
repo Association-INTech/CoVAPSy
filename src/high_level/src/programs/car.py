@@ -159,8 +159,8 @@ class Car:
         return self.server.lidar
 
     @property
-    def tof(self) -> ToF:
-        return self.server.tof
+    #def tof(self) -> ToF:
+    #    return self.server.tof
 
     def stop(self) -> None:
         self.target_speed = 0
@@ -180,10 +180,10 @@ class Car:
 
     def back(self, lidar_m, cam):
         # sécurité arrière
-        if self.tof.distance < 9:
-            self.log.info("Obstacle detected by ToF")
-            self.state = 0
-            return 0, 0
+        # if self.tof.distance < 9:
+        #     self.log.info("Obstacle detected by ToF")
+        #     self.state = 0
+        #     return 0, 0
 
         # conversion en mm pour matcher reference_lidar
         id_worst_zone = self.id_worst_zone
@@ -228,10 +228,10 @@ class Car:
 
     #TODO : implement an actual back function that only relies on camera and not LiDAR
     def back_camera(self):
-        if self.tof is None or self.tof.distance <= 20:
-            self.log.warning("Reverse skipped: rear ToF unavailable or obstacle too close")
-            self.state = 0
-            return 0, 0
+        #if self.tof is None or self.tof.distance <= 20:
+        #   self.log.warning("Reverse skipped: rear ToF unavailable or obstacle too close")
+        #   self.state = 0
+        #   return 0, 0
     
         self.log.info("Backing up briefly; camera policy will choose the next action")
         self.direction = 0
@@ -333,7 +333,6 @@ class Car:
         )
         while (
             time.time() - t < 2
-            and self.tof.distance > 20
             and ok
             and not self.server.camera_red_or_green.is_not_reverse
         ):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car

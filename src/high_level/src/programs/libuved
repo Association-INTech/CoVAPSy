@@ -153,8 +153,8 @@ class Car:
         return self.server.lidar
 
     @property
-    def tof(self) -> ToF:
-        return self.server.tof
+    #def tof(self) -> ToF:
+    #    return self.server.tof
 
     def stop(self) -> None:
         self.target_speed = 0
@@ -175,10 +175,10 @@ class Car:
     def back(self, lidar_m, cam):
         # if wall on "dir": turn to "dir" and reverse until able to move forward (wall distance to verify)
         # turn to the right
-        if self.tof.distance < 20:
-            self.log.info("Obstacle detected by ToF")
-            self.state = 0
-            return 0, 0
+        #if self.tof.distance < 20:
+        #    self.log.info("Obstacle detected by ToF")
+        #    self.state = 0
+        #    return 0, 0
 
         zone1 = np.average(lidar_m[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]])
         zone2 = np.average(lidar_m[Border_zone.ZONE2[0] : Border_zone.ZONE2[1]])
@@ -266,11 +266,11 @@ class Car:
         self.log.info(
             "reversing for 1.5 seconds or until an obstacle is detected behind the car"
         )
-        while (
-            time.time() - t < 2 and self.tof.distance > 20 and ok
-        ):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car
-            if time.time() - t > 1 and self.server.arduino_I2C.current_speed == 0:
-                ok = False
+        #while (
+        #    time.time() - t < 2 and self.tof.distance > 20 and ok
+        #):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car
+        #    if time.time() - t > 1 and self.server.arduino_I2C.current_speed == 0:
+        #       ok = False
 
         self.log.info("Stopped reversing after 1.5 seconds")
 

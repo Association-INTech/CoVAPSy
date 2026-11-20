@@ -131,7 +131,7 @@ class BackendAPI(Program):
                 "direction": direction,
                 "car_control": prog_name,
                 "program_id": last_ctrl,
-                "tof": self.server.tof.distance,
+                #"tof": self.server.tof.distance,
                 "crashed": self.server.crash_car.crashed,
                 "camera_red_or_green": self.server.camera_red_or_green.is_reverse,
             },
@@ -187,7 +187,7 @@ class BackendAPI(Program):
             "dtype": "int16",
             "unit": "mm",
             "yaw": float(self.lidar_yaw),
-            "tof": float(self.server.tof.distance),
+            #"tof": float(self.server.tof.distance),
             "timestamp": time.time(),
             "n": int(r_i16.shape[0]),
         }
