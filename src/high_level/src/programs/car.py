@@ -12,7 +12,6 @@ from drivers.tof import ToF
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import (
-    BACKWARD_IA_SPEED,
     LIDAR_DATA_AMPLITUDE,
     LIDAR_DATA_OFFSET,
     LIDAR_DATA_SIGMA,
@@ -20,16 +19,29 @@ from high_level.autotech_constant import (
     MAX_ANGLE,
     MIN_ANGLE,
     MODEL_PATH,
-    LIMIT_CRASH_RATIO,
-    FREQUENCY_CRASH_DETECTION,
-    BOX_REAR_X,
-    X_WHEELS,
-    BOX_FRONT_X,
-    BOX_HALF_WIDTH,
-    ZONE_FRONT_HALF_WIDTH,
-    CRASH_MARGIN,
+    LIDAR_RESOLUTION,
     FOV_DEG,
+)
+
+# Constants for the crash and the back
+from high_level.autotech_back_constant import (
+    FORWARD_SPEED,
+    BACK_SPEED,
+    CRASH_MARGIN,
+    CRASH_COOLDOWN,
+    CRASH_MAX_DURATION,
+    TOF_REAR_STOP,
     LIDAR_X,
+    BOX_HALF_WIDTH,
+    BOX_REAR_X,
+    BOX_FRONT_X,
+    X_WHEELS,
+    ZONE_FRONT_HALF_WIDTH,
+    LIMIT_CRASH_RATIO_ZONE0,
+    LIMIT_CRASH_RATIO_ZONE1,
+    LIMIT_CRASH_RATIO_ZONE2,
+    LIMIT_CRASH_RATIO_ZONE3,
+    LIMIT_CRASH_RATIO_ZONE4,
     CRASH_SIDE_SPEED,
     CRASH_SIDE_STEER_TIME,
     CRASH_SIDE_STRAIGHT_TIME,
@@ -37,10 +49,8 @@ from high_level.autotech_constant import (
     CRASH_CORNER_REALIGN_TIME,
     CRASH_FRONT_BACK_TIME,
     CRASH_FRONT_REALIGN_TIME,
-    CRASH_COOLDOWN,
-    CRASH_MAX_DURATION,
-    TOF_REAR_STOP,
 )
+
 GREEN_WALL_SIDE = 1 # +1 = gauche, -1 = droite, TODO : le calculer manuellement grace a la camera au debut de la course
 
 from programs.camera_proxy import CameraProxy, COLOUR_KEY
@@ -48,66 +58,71 @@ from programs.camera_proxy import CameraProxy, COLOUR_KEY
 from .program import Program
 from .utils import Driver
 
-
-class CrashCar:
-    ZONE_0 = {  # côté droit
+class Crashcar :
+    ZONE_0 = {  # Right side
         "x_min": BOX_REAR_X - CRASH_MARGIN, "x_max": X_WHEELS,
-        "y_min": -(BOX_HALF_WIDTH + CRASH_MARGIN), "y_max": -(BOX_HALF_WIDTH - CRASH_MARGIN),
+        "y_min": -(BOX_HALF_WIDTH + CRASH_MARGIN), "y_max": (BOX_HALF_WIDTH - CRASH_MARGIN),
     }
-    ZONE_1 = {  # coin avant droit (roue)
+    ZONE_1 = {  # Front right corner (wheel)
         "x_min": X_WHEELS, "x_max": BOX_FRONT_X + CRASH_MARGIN,
         "y_min": -(BOX_HALF_WIDTH + CRASH_MARGIN), "y_max": -ZONE_FRONT_HALF_WIDTH,
     }
-    ZONE_2 = {  # avant
-        "x_min": X_WHEELS, "x_max": BOX_FRONT_X + CRASH_MARGIN,
+    ZONE_2 = {  # Front
+        "x_min": X_WHEELS + 0.03, "x_max": BOX_FRONT_X + CRASH_MARGIN + 0.05,
         "y_min": -ZONE_FRONT_HALF_WIDTH, "y_max": ZONE_FRONT_HALF_WIDTH,
     }
-    ZONE_3 = {  # coin avant gauche (roue)
+    ZONE_3 = {  # Front left corner (wheel)
         "x_min": X_WHEELS, "x_max": BOX_FRONT_X + CRASH_MARGIN,
         "y_min": ZONE_FRONT_HALF_WIDTH, "y_max": BOX_HALF_WIDTH + CRASH_MARGIN,
     }
-    ZONE_4 = {  # côté gauche
+    ZONE_4 = {  # Left side
         "x_min": BOX_REAR_X - CRASH_MARGIN, "x_max": X_WHEELS,
-        "y_min": BOX_HALF_WIDTH - CRASH_MARGIN, "y_max": BOX_HALF_WIDTH + CRASH_MARGIN,
+        "y_min": -1*(BOX_HALF_WIDTH - CRASH_MARGIN), "y_max": (BOX_HALF_WIDTH + CRASH_MARGIN),
     }
 
-    ZONES = (ZONE_0, ZONE_1, ZONE_2, ZONE_3, ZONE_4)
-    ZONE_SEVERITY = (2, 1, 0, 1, 2)
+    #{'x_min': -0.17, 'x_max': 0.225, 'y_min': -0.193, 'y_max': -0.007000000000000006}
+    #{'x_min': 0.225, 'x_max': 0.42500000000000004, 'y_min': -0.193, 'y_max': -0.06}
+    #{'x_min': 0.255, 'x_max': 0.47500000000000003, 'y_min': -0.06, 'y_max': 0.06}
+    #{'x_min': 0.225, 'x_max': 0.42500000000000004, 'y_min': 0.06, 'y_max': 0.193}
+    #{'x_min': -0.17, 'x_max': 0.225, 'y_min': -0.007000000000000006, 'y_max': 0.193}
 
-    def __init__(self, server) -> None:
-        self.log = logging.getLogger(__name__)
+    ZONES = (ZONE_0, ZONE_1, ZONE_2, ZONE_3, ZONE_4)
+
+    def __init__(self, n_rays: int, fov_rad: float, server) -> None:
         self.server = server
+        self.log = logging.getLogger(__name__)
         self.crashed = False
         self.crash_zone = None
-        self.state = 0
-
-        n = 1080
-        ang = np.radians(-FOV_DEG / 2 + np.arange(n) * FOV_DEG / (n - 1))
+        self.n = n_rays
+        ang = -fov_rad / 2 + np.arange(n_rays) * fov_rad / (n_rays - 1) # The angle between two LiDAR beams
         self._cos, self._sin = np.cos(ang), np.sin(ang)
 
-        # nombre de rayons qui traversent chaque zone
-        t = np.arange(0.0, 1.0, 0.005, dtype=np.float32) # distances le long du rayon (m)
-        px = LIDAR_X + self._cos[:, None] * t[None, :] # (1080, nb_pas)
+        # Number of rays passing through each zone
+        t = np.arange(0.0, 1.0, 0.005, dtype=np.float32)
+        px = LIDAR_X + self._cos[:, None] * t[None, :]
         py = self._sin[:, None] * t[None, :]
-        self._rays_per_zone = np.array([
-            np.count_nonzero(
-                ((px >= z["x_min"]) & (px <= z["x_max"])
-                & (py >= z["y_min"]) & (py <= z["y_max"])).any(axis=1)
-            )
-            for z in self.ZONES
-        ], dtype=np.float32)
-
-        self.log.info(f"Rays per zone: {self._rays_per_zone.tolist()}")
+        self._rays_per_zone = np.array(
+            [
+                np.count_nonzero(
+                    (
+                        (px >= z["x_min"]) & (px <= z["x_max"])
+                        & (py >= z["y_min"]) & (py <= z["y_max"])
+                    ).any(axis=1)
+                )
+                for z in self.ZONES
+            ],
+            dtype=np.float32,
+        )
         self._xmin = np.array([z["x_min"] for z in self.ZONES])[:, None]
         self._xmax = np.array([z["x_max"] for z in self.ZONES])[:, None]
         self._ymin = np.array([z["y_min"] for z in self.ZONES])[:, None]
         self._ymax = np.array([z["y_max"] for z in self.ZONES])[:, None]
+        self.last_ratios = np.zeros(len(self.ZONES))
 
-        Thread(target=self.has_Crashed, daemon=True).start()
-
-    def detect(self, r):
-        r = np.asarray(r, dtype=np.float32) / 1000.0 # lidar mm -> m
-        if r.size != self._cos.size:
+    def detect(self, lidar_m: np.ndarray):
+        r = np.asarray(lidar_m, dtype=np.float32)
+        if r.size != self.n:
+            self.log.warning(f"Lidar size {r.size} != n_rays {self.n}")
             return False, None
         ok = np.isfinite(r) & (r > 0)
         x = r * self._cos + LIDAR_X
@@ -117,19 +132,25 @@ class CrashCar:
             & (y >= self._ymin) & (y <= self._ymax)
             & ok
         )
-        counts = inside.sum(axis=1)
-        ratios = counts / np.maximum(self._rays_per_zone, 1)
+        ratios = inside.sum(axis=1) / np.maximum(self._rays_per_zone, 1)
+        self.last_ratios = ratios
 
-        valid = ratios >= LIMIT_CRASH_RATIO
-        if not valid.any():
-            return False, None
+        if ratios[2] > LIMIT_CRASH_RATIO_ZONE2 :
+            return True, 2
 
-        best = min(
-            (i for i in range(len(self.ZONES)) if valid[i]),
-            key=lambda i: (-ratios[i], self.ZONE_SEVERITY[i]),
-        )
-        self.log.debug(f"Crash zone {best}: ratios={np.round(ratios, 2).tolist()}")
-        return True, best
+        if ratios[0] > LIMIT_CRASH_RATIO_ZONE0 :
+            return True, 0
+        
+        if ratios[4] > LIMIT_CRASH_RATIO_ZONE4 :
+            return True, 4
+
+        if ratios[1] > LIMIT_CRASH_RATIO_ZONE1 :
+            return True, 1
+
+        if ratios[3] > LIMIT_CRASH_RATIO_ZONE3 :
+            return True, 3
+        
+        return False, None
 
 
     def has_Crashed(self) -> None:
@@ -138,13 +159,13 @@ class CrashCar:
             time.sleep(0.1)
         while True:
             try:
-                crashed, zone = self.detect(self.server.lidar.r_distance)
+                crashed, zone = self.detect(np.asarray(self.server.lidar.r_distance) / 1000)
             except Exception as e:
                 self.log.error(f"Crash detection error: {e}")
                 crashed, zone = False, None
             self.crash_zone = zone
             self.crashed = crashed
-            time.sleep(FREQUENCY_CRASH_DETECTION)  # time between two crash detections
+            time.sleep(CRASH_COOLDOWN)  # time between two crash detections
 
 
 class Car:
@@ -199,38 +220,30 @@ class Car:
             self.turn_around()
 
     def plan_maneuver(self, zone, lidar_m):
-        """Retourne une liste d'étapes (direction, vitesse, durée)."""
-        fwd, back = CRASH_SIDE_SPEED, BACKWARD_IA_SPEED
+        fwd, back = FORWARD_SPEED, BACK_SPEED
 
-        # Zones 0 / 4 : mur sur le flanc -> braquage rapide en avançant, puis roues droites
-        if zone == 0:  # mur à gauche -> on braque à droit
-            return [(RIGHT, fwd, CRASH_SIDE_STEER_TIME),
-                    (0, fwd, CRASH_SIDE_STRAIGHT_TIME)]
-        if zone == 4:  # mur à droit -> on braque à gauche
-            return [(LEFT, fwd, CRASH_SIDE_STEER_TIME),
-                    (0, fwd, CRASH_SIDE_STRAIGHT_TIME)]
+        if zone == 0:
+            return [(MAX_ANGLE, fwd, CRASH_SIDE_STEER_TIME),
+                    (0.0, fwd, CRASH_SIDE_STRAIGHT_TIME)]
+        if zone == 4:
+            return [(MIN_ANGLE, fwd, CRASH_SIDE_STEER_TIME),
+                    (0.0, fwd, CRASH_SIDE_STRAIGHT_TIME)]
 
-        # Zones 1 / 3 : coin avant -> on recule braqué (l'avant s'écarte du mur),
-        # puis on recule roues dans l'autre sens pour se réaligner
-        if zone == 1:  # coin avant gaucge : en marche arrière roues à gauche, l'avant part à droit
-            return [(LEFT, back, CRASH_CORNER_BACK_TIME),
-                    (RIGHT, back, CRASH_CORNER_REALIGN_TIME)]
+        if zone == 1:
+            return [(MIN_ANGLE, back, CRASH_CORNER_BACK_TIME),
+                    (MAX_ANGLE, fwd, CRASH_CORNER_REALIGN_TIME)]
         if zone == 3:
-            return [(RIGHT, back, CRASH_CORNER_BACK_TIME),
-                    (LEFT, back, CRASH_CORNER_REALIGN_TIME)]
-
-        # Zone 2 : mur de face -> on utilise la couleur
+            return [(MAX_ANGLE, back, CRASH_CORNER_BACK_TIME),
+                    (MIN_ANGLE, fwd, CRASH_CORNER_REALIGN_TIME)]
+        
         if zone == 2:
             color = self.wall_color_at_crash
-            if color != COLOUR_KEY["none"]:
-                # côté où le mur doit rester par rapport à nous (+1 gauche, -1 droite)
-                wall_side = (
-                    GREEN_WALL_SIDE if color == COLOUR_KEY["green"] else -GREEN_WALL_SIDE
-                )
-                # en marche arrière, roues du côté du mur => l'avant part de l'autre côté
-                first = LEFT if wall_side > 0 else RIGHT
+            if color != 0:
+                # side where the wall should stay relative to us (+1 left, -1 right)
+                wall_side = GREEN_WALL_SIDE if color > 0 else -GREEN_WALL_SIDE
+                first = MIN_ANGLE if wall_side > 0 else MAX_ANGLE
             else:
-                # fallback lidar : l'avant part vers le côté le plus libre
+                # Fallback Lidar: the front goes to the freest, where the wall must stay relative to us (+1 left, -1 right)
                 lidar_m = np.asarray(lidar_m, dtype=np.float32)
                 half = len(lidar_m) // 2
                 right = lidar_m[:half]
@@ -239,10 +252,10 @@ class Car:
                 left = left[np.isfinite(left) & (left > 0)]
                 r_free = float(np.mean(right)) if right.size else 0.0
                 l_free = float(np.mean(left)) if left.size else 0.0
-                first = RIGHT if l_free > r_free else LEFT
-            second = LEFT if first == RIGHT else RIGHT
+                first = MAX_ANGLE if l_free > r_free else MIN_ANGLE
+            second = MIN_ANGLE if first == MAX_ANGLE else MAX_ANGLE
             return [(first, back, CRASH_FRONT_BACK_TIME),
-                    (second, back, CRASH_FRONT_REALIGN_TIME)]
+                    (second, fwd, CRASH_FRONT_REALIGN_TIME)]
 
         return []
 
@@ -278,7 +291,8 @@ class Car:
             return 0, 0
 
         direction, speed, duration = self.maneuver[self.maneuver_step]
-        # sécurité arrière : uniquement quand on recule
+
+        # TOF security
         if speed < 0 and self.tof.distance < TOF_REAR_STOP:
             self.log.info("Obstacle detected by ToF")
             self.end_maneuver()
@@ -293,7 +307,7 @@ class Car:
             direction, speed, _ = self.maneuver[self.maneuver_step]
         return direction, speed
 
-"""
+    """
     def reverse_car(self):
         zone_gauche = self.lidar.r_distance[Border_zone.ZONE1[0] : Border_zone.ZONE1[1]]
         zone_gauche_valid = zone_gauche[np.isfinite(zone_gauche) & (zone_gauche > 0)]
@@ -355,6 +369,7 @@ class Car:
             )  # take the average of 20 points around the middle to reduce noise
             pass
         self.log.info("Stopped moving forward after 1 second")
+    """
 
     def main(self) -> None:
         # retrieve lidar data. We only take the first 1080 values and ignore the last one for simplicity for the ai
@@ -373,11 +388,11 @@ class Car:
             self.not_working = False
 
 
-        if self.server.camera_red_or_green.is_reverse:
-            self.reverse_car()
+#        if self.server.camera_red_or_green.is_reverse:
+#            self.reverse_car()
 
         crash_car = self.server.crash_car
-        crash_zone = crash_car.crash_zone  # lu une seule fois (le thread peut la changer)
+        crash_zone = crash_car.crash_zone 
 
         if (
             self.state == 0
@@ -389,14 +404,15 @@ class Car:
             self.start_maneuver(crash_zone, lidar_data_m)
 
         if self.state == 1:
-            self.direction, self.target_speed = self.run_maneuver()
+            self.run_maneuver()
         else:
-            self.direction, self.target_speed = self.driving(lidar_data_m, camera_data)
+            self.driving(lidar_data_m, camera_data)
 
-        self.log.debug(
-            f"Min Lidar: {min(lidar_data_m)}, Max Lidar: {max(lidar_data_m)}"
-        )
-"""
+        self.direction, self.target_speed = 0, 0
+
+        self.log.info(f"Zone 0 : {crash_car.last_ratios[0]:.3f}")
+        time.sleep(0.1)
+
 
 class AIProgram(Program):
     def __init__(self, server) -> None:
@@ -449,6 +465,9 @@ class AIProgram(Program):
         driving_strategy = self.driver.omniscent
 
         self.GR86 = Car(driving_strategy, self.server)
+
+        self.server.crash_car = Crashcar(LIDAR_RESOLUTION, np.deg2rad(FOV_DEG), self.server)
+        Thread(target=self.server.crash_car.has_Crashed, daemon=True).start()
 
     def start(self, model_give: Optional[str] = None) -> None:
 
