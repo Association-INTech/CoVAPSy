@@ -8,7 +8,7 @@ import numpy as np
 
 from drivers import Lidar
 from drivers.camera import Camera
-from drivers.tof import ToF
+# from drivers.tof import ToF
 
 # Import constants from HL.Autotech_constant to share them between files and ease of use
 from high_level.autotech_constant import (
@@ -155,9 +155,9 @@ class Car:
     def lidar(self) -> Lidar:
         return self.server.lidar
 
-    @property
-    def tof(self) -> ToF:
-        return self.server.tof
+    # @property
+    # def tof(self) -> ToF:
+    #     return self.server.tof
 
     def stop(self) -> None:
         self.target_speed = 0
@@ -177,10 +177,10 @@ class Car:
 
     def back(self, lidar_m, cam):
         # sécurité arrière
-        if self.tof.distance < 9:
-            self.log.info("Obstacle detected by ToF")
-            self.state = 0
-            return 0, 0
+        # if self.tof.distance < 9:
+        #     self.log.info("Obstacle detected by ToF")
+        #     self.state = 0
+        #     return 0, 0
 
         # conversion en mm pour matcher reference_lidar
         id_worst_zone = self.id_worst_zone
@@ -305,7 +305,7 @@ class Car:
         )
         while (
             time.time() - t < 2
-            and self.tof.distance > 20
+            # and self.tof.distance > 20
             and ok
             and not self.server.camera_red_or_green.is_not_reverse
         ):  # reverse for a maximum of 1.5 seconds or until an obstacle is detected behind the car

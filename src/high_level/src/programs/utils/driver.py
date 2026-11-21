@@ -137,16 +137,6 @@ class Driver:
         lidar_m = self._resize_1d(lidar_m, self.horizontal_size)
         return lidar_m
 
-        def _resize_lidar_like_webots(self, lidar_data: np.ndarray) -> np.ndarray:
-        lidar_m = np.asarray(lidar_data, dtype=np.float32).reshape(-1)
-        lidar_m = np.nan_to_num(lidar_m, nan=0.0, posinf=30.0, neginf=0.0)
-        # Auto-convert mm to meters if raw LiDAR is in millimeters
-        if np.max(lidar_m) > 50.0:
-            lidar_m = lidar_m / 1000.0
-        lidar_m = np.clip(lidar_m, 0.0, 30.0)
-        lidar_m = self._resize_1d(lidar_m, self.horizontal_size)
-        return lidar_m
-
     def ai(
         self, lidar_data: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:

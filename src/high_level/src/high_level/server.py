@@ -12,7 +12,7 @@ from PIL import Image, ImageDraw, ImageFont
 from drivers.camera import Camera, Camera_red_or_green
 from drivers.lidar import Lidar
 from drivers.master_i2c import I2CArduino
-from drivers.tof import ToF
+# from drivers.tof import ToF
 from high_level.autotech_constant import SITE_DIR_BACKEND, TEXT_HEIGHT
 from programs.camera_proxy import CameraProxy
 from programs.car import AIProgram, CrashCar
@@ -90,9 +90,9 @@ class Server:
     def lidar(self) -> Lidar | None:
         return self.initialization_module.lidar
 
-    @property
-    def tof(self) -> ToF | None:
-        return self.initialization_module.tof
+    # @property
+    # def tof(self) -> ToF | None:
+    #     return self.initialization_module.tof
 
     @property
     def arduino_I2C(self) -> I2CArduino | None:

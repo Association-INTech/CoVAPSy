@@ -35,7 +35,7 @@ target_speed = 5.0  # m/s
 speed_factor = 2.0  # reward for maintaining target speed
 overtaking_factor = 0.5
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
-continuous_actions:bool = True
+continuous_actions:bool = False
 
 # Fifo model specifications
 ARCH_LIST = ["res", "resmemo", "alex"]
