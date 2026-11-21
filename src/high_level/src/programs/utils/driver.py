@@ -31,11 +31,11 @@ class Driver:
         self._loaded = False
         self.ai_session: InferenceSession
         self.context: np.ndarray
-        self.context_dict: np.Dict
+        self.context_dict: dict[str, np.ndarray]
         self.input_infos = None
         self.nb_inputs = 0
-        self.last_angle = WEBOTS_SPEED_KMH
-        self.last_speed = WEBOTS_STEER_RAD
+        self.last_angle = 0.0
+        self.last_speed = 0.0
 
         if self.log.isEnabledFor(logging.DEBUG):
             self.fig, self.ax = plt.subplots(4, 1, figsize=(10, 8))
@@ -137,6 +137,16 @@ class Driver:
         lidar_m = self._resize_1d(lidar_m, self.horizontal_size)
         return lidar_m
 
+    def _resize_camera_like_webots(self, camera_data: np.ndarray) -> np.ndarray:
+        """
+        Like Webots:
+        float32, nan/inf cleaned, and resized to horizontal_size
+        """
+        cam = np.asarray(camera_data, dtype=np.float32).reshape(-1)
+        cam = np.nan_to_num(cam, nan=0.0, posinf=1.0, neginf=-1.0)
+        cam = self._resize_1d(cam, self.horizontal_size)
+        return cam
+
     def ai(
         self, lidar_data: np.ndarray, camera_data: np.ndarray
     ) -> Tuple[float, float]:
@@ -193,17 +203,21 @@ class Driver:
                 "lidar": lidar_data_m,
                 "Cam": camera_data,
                 "cam": camera_data,
+                "Collision": np.zeros((1,), dtype=np.float32),
                 "Speed_Cmd": np.array([self.last_speed], dtype=np.float32),
                 "Steer_Cmd": np.array([self.last_angle], dtype=np.float32),
             }
             for info in self.input_infos:
                 name = info.name
+                expected_w = int(info.shape[-1])
                 # Fallback if SB3 exported positional names like "input.1", "input.2"
                 if name in step_sources:
                     raw_1d = step_sources[name]
-                else:
+                elif expected_w == self.horizontal_size:
                     raw_1d = lidar_data_m if info == self.input_infos[0] else camera_data
-                new_frame = raw_1d.reshape(1, 1, -1)
+                else:
+                    raw_1d = np.zeros((expected_w,), dtype=np.float32)
+                new_frame = np.asarray(raw_1d, dtype=np.float32).reshape(1, 1, expected_w)
                 if self.context_size > 1:
                     self.context_dict[name] = np.concatenate(
                         [self.context_dict[name][:, 1:, :], new_frame], axis=1
@@ -232,17 +246,26 @@ class Driver:
         else:
             return self.ai_update_lidar(lidar_data_m)
 
-        # 3. Decode 32 logits -> physical angle & speed via Temperature Softmax
-        vect_dir, vect_prop = vect[:16], vect[16:]
-        vect_dir = softmax(vect_dir / Temperature_steer)
-        vect_prop = softmax(vect_prop / Temperature_vitesse)
+        # 3. Decode action: continuous SAC (2 values in [-1, 1]) or discrete PPO (32 logits)
+        if vect.size == 2:
+            steer_norm = float(np.clip(vect[0], -1.0, 1.0))
+            speed_norm = float(np.clip(vect[1], -1.0, 1.0))
+            angle = float(ANGLE_LOOKUP[0] + (steer_norm + 1.0) * 0.5 * (ANGLE_LOOKUP[-1] - ANGLE_LOOKUP[0]))
+            vitesse = float(SPEED_LOOKUP[0] + (speed_norm + 1.0) * 0.5 * (SPEED_LOOKUP[-1] - SPEED_LOOKUP[0]))
+            # Store in Webots units (rad in [-0.4, 0.4] and km/h in [1.0, 9.0]) for Speed_Cmd / Steer_Cmd
+            self.last_angle = steer_norm * 0.4
+            self.last_speed = 5.0 + speed_norm * 4.0
+        else:
+            vect_dir, vect_prop = vect[:16], vect[16:]
+            vect_dir = softmax(vect_dir / Temperature_steer)
+            vect_prop = softmax(vect_prop / Temperature_vitesse)
 
-        vitesse = float(sum(SPEED_LOOKUP * vect_prop))
-        angle = float(sum(ANGLE_LOOKUP * vect_dir))
+            vitesse = float(sum(SPEED_LOOKUP * vect_prop))
+            angle = float(sum(ANGLE_LOOKUP * vect_dir))
 
-        # Store in Webots units (rad in [-0.4, 0.4] and km/h in [1.0, 9.0]) for Speed_Cmd / Steer_Cmd!
-        self.last_angle = float(sum(WEBOTS_STEER_RAD * vect_dir))
-        self.last_speed = float(sum(WEBOTS_SPEED_KMH * vect_prop))
+            # Store in Webots units (rad in [-0.4, 0.4] and km/h in [1.0, 9.0]) for Speed_Cmd / Steer_Cmd!
+            self.last_angle = float(sum(WEBOTS_STEER_RAD * vect_dir))
+            self.last_speed = float(sum(WEBOTS_SPEED_KMH * vect_prop))
         return angle, vitesse
 
     def ai_update_lidar(self, lidar_data) -> Tuple[float, float]:
@@ -257,7 +280,7 @@ class Driver:
 
         vect_dir, vect_prop = vect[:16], vect[16:]  # split the vector in
 
-        vect_dir = softmax(vect_dir / Temperature)  # probability distribution
+        vect_dir = softmax(vect_dir / Temperature_steer)  # probability distribution
         vect_prop = softmax(vect_prop)
 
         angle = sum(ANGLE_LOOKUP * vect_dir)  # weighted average of angles
