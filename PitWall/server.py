@@ -69,6 +69,43 @@ def rolling_mean(x: np.ndarray, w: int) -> np.ndarray:
     return r
 
 
+def rolling_rate_per_min(cp_arr: np.ndarray, dur_arr: np.ndarray, w: int) -> np.ndarray:
+    """NaN-aware time-weighted trailing rate: 60 * sum(cp) / sum(dur_s) over window w."""
+    cp_arr = np.asarray(cp_arr, dtype=np.float64)
+    dur_arr = np.asarray(dur_arr, dtype=np.float64)
+    n = cp_arr.size
+    if n == 0:
+        return np.empty(0, dtype=np.float64)
+    w = max(1, int(w))
+    valid = np.isfinite(cp_arr) & np.isfinite(dur_arr) & (dur_arr > 0.0)
+    c_cp = np.concatenate([[0.0], np.cumsum(np.where(valid, cp_arr, 0.0))])
+    c_dur = np.concatenate([[0.0], np.cumsum(np.where(valid, dur_arr, 0.0))])
+    idx = np.arange(1, n + 1)
+    lo = np.maximum(0, idx - w)
+    s_cp = c_cp[idx] - c_cp[lo]
+    s_dur = c_dur[idx] - c_dur[lo]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r = 60.0 * s_cp / s_dur
+    r[s_dur <= 0.0] = np.nan
+    return r
+
+
+def cum_rate_per_min(cp_arr: np.ndarray, dur_arr: np.ndarray) -> np.ndarray:
+    """NaN-aware cumulative rate: 60 * cumsum(cp) / cumsum(dur_s)."""
+    cp_arr = np.asarray(cp_arr, dtype=np.float64)
+    dur_arr = np.asarray(dur_arr, dtype=np.float64)
+    n = cp_arr.size
+    if n == 0:
+        return np.empty(0, dtype=np.float64)
+    valid = np.isfinite(cp_arr) & np.isfinite(dur_arr) & (dur_arr > 0.0)
+    s_cp = np.cumsum(np.where(valid, cp_arr, 0.0))
+    s_dur = np.cumsum(np.where(valid, dur_arr, 0.0))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        r = 60.0 * s_cp / s_dur
+    r[s_dur <= 0.0] = np.nan
+    return r
+
+
 def rolling_std(x: np.ndarray, w: int) -> np.ndarray:
     """NaN-aware trailing rolling standard deviation."""
     x = np.asarray(x, dtype=np.float64)
@@ -289,6 +326,24 @@ class RunCache:
 
         # Effective sector reward density: reward_per_cp when checkpoints_crossed > 0 else reward_per_sec
         cols["reward_density"] = np.where(cp_crossed > 0, rp_cp, rps_sec)
+        cols["duration_s_clean"] = dur_s
+
+        raw_bots = []
+        for e in eps:
+            g = (e.get("extra") or {}).get("bot_cp_gained")
+            if g is None:
+                g = e.get("bot_cp_gained")
+            raw_bots.append(g)
+        n_bots = max((len(g) for g in raw_bots if isinstance(g, list)), default=0)
+        cols["n_bots"] = n_bots
+        if n_bots > 0:
+            bot_cp = np.full((len(eps), n_bots), np.nan, dtype=np.float64)
+            for idx_e, g in enumerate(raw_bots):
+                if isinstance(g, list):
+                    for b_idx, val in enumerate(g[:n_bots]):
+                        if val is not None:
+                            bot_cp[idx_e, b_idx] = float(val)
+            cols["bot_cp_gained"] = bot_cp
 
         if map_filter is None:
             self._cols_cache = (len(eps), cols)
@@ -314,6 +369,8 @@ class RunCache:
         )
         raw = {k: c[k] for k in metric_keys if k != "crashed_pct"}
         raw["crashed_pct"] = c["crashed"].astype(np.float64) * 100.0
+        raw["duration_s"] = c["duration_s_clean"]
+        n_bots = int(c.get("n_bots", 0) or 0)
 
         if n_envs <= 1 or unique_envs.size <= 1:
             out = {
@@ -326,6 +383,8 @@ class RunCache:
             for k, arr in raw.items():
                 out[k] = arr
                 out[f"{k}_std"] = np.zeros_like(arr)
+            if n_bots > 0:
+                out["bot_cp_gained"] = c["bot_cp_gained"]
             return out
 
         lep = c["local_ep_idx"]
@@ -341,6 +400,8 @@ class RunCache:
         for k in raw:
             out[k] = np.full(m, np.nan, dtype=np.float64)
             out[f"{k}_std"] = np.zeros(m, dtype=np.float64)
+        if n_bots > 0:
+            out["bot_cp_gained"] = np.full((m, n_bots), np.nan, dtype=np.float64)
 
         for r_idx, r_val in enumerate(rounds):
             mask = lep == r_val
@@ -352,6 +413,12 @@ class RunCache:
                 if fin.size > 0:
                     out[k][r_idx] = float(fin.mean())
                     out[f"{k}_std"][r_idx] = float(fin.std()) if fin.size > 1 else 0.0
+            if n_bots > 0:
+                for b in range(n_bots):
+                    bvals = c["bot_cp_gained"][mask, b]
+                    bfin = bvals[np.isfinite(bvals)]
+                    if bfin.size > 0:
+                        out["bot_cp_gained"][r_idx, b] = float(bfin.mean())
 
         out["cum_timesteps"] = np.maximum.accumulate(out["cum_timesteps"])
         out["cum_sim_time_s"] = np.maximum.accumulate(out["cum_sim_time_s"])
@@ -553,7 +620,44 @@ class RunCache:
             "cohort_rounds": int(m),
         }
 
-        return {**base, "kpi": kpi, "series": series, "scatter": scatter, "checkpoint": checkpoint, "train": train}
+        n_bots = int(c.get("n_bots", 0) or 0)
+        if n_bots > 0 and "bot_cp_gained" in coh:
+            import warnings
+            per_bot = []
+            roll_mat = np.full((m, n_bots), np.nan, dtype=np.float64)
+            cum_mat = np.full((m, n_bots), np.nan, dtype=np.float64)
+            for b in range(n_bots):
+                r_roll = rolling_rate_per_min(coh["bot_cp_gained"][:, b], coh["duration_s"], window)
+                r_cum = cum_rate_per_min(coh["bot_cp_gained"][:, b], coh["duration_s"])
+                roll_mat[:, b] = r_roll
+                cum_mat[:, b] = r_cum
+                per_bot.append({
+                    "id": b,
+                    "label": f"Bot {b} (TT02_{n_vehicles + b})",
+                    "cp_per_min_roll": jl(r_roll[idx], 3),
+                    "cp_per_min_cum": jl(r_cum[idx], 3),
+                    "current_roll": last(r_roll),
+                    "current_cum": last(r_cum),
+                })
+            with np.errstate(all="ignore"), warnings.catch_warnings():
+                warnings.simplefilter("ignore", category=RuntimeWarning)
+                mean_roll = np.nanmean(roll_mat, axis=1)
+                mean_cum = np.nanmean(cum_mat, axis=1)
+            ego_roll = rolling_rate_per_min(coh["checkpoints_crossed"], coh["duration_s"], window)
+            ego_cum = cum_rate_per_min(coh["checkpoints_crossed"], coh["duration_s"])
+            bots_payload = {
+                "n_bots": n_bots,
+                "x": series["x"],
+                "per_bot": per_bot,
+                "mean_roll": jl(mean_roll[idx], 3),
+                "mean_cum": jl(mean_cum[idx], 3),
+                "ego_roll": jl(ego_roll[idx], 3),
+                "ego_cum": jl(ego_cum[idx], 3),
+            }
+        else:
+            bots_payload = None
+
+        return {**base, "kpi": kpi, "series": series, "scatter": scatter, "checkpoint": checkpoint, "train": train, "bots": bots_payload}
 
     def _checkpoint_agg(self, eps: List[dict], c: dict, lo: int, n: int) -> Optional[dict]:
         # Only aggregate episodes from the same track as the latest episode in this slice.

@@ -15,44 +15,10 @@ from webots.controllers.controller_world_supervisor import (
 
 supervisor = Supervisor()
 
-checkpoint_positions = [
-    [-0.314494, -2.47211, 0.0391],
-    [1.11162, -2.56708, 0.0391],
-    [2.54552, -2.27446, 0.0391],
-    [3.58779, -1.38814, 0.0391],
-    [3.58016, -0.0800134, 0.0391],
-    [3.23981, 1.26309, 0.0391],
-    [2.8261, 1.99783, 0.0391],
-    [3.18851, 2.71151, 0.0391],
-    [3.6475, 4.09688, 0.0391],
-    [3.1775, 4.44688, 0.0391],
-    [2.58692, 4.5394, 0.0391],
-    [1.52457, 4.3991, 0.0391],
-    [0.659969, 3.57074, 0.0391],
-    [0.000799585, 2.90417, 0.0391],
-    [0.0727115, 1.81299, 0.0391],
-    [0.788956, 1.22248, 0.0391],
-    [1.24749, 0.288391, 0.0391],
-    [0.88749, -0.281609, 0.0391],
-    [0.0789172, -0.557653, 0.0391],
-    [-0.832859, -0.484867, 0.0391],
-    [-1.79723, 0.408769, 0.0391],
-    [-1.7446, 1.3386, 0.0391],
-    [-1.92104, 2.72452, 0.0391],
-    [-2.96264, 2.96666, 0.0391],
-    [-4.19027, 2.74619, 0.0391],
-    [-4.34725, 1.7503, 0.0391],
-    [-4.26858, 0.259482, 0.0391],
-    [-4.20936, -1.06968, 0.0391],
-    [-4.0021, -2.35518, 0.0391],
-    [-2.89371, -2.49154, 0.0391],
-    [-2.01029, -2.51669, 0.0391],
-]
-
 simulation_rank = get_simulation_rank()
 
 class RaceTracker:
-    """Tracks (x, y), current checkpoint, n_lap, and unwrapped progress for ALL cars (RL + bots)."""
+    """Tracks (x, y), current checkpoint, n_lap, and offset-free progress for ALL cars (RL + bots)."""
     def __init__(self, total_cars: int, checkpoints_list):
         self.total_cars = total_cars
         # Extract [N_cp, 2] array of (x0, y0) from Checkpoint objects
@@ -60,23 +26,33 @@ class RaceTracker:
         self.nb_cp = len(self.cp_xy)
         self.pos_xy = np.zeros((total_cars, 2), dtype=np.float32)
         self.cp_idx = np.zeros(total_cars, dtype=np.int32)
+        self.start_cp = np.zeros(total_cars, dtype=np.int32)
         self.n_lap = np.zeros(total_cars, dtype=np.int32)
         self.progress = np.zeros(total_cars, dtype=np.int32)
+        self.step_delta = np.zeros(total_cars, dtype=np.int32)
+        self.cum_progress = np.zeros(total_cars, dtype=np.int64)
 
-    def reset_car(self, car_idx: int):
+    def reset_car(self, car_idx: int, cp_idx: int | None = None):
         node = supervisor.getFromDef(f"TT02_{car_idx}")
         if node is not None:
             x, y, _ = node.getField("translation").getSFVec3f()
             self.pos_xy[car_idx] = [x, y]
+        if cp_idx is not None:
+            cp0 = int(cp_idx) % self.nb_cp
+        else:
             dists = np.linalg.norm(self.cp_xy - self.pos_xy[car_idx], axis=1)
-            self.cp_idx[car_idx] = int(np.argmin(dists))
+            cp0 = int(np.argmin(dists))
+        self.cp_idx[car_idx] = cp0
+        self.start_cp[car_idx] = cp0
         self.n_lap[car_idx] = 0
-        self.progress[car_idx] = self.cp_idx[car_idx]
+        self.progress[car_idx] = 0
+        self.step_delta[car_idx] = 0
 
     def update_all(self):
         for j in range(self.total_cars):
             node = supervisor.getFromDef(f"TT02_{j}")
             if node is None:
+                self.step_delta[j] = 0
                 continue
             x, y, _ = node.getField("translation").getSFVec3f()
             self.pos_xy[j] = [x, y]
@@ -91,7 +67,24 @@ class RaceTracker:
                 self.n_lap[j] -= 1
 
             self.cp_idx[j] = new_cp
-            self.progress[j] = self.n_lap[j] * self.nb_cp + new_cp
+            new_progress = self.n_lap[j] * self.nb_cp + new_cp - self.start_cp[j]
+            delta = int(new_progress - self.progress[j])
+            self.step_delta[j] = delta
+            self.cum_progress[j] += delta
+            self.progress[j] = new_progress
+
+
+def spawn_bot_at_cp(car_idx: int, cp_idx: int, track_cps, tracker: RaceTracker) -> None:
+    """Spawn or respawn a bot car on a track checkpoint with matching heading."""
+    bot_node = supervisor.getFromDef(f"TT02_{car_idx}")
+    if bot_node is None:
+        return
+    idx = int(cp_idx) % len(track_cps)
+    cp = track_cps[idx]
+    bot_node.getField("translation").setSFVec3f([cp.x0, cp.y0, 0.0391])
+    bot_node.getField("rotation").setSFRotation([0, 0, 1, cp.theta])
+    bot_node.resetPhysics()
+    tracker.reset_car(car_idx, cp_idx=idx)
 
 class WebotsVehicleManager:
     """
@@ -119,6 +112,8 @@ class WebotsVehicleManager:
         self._last_cp_time = 0.0
         self.n_lap = 0
         self.progress = self.n_lap * len(self.checkpoints) + self.next_cp_idx
+        self._opp_cum_at_reset: np.ndarray | None = None
+        self._prev_steer: float | None = None
 
         # negative value so that the first reset is not skipped
         self.last_reset = -1e6
@@ -170,6 +165,7 @@ class WebotsVehicleManager:
 
     # reset the gym environment reset
     def reset(self, seed=None):
+        self._prev_steer = None
         pos = self.translation_field.getSFVec3f()
         self._last_cp_pos = np.array([pos[0], pos[1]], dtype=np.float32)
         self._last_cp_time = float(supervisor.getTime())
@@ -182,6 +178,7 @@ class WebotsVehicleManager:
             vehicle = supervisor.getFromDef(f"TT02_{self.vehicle_rank}")
             #self.log.debug("resetting vehicle physics")
             self.checkpoint_manager.reset(seed)
+            spawn_cp = self.checkpoint_manager.next_checkpoint
             trans = self.checkpoint_manager.getTranslation()
             self._last_cp_pos = np.array([trans[0], trans[1]], dtype=np.float32)
             rot = self.checkpoint_manager.getRotation()
@@ -189,10 +186,12 @@ class WebotsVehicleManager:
             self.translation_field.setSFVec3f(trans)
             self.rotation_field.setSFRotation(rot)
             self.checkpoint_manager.update()
-            self.tracker.reset_car(self.vehicle_rank)
+            self.tracker.reset_car(self.vehicle_rank, cp_idx=spawn_cp)
 
             vehicle.resetPhysics()
             #self.log.info("vehicle reset done")
+        if hasattr(self, "tracker"):
+            self._opp_cum_at_reset = self.tracker.cum_progress.copy()
         info = {}
         return info
 
@@ -230,18 +229,34 @@ class WebotsVehicleManager:
         total_opp = self.tracker.total_cars - 1
         if total_opp <= 0:
             return 0.0
-        ego_prog = self.tracker.progress[self.vehicle_rank]
-    
-        b_opp = sum(
-            1 for j in range(self.tracker.total_cars)
-            if j != self.vehicle_rank and ego_prog > self.tracker.progress[j]
+        ego_prog = float(self.tracker.progress[self.vehicle_rank])
+        base = (
+            self._opp_cum_at_reset
+            if self._opp_cum_at_reset is not None
+            else np.zeros(self.tracker.total_cars, dtype=np.int64)
         )
-        f_opp = sum(
-            1 for j in range(self.tracker.total_cars)
-            if j != self.vehicle_rank and ego_prog < self.tracker.progress[j]
-        )
-        return float(c.overtaking_factor * (((b_opp - f_opp) / total_opp) ** 3))
-             
+        opp_progs = [
+            float(self.tracker.cum_progress[j] - base[j])
+            for j in range(self.tracker.total_cars)
+            if j != self.vehicle_rank
+        ]
+        mean_opp_prog = float(np.mean(opp_progs))
+        rel_lead = max(0.0, ego_prog - mean_opp_prog)
+        return float(c.overtaking_factor * np.tanh(rel_lead / 5.0))
+
+    def steer_penalty(self, obs: np.ndarray) -> float:
+        """Penalty proportional to |delta_t - delta_{t-1}| (rad/step), scaled by c.steer_reward."""
+        if "Steer_Cmd" not in c.active_obs:
+            return 0.0
+        steer_index = c.active_obs.index("Steer_Cmd")
+        steer_start = sum(c.OBS_SPECS[key] for key in c.active_obs[:steer_index])
+        cur_steer = float(obs[steer_start])
+        if self._prev_steer is None:
+            self._prev_steer = cur_steer
+            return 0.0
+        delta_steer = abs(cur_steer - self._prev_steer)
+        self._prev_steer = cur_steer
+        return float(c.steer_reward * (delta_steer/0.4)**2)
 
     # step function of the gym environment
     def step(self):
@@ -267,6 +282,7 @@ class WebotsVehicleManager:
 
         (b_collided,) = sensor_data
         d_opp = self.closest_opp()
+        steer_pen = self.steer_penalty(obs)
         if z < -10:
             reward = np.float32(0.0)
             done = np.True_
@@ -277,15 +293,15 @@ class WebotsVehicleManager:
                 done = np.False_
             else:
                 # Crashed into track wall
-                reward = np.float32(-0.5)
+                reward = np.float32(-0.8)
                 done = np.bool_(c.respawn_on_crash)
         elif b_past_checkpoint:
             if self.next_cp_idx < last_cp_idx:
                 self.n_lap += 1
-            reward = np.float32(self.speed_reward() + self.overtook())
+            reward = np.float32(self.speed_reward() + self.overtook() - steer_pen)
             done = np.False_
         else:
-            reward = np.float32(0.05)
+            reward = np.float32(0.05 - steer_pen)
             done = np.False_
 
         return (
@@ -311,13 +327,23 @@ class WebotsVehicleManager:
 
 def main():
     envs = [WebotsVehicleManager(i) for i in range(c.n_vehicles)]
-    tracker = RaceTracker(c.n_vehicles + c.n_stupid_vehicles, envs[0].checkpoints)
+    track_cps = envs[0].checkpoints
+    n_cp = len(track_cps)
+    tracker = RaceTracker(c.n_vehicles + c.n_stupid_vehicles, track_cps)
     for e in envs:
         e.tracker = tracker
     for i, e in enumerate(envs):
         e.reset(i)
-    
-    # At t = 0, we need to step the supervisor once to make sure 
+
+    # Spawn stupid vehicles evenly spaced around the active track (away from CP 0)
+    for k in range(c.n_stupid_vehicles):
+        car_idx = c.n_vehicles + k
+        cp_idx = int(((k + 1) * n_cp) // (c.n_stupid_vehicles + 1)) % n_cp
+        spawn_bot_at_cp(car_idx, cp_idx, track_cps, tracker)
+    for e in envs:
+        e._opp_cum_at_reset = tracker.cum_progress.copy()
+
+    # At t = 0, we need to step the supervisor once to make sure
     # that the vehicles are in the right position before starting the simulation
     supervisor.step()
     for e in envs:
@@ -329,18 +355,13 @@ def main():
         if not e.send_to_server(initial_obs):
             return
 
-    # We also need to reset the position of the stupid vehicles at t = 0
-    for i in range(c.n_vehicles, c.n_vehicles + c.n_stupid_vehicles):
-        (
-            supervisor.getFromDef(f"TT02_{i}")
-            .getField("translation")
-            .setSFVec3f(checkpoint_positions[i])
-        )
-
-    last_moved = np.zeros(c.n_stupid_vehicles)
+    last_moved = np.full(c.n_stupid_vehicles, supervisor.getTime(), dtype=np.float64)
 
     while supervisor.step() != -1:
         tracker.update_all()
+        bot_deltas = tracker.step_delta[
+            c.n_vehicles : c.n_vehicles + c.n_stupid_vehicles
+        ].astype(np.float32)
         for i, e in enumerate(envs):
             #e.log.info("starting new step")
 
@@ -357,7 +378,11 @@ def main():
                 return
 
             #e.log.info(f"sending {obs=}")
-            if not e.send_to_server(obs, reward, done, truncated):
+            if c.n_stupid_vehicles > 0:
+                ok = e.send_to_server(obs, reward, done, truncated, bot_deltas)
+            else:
+                ok = e.send_to_server(obs, reward, done, truncated)
+            if not ok:
                 return
 
             #e.log.info("finished sending everything")
@@ -365,8 +390,10 @@ def main():
                 info = e.reset()
 
         for i in range(c.n_stupid_vehicles):
-            bot_node = supervisor.getFromDef(f"TT02_{c.n_vehicles + i}")
-            tr_field = bot_node.getField("translation")
+            car_idx = c.n_vehicles + i
+            bot_node = supervisor.getFromDef(f"TT02_{car_idx}")
+            if bot_node is None:
+                continue
             vel = bot_node.getVelocity()  # [vx, vy, vz, wx, wy, wz]
             speed = np.hypot(vel[0], vel[1])
 
@@ -375,10 +402,23 @@ def main():
 
             if supervisor.getTime() - last_moved[i] > 3.0:
                 envs[0].log.info("resetting bot position because stuck for > 3s")
-                tr_field.setSFVec3f(checkpoint_positions[i])
-                bot_node.resetPhysics()
+                occupied = {
+                    int(tracker.cp_idx[j])
+                    for j in range(tracker.total_cars)
+                    if j != car_idx
+                }
+                candidates = [
+                    idx
+                    for idx in range(n_cp)
+                    if all(min((idx - o) % n_cp, (o - idx) % n_cp) >= 2 for o in occupied)
+                ]
+                respawn_cp = (
+                    int(np.random.choice(candidates))
+                    if candidates
+                    else (int(tracker.cp_idx[car_idx]) + 1) % n_cp
+                )
+                spawn_bot_at_cp(car_idx, respawn_cp, track_cps, tracker)
                 last_moved[i] = supervisor.getTime()
-                tracker.reset_car(c.n_vehicles + i)
 
 
 if __name__ == "__main__":

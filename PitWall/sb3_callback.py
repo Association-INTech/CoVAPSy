@@ -110,6 +110,7 @@ class TelemetryCallback(BaseCallback):
         self._total_steps = 0  # own counter: CoVAPSy re-calls learn() which resets num_timesteps
         self._env_cp: Optional[np.ndarray] = None  # fallback sector counter when info["checkpoint_id"] is absent
         self._local_ep: Optional[np.ndarray] = None  # per-env episode counter for synchronous cohort averaging
+        self._env_bot_cp: Optional[list[Optional[np.ndarray]]] = None
         self.tl: Optional[TelemetryLogger] = None
 
     # ------------------------------------------------------------------ setup
@@ -119,6 +120,7 @@ class TelemetryCallback(BaseCallback):
         n_envs = self.training_env.num_envs
         self._env_cp = np.zeros(n_envs, dtype=np.int64)
         self._local_ep = np.zeros(n_envs, dtype=np.int64)
+        self._env_bot_cp = [None for _ in range(n_envs)]
         meta = {"arch": self.run_name, "algo": type(self.model).__name__, "n_envs": n_envs, **self.meta}
         target_ent = getattr(self.model, "target_entropy", None)
         if isinstance(target_ent, (int, float, np.floating)):
@@ -223,6 +225,13 @@ class TelemetryCallback(BaseCallback):
                 env_id=i,
                 **fields,
             )
+            bot_deltas = info.get("bot_cp_deltas")
+            if bot_deltas and self._env_bot_cp is not None:
+                bd = np.asarray(bot_deltas, dtype=np.float64)
+                if self._env_bot_cp[i] is None or self._env_bot_cp[i].shape != bd.shape:
+                    self._env_bot_cp[i] = bd.copy()
+                else:
+                    self._env_bot_cp[i] += bd
             if dones[i]:
                 if self._env_cp is not None:
                     self._env_cp[i] = 0
@@ -234,6 +243,10 @@ class TelemetryCallback(BaseCallback):
                 sim_rank = int(info.get("sim_rank", i % n_sims))
                 vehicle_rank = int(info.get("vehicle_rank", i // n_sims))
                 map_name = info.get("map") or self.meta.get("map", "piste0")
+                extra = None
+                if self._env_bot_cp is not None and self._env_bot_cp[i] is not None:
+                    extra = {"bot_cp_gained": [round(float(v), 4) for v in self._env_bot_cp[i]]}
+                    self._env_bot_cp[i] = None
                 self.tl.end_episode(
                     crashed=self.crash_fn(r_i, info),
                     env_id=i,
@@ -242,6 +255,7 @@ class TelemetryCallback(BaseCallback):
                     vehicle_rank=vehicle_rank,
                     local_ep_idx=lep,
                     map_name=str(map_name) if map_name else None,
+                    extra=extra,
                 )
         return True
 

@@ -213,12 +213,24 @@ class VehicleEnv(gym.Env):
         )[0]  # scalar
         #self.log.info(f"received {truncated=}")
 
+        if c.n_stupid_vehicles > 0:
+            bot_cp_deltas = np.frombuffer(
+                read_exact(
+                    self.fifo_r,
+                    np.dtype(np.float32).itemsize * c.n_stupid_vehicles,
+                    "Stupid vehicle progress deltas from Webots supervisor",
+                ),
+                dtype=np.float32,
+            )
+
         obs = self._append_observation(cur_state)
         info = {
             "sim_rank": self.simulation_rank,
             "vehicle_rank": self.vehicle_rank,
             "map": f"track{c.map_id}",
         }
+        if c.n_stupid_vehicles > 0:
+            info["bot_cp_deltas"] = bot_cp_deltas.tolist()
         #self.log.info("step over")
 
         return obs, reward, done, truncated, info

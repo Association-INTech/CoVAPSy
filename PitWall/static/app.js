@@ -13,7 +13,7 @@ const state = {
   colors: LS("pw.colors", {}),
   x: "sim_time", window: 50, cpLast: 300,
   mapFilter: "ALL",
-  cpview: "cart", crash: "visit", crashrate: "cum", smooth: "scatter",
+  cpview: "cart", crash: "visit", crashrate: "cum", smooth: "scatter", botmode: "roll",
   auto: true, inflight: false, data: {},
 };
 
@@ -225,7 +225,7 @@ function selectedRuns() {
 function renderAll() {
   const runs = selectedRuns();
   renderKPIs(runs);
-  renderP1(runs); renderP2(runs); renderP3(runs); renderP4(runs); renderP5(runs); renderP6(runs);
+  renderP1(runs); renderP2(runs); renderP3(runs); renderP4(runs); renderP5(runs); renderP6(runs); renderP7(runs);
   const eps = runs.reduce((s, r) => s + r.episodes, 0);
   $("foot-info").textContent = `${runs.length} runs · ${eps} episodes · window ${state.window} · cp window ${state.cpLast || "ALL"}`;
 }
@@ -618,6 +618,61 @@ function optionalSlot(div, runs, key, ytitle, msg) {
   }));
   if (!tr.length) return emptyPlot(div, msg);
   Plotly.react(div, tr, MINI({ xaxis: { title: { text: xTitle() } }, yaxis: { title: { text: ytitle }, rangemode: "tozero" } }), CFG);
+}
+
+// ---------------------------------------------------------------- 07 stupid vehicles progress
+const BOT_PALETTE = ["#FF8700", "#00D2BE", "#B36BFF", "#FFD700", "#52E252", "#FF5FA2", "#3671C6", "#27F4D2"];
+
+function renderP7(runs) {
+  const withBots = runs.filter((r) => r.bots && Array.isArray(r.bots.per_bot) && r.bots.per_bot.length > 0);
+  if (!withBots.length) {
+    $("p7-sub").textContent = "mean progress per bot (cp/min, offset-free) · ╌ RL ego pace";
+    return emptyPlot("p7", runs.length ? "No stupid-vehicle telemetry in selected run(s) yet" : NO_RUNS);
+  }
+  const cum = state.botmode === "cum";
+  const key = cum ? "cp_per_min_cum" : "cp_per_min_roll";
+  const curKey = cum ? "current_cum" : "current_roll";
+  const egoKey = cum ? "ego_cum" : "ego_roll";
+  const multi = withBots.length > 1;
+  const traces = [];
+  const subParts = [];
+
+  withBots.forEach((r) => {
+    const bData = r.bots;
+    const runCol = colorOf(r.run_name);
+    bData.per_bot.forEach((b) => {
+      const col = multi ? runCol : BOT_PALETTE[b.id % BOT_PALETTE.length];
+      traces.push({
+        type: "scattergl",
+        mode: "lines",
+        x: bData.x,
+        y: b[key],
+        name: multi ? `${r.run_name} · ${b.label}` : b.label,
+        line: { color: col, width: 2 },
+        hovertemplate: "%{y:.1f} cp/min<extra>" + (multi ? `${r.run_name} · ${b.label}` : b.label) + "</extra>",
+      });
+    });
+    if (hasData(bData[egoKey])) {
+      traces.push({
+        type: "scattergl",
+        mode: "lines",
+        x: bData.x,
+        y: bData[egoKey],
+        name: multi ? `${r.run_name} · RL ego` : "RL ego (cp/min)",
+        line: { color: multi ? runCol : "#E10600", width: 2, dash: "dash" },
+        hovertemplate: "%{y:.1f} cp/min<extra>" + (multi ? `${r.run_name} · RL ego` : "RL ego") + "</extra>",
+      });
+    }
+    const readouts = bData.per_bot.map((b) => `Bot ${b.id}: ${fmt(b[curKey], 1)}`).join(" · ");
+    subParts.push(multi ? `${r.run_name} (${readouts})` : `${readouts} cp/min`);
+  });
+
+  $("p7-sub").textContent = subParts.join("  |  ");
+  Plotly.react("p7", traces, layout({
+    uirevision: "p7" + state.x + state.botmode,
+    xaxis: { title: { text: xTitle() } },
+    yaxis: { title: { text: "Progress rate (cp/min)" }, rangemode: "tozero" },
+  }), CFG);
 }
 
 // ============================================================ boot

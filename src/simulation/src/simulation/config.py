@@ -22,10 +22,10 @@ from extractors import (  # noqa: F401
 # Set to an int (0 = piste0, 1 = piste1 / map 2, 2 = piste2, 3 = piste3) to lock a single map,
 # or set to None to cycle across n_map using (simulation_rank % n_map)
 map_id: int | None = 1  # <-- 1 selects Map 2 (0-indexed: 0 is Map 1, 1 is Map 2)
-map_id = 2
+map_id = 1
 n_simulations = 1
-n_vehicles = 1
-n_stupid_vehicles = 4
+n_vehicles = 2
+n_stupid_vehicles = 1
 n_actions_steering = 16
 n_actions_speed = 16
 lidar_max_range = 12.0
@@ -34,8 +34,9 @@ v_max = 9.0
 target_speed = 5.0  # m/s
 speed_factor = 2.0  # reward for maintaining target speed
 overtaking_factor = 0.5
+steer_reward = 0.02  # penalty scale on |delta_steer| (rad/step); subtracted from step reward
 respawn_on_crash = True  # whether to go backwards or to respawn when crashing
-continuous_actions:bool = False
+continuous_actions:bool = True
 
 # Fifo model specifications
 ARCH_LIST = ["res", "resmemo", "alex"]
@@ -67,12 +68,12 @@ total_timesteps = 100_000
 sac_args = dict(
     learning_rate=3e-4,
     buffer_size=6_000,       # Stores 10k steps (~70 min of Webots driving)
-    batch_size=256,            # GPU samples transitions per update
+    batch_size=128,            # GPU samples transitions per update
     learning_starts=1_000,     # Collect 1000 random steps before first GPU update
     tau=0.005,                 # Soft target network update rate
     gamma=0.99,                # Horizon reward coeff
-    train_freq=(4, "step"),    # Update on GPU every 4 Webots steps
-    gradient_steps=1,
+    train_freq=(16, "step"),    # Update on GPU every 4 Webots steps
+    gradient_steps=4,
     ent_coef="auto",           # Magic: SAC tunes entropy temperature alpha automatically!
     verbose=1,
     device=device,
@@ -146,6 +147,7 @@ policy_kwargs: Dict[str, Any] = dict(
     activation_fn=nn.ReLU,
     # Architecture of the MLP heads for the Value and Policy networks
     net_arch=[64, 64],
+    share_features_extractor=True,
 )
 
 
