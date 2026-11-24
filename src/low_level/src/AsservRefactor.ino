@@ -8,9 +8,7 @@ Servo moteur;
 Servo direction;
 
 // variables
-char command;
-float Vcons = 0;
-float old_Vcons ;// consigne
+float Vcons = 0; // consigne
 float vitesse = 0; // vitesse de la voiture calculée
 int dir = 0; 
 float dir_recue = 90.0; // initialisation de la direction au centre
@@ -27,7 +25,6 @@ float derivee = 0; // valeur de la derivee dans le PID
 // mesures
 volatile int count = 0; // variable utilisee pour compter le nombre de fronts montants/descendants
 volatile int vieuxCount = 0; // stocke l'ancienne valeur de count pour ensuite faire la difference
-volatile byte state = LOW;
 float mesures[3]; // tableau de mesures pour lisser
 
 // I2C
@@ -55,13 +52,13 @@ enum DriveState {
 DriveState driveState = DRIVE_STOP;
 unsigned long driveTimer = 0;
 
-// Voltage
+// I2C
 volatile bool dataReceived = false;
-volatile char receivedData[32]; // Buffer to hold received data
+volatile char receivedData[32];
 volatile int receivedLength = 0;
 
-float voltage_LiPo = 0;     // variable to store the value read
-float voltage_NiMh = 0;     // variable to store the value read
+float voltage_LiPo = 0;
+float voltage_NiMh = 0;
 
 int out;
 int marche_avant = 1; // on initie la marche avant au début (0 étant la marche arrière)
@@ -71,6 +68,9 @@ unsigned long dernier_input = millis();
 // tout à gauche 1231
 // tout à droite 2471
 
+/*
+ * Speed measure
+ */
 float getMeanSpeed(float dt) {
   int length = sizeof(mesures) / sizeof(mesures[0]);
   // ajout d'une nouvelle mesure et suppression de l'ancienne
@@ -108,7 +108,9 @@ void blink() { // on compte tous les fronts
   count++;
 }
 
-
+/*
+ * Asservissement
+ */
 float PID(float cons, float mes, float dt, float old_out) {
   
   // TODO: move constants to the config file
@@ -130,24 +132,6 @@ float PID(float cons, float mes, float dt, float old_out) {
   return P + I + D;
 }
 
-
-void calculateVoltage() {
-  // read from the sensor
-  // and convert the value to voltage
-  voltage_LiPo = analogRead(sensorPin_Lipo);
-  voltage_NiMh = analogRead(sensorPin_NiMh);
-  voltage_LiPo = voltage_LiPo * (V_REF / ANALOG_MAX) * ((r1_LiPo + r2_LiPo) / r1_LiPo);
-  voltage_NiMh = voltage_NiMh * (V_REF / ANALOG_MAX) * ((r1_NiMh + r2_NiMh) / r1_NiMh);
-  // Serial.println(voltage_LiPo);
-  // Serial.println(voltage_NiMh);
-}
-
-void updateDirection() {
-  // Update direction
-  dir = map(dir_recue, -dir_max, dir_max, dir_min_pwm, dir_max_pwm); // remap en degrés
-  direction.writeMicroseconds(dir);
-}
-
 void updateSpeed() {
   unsigned long now = millis();
   float dt = (now - vieuxTemps) * 0.001f;
@@ -158,8 +142,8 @@ void updateSpeed() {
 
   switch (driveState) {
 
-    case DRIVE_STOP: // TODO: move constants to config
-      moteur.writeMicroseconds(1500);
+    case DRIVE_STOP:
+      moteur.writeMicroseconds(motor_stop);
       integral = 0;
       out = 0;
 
@@ -173,8 +157,8 @@ void updateSpeed() {
       break;
 
     case DRIVE_FORWARD:
-      out = PID(Vcons, vitesse, dt, out); // TODO: move constants to config
-      moteur.writeMicroseconds(constrain(1500 + out, 1500, 2000));
+      out = PID(Vcons, vitesse, dt, out);
+      moteur.writeMicroseconds(constrain(motor_stop + out, motor_stop, motor_max_pwm));
 
       if (Vcons == 0) {
         driveState = DRIVE_STOP;
@@ -194,7 +178,7 @@ void updateSpeed() {
       break;
 
     case DRIVE_REV_ARM_2:   // reverse fort (armement ESC)
-      moteur.writeMicroseconds(1000); // TODO: move constants to config
+      moteur.writeMicroseconds(1000);
       if (now - driveTimer >= 150) {
         driveState = DRIVE_REV_ARM_3;
         driveTimer = now;
@@ -211,7 +195,7 @@ void updateSpeed() {
     case DRIVE_REVERSE:
       float cons = abs(Vcons);
       out = PID(cons, vitesse, dt, out);
-      moteur.writeMicroseconds(constrain(1430 - out, 500, 1500)); // TODO: move constants to config
+      moteur.writeMicroseconds(constrain(1430 - out, 500, 1500));
 
       if (Vcons == 0) {
         moteur.writeMicroseconds(motor_stop);
@@ -241,6 +225,28 @@ void updateSpeed() {
   #endif
 }
 
+void updateDirection() {
+  // Update direction
+  dir = map(dir_recue, -dir_max, dir_max, dir_min_pwm, dir_max_pwm); // remap en degrés
+  direction.writeMicroseconds(dir);
+}
+
+/*
+ * Voltage
+ */
+void calculateVoltage() {
+  // read from the sensor and convert the value to voltage
+  voltage_LiPo = analogRead(PIN_Lipo);
+  voltage_NiMh = analogRead(PIN_NiMh);
+  voltage_LiPo = voltage_LiPo * (V_REF / ANALOG_MAX) * ((r1_LiPo + r2_LiPo) / r1_LiPo);
+  voltage_NiMh = voltage_NiMh * (V_REF / ANALOG_MAX) * ((r1_NiMh + r2_NiMh) / r1_NiMh);
+  // Serial.println(voltage_LiPo);
+  // Serial.println(voltage_NiMh);
+}
+
+/*
+ * I2C
+ */
 void receiveEvent(int byteCount) {
   // Ignorer le premier octet "commande" du Raspberry
   if (Wire.available()) Wire.read(); // skip cmd byte
@@ -265,39 +271,51 @@ void receiveEvent(int byteCount) {
   }
 }
 
+void requestEvent() {
+  float data[3] = {voltage_LiPo, voltage_NiMh, vitesse};
+  Wire.write((byte *)data, sizeof(data));
+}
+
+/*
+ * Main code
+ */
 void setup() {
   Serial.begin(SERIAL_RATE);
 
   pinMode(PIN_MOTEUR, OUTPUT);
-  moteur.attach(PIN_MOTEUR, 0, 2000); // TODO: move constants to config
+  moteur.attach(PIN_MOTEUR, motor_min_pwm, motor_max_pwm);
 
   pinMode(PIN_DIR, OUTPUT);
-  direction.attach(PIN_DIR);
+  direction.attach(PIN_DIR, dir_min_pwm, dir_max_pwm);
   
   pinMode(PIN_FOURCHE, INPUT_PULLUP);
   enableInterrupt(PIN_FOURCHE, blink, CHANGE); // on regarde a chaque fois que le signal de la fourche change (Montants et Descendants)
   moteur.writeMicroseconds(motor_stop);
   
-  if (SOUND_ON) {
+  #if SOUND_ON
     pinMode(PIN_BUZZER, OUTPUT);
     tone(PIN_BUZZER, 430, 200);
     delay(200);
     tone(PIN_BUZZER, 600, 400);
-    delay(2000); // TODO: Pourquoi ?
+    delay(2000); // Delay so everything has time to start
     tone(PIN_BUZZER, 440, 600);
-  } else {
-    delay(2000);
-  }
+  #else
+    delay(2000); // Delay so everything has time to start
+  #endif
   
-  moteur.writeMicroseconds(1590); // TODO: move constants to config
+  moteur.writeMicroseconds(wheel_start_angle);
 
   Wire.begin(I2C_ADDR);         // Start the I2C bus at the configured address
   Wire.onReceive(receiveEvent); // Register receive event
   Wire.onRequest(requestEvent); // Register request event
-  pinMode(13, OUTPUT); // TODO: move constants to config // TODO: Pourquoi ???
 
   delay(10);
-  Serial.print("init done");
+  #if defined(VOITURE1)
+    Serial.println("Code compilé pour la voiture 1");
+  #elif defined(VOITURE2)
+    Serial.println("Code compilé pour la voiture 2");
+  #endif
+  Serial.println("init done");
 }
 
 
@@ -309,8 +327,9 @@ Task tasks[] = {
 
 void loop() {
   unsigned long now = millis();
-
-  if(now - dernier_input < 150){ // on vérifie si on a reçu une commande dans les 150 dernières millisecondes sinon on arrête
+  
+  // on vérifie si on a reçu une commande dans les 150 dernières millisecondes sinon on arrête
+  if(now - dernier_input < NO_CONN_TIMEOUT){
     for (auto &t : tasks) {
       if (now - t.last >= t.period) {
         t.last = now;
@@ -318,7 +337,7 @@ void loop() {
       }
     }
   } else {
-    moteur.writeMicroseconds(1500);
+    moteur.writeMicroseconds(motor_stop);
     dir = map(0, -dir_max, dir_max, dir_min_pwm, dir_max_pwm);
     direction.writeMicroseconds(dir);
     driveState = DRIVE_STOP; 
@@ -327,10 +346,3 @@ void loop() {
   }
 }
 
-
-void requestEvent() {
-  const int numFloats = 3; // Number of floats to send
-  float data[numFloats] = {voltage_LiPo, voltage_NiMh, vitesse}; // Float values to send
-  byte *dataBytes = (byte *)data;
-  Wire.write(dataBytes, sizeof(data));
-}
