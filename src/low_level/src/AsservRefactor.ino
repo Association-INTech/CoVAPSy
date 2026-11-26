@@ -27,11 +27,8 @@ volatile int count = 0; // variable utilisee pour compter le nombre de fronts mo
 volatile int vieuxCount = 0; // stocke l'ancienne valeur de count pour ensuite faire la difference
 float mesures[3]; // tableau de mesures pour lisser
 
-// I2C
-union floatToBytes {
-  byte valueBuffer[4];
-  float valueReading;
-} converter;
+float voltage_LiPo = 0;
+float voltage_NiMh = 0;
 
 // struct pour la fréquence d'éxécution des fonctions
 struct Task {
@@ -52,21 +49,9 @@ enum DriveState {
 DriveState driveState = DRIVE_STOP;
 unsigned long driveTimer = 0;
 
-// I2C
-volatile bool dataReceived = false;
-volatile char receivedData[32];
-volatile int receivedLength = 0;
-
-float voltage_LiPo = 0;
-float voltage_NiMh = 0;
-
 int out;
-int marche_avant = 1; // on initie la marche avant au début (0 étant la marche arrière)
 
 unsigned long dernier_input = millis();
-// direction milieu 1851
-// tout à gauche 1231
-// tout à droite 2471
 
 /*
  * Speed measure
@@ -98,8 +83,10 @@ float getMeanSpeed(float dt) {
 }
 
 float getSpeed(float dt) {  
-  int N = count - vieuxCount; // nombre de fronts montant et descendands après chaque loop
-  vieuxCount = count; // TODO: pas besoin de difference
+  // int N = count - vieuxCount; // nombre de fronts montant et descendands après chaque loop
+  // vieuxCount = count; // TODO: pas besoin de difference
+  int N = count;
+  count = 0;
   return ((float)N / (float)nb_trous) * distanceUnTour / (dt*1e-3); // 16 increments -> 1 tour de la roue et 1 tour de roue = 79 mm
 }
 
@@ -120,12 +107,12 @@ float PID(float cons, float mes, float dt, float old_out) {
   else if (old_out >= 0 && cons < 0){ // pour pouvoir sauter directement dans la plage de pwm où la roue bouge et une transition plus fluide entre marche avant et arriere
     integral = -5000;                 // valeur experimentale
   }
-
+  
   float adjustedMes = (cons < 0) ? -mes : mes; // Adjust the measured speed based on the sign of the desired speed
   float e = cons - adjustedMes;                // Calculate the error
   float P = Kp * e;                            // Proportional term
   integral = integral + e * dt;                // Integral term
-  float I = Ki * integral;  
+  float I = Ki * integral;
   derivee = (e - vieuxEcart) / dt;             // Derivative term
   vieuxEcart = e;
   float D = Kd * derivee;
@@ -303,7 +290,7 @@ void setup() {
     delay(2000); // Delay so everything has time to start
   #endif
   
-  moteur.writeMicroseconds(wheel_start_angle);
+  // moteur.writeMicroseconds(1590); // TODO: try removing
 
   Wire.begin(I2C_ADDR);         // Start the I2C bus at the configured address
   Wire.onReceive(receiveEvent); // Register receive event

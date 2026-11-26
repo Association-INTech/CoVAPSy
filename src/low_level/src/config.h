@@ -57,8 +57,6 @@ const float motor_max_pwm = 2000; // This limits the speed of the car
 
 const float dir_max = 30; // direction maximale en valeur absolue recue entre une roue tournée a fond et une roue droite en degré 
 
-const float wheel_start_angle = 1590; // pwm of the angle of the wheels that's set when the cars start
-
 // Hardware constants
 // Read the low level docs paragraph about battery level for explanation
 const float r1_NiMh = 560;
