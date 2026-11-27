@@ -70,9 +70,7 @@ La Arduino mesure le voltage des deux batteries pour les transmettre à la Raspb
 Cependant, ces voltages sont trop hauts pour la Arduino et risqueraient d'endommager les pins si on ne les protégeait pas. On utilise donc des ponts diviseurs de tension.  
 ![Schéma pont diviseur de tension](media/pont_div.png)  
 On a alors la formule:  
-$$
-V_{batterie} = {\frac{R_1 + R_2}{R_1}} \times V_{mesuré}
-$$
+![Formule du pont diviseur de tension](media/formule.png)  
 Dans le code, on fait ce calcul:
 ```
   voltage_LiPo = analogRead(sensorPin_Lipo) * (5.0 / 1023.0);
@@ -137,12 +135,16 @@ La constante `SOUND_ON` permet de définir si la carte Arduino doit émettre du 
 ### Electronique
 ![Pinout de la Arduino](media/arduino_pinout.png)  
 ![Pinout de la Raspberry Pi](media/rpi_pinout.png)  
-Une version qui n'est pas la plus récente des [PCB](https://fr.wikipedia.org/wiki/Circuit_imprim%C3%A9) est stockée sur [cette page cadlab](https://cadlab.io/project/30307/dev/files) (attention à bien être sur la branche dev). La dernière version est sur l'ordinateur de Adam seulement.  
+Les [PCB](https://fr.wikipedia.org/wiki/Circuit_imprim%C3%A9) qui décrivent l'électronique de la voiture 2 sont accessibles sur [cette page cadlab](https://cadlab.io/project/30307/dev/files) (attention à bien être sur la branche dev).  
 Je ne sais pas qui a fait l'électronique d'origine de la voiture 1. L'électronique de la voiture 2 a été faite par Adam l'année précedente pour le challenge Awake.  
+L'électronique Awake comprend deux interrupteurs. Le premier se situe à l'arrière de la voiture, sur la mezzanine. Il sert à couper le courant 5V à la carte Hat. Le deuxième est en dessous de la grosse plaque, collé au bas du chassis sur la droite de la voiture (la droite en regardant la voiture par derrière), à coté du hacheur (le driver du moteur de propulsion) et permet de le couper, et donc de couper la propulsion. **Le LiDAR n'a pas d'interrupteur et fonctionne en continue quand il est alimenté. Il faut donc débrancher la LiPo dès que l'on n'utilise plus la voiture**. Sinon, la batterie se vide vite et c'est relou le jour de la compétition, ou juste quand on veut bosser.  
 Le ToF doit être un [VL53L1X-SATEL](https://www.st.com/resource/en/data_brief/vl53l1x-satel.pdf).  
 La centrale inertielle doit être un [BNO055](https://www.mouser.fr/datasheet/3/1046/1/bst_bno055_ds000.pdf).  
 L'écran est l'écran OLED standard pour Arduino. Je n'ai pas la référence du composant mais globalement tous les tutoriels parlent de cet écran. Il faut juste faire attention à ce que l'ordre des pins soit bon pour pouvoir le brancher: il faut avoir `Vcc, GND, SCL, SDA`.  
 Lorsqu'on soude des composants électroniques, il faut essayer au maximum de les rendre intechangeables, en ne soudant pas directement le composant sur le PCB. Il est mieux de souder d'abord des ports de connexion, puis de clipser le composant sur le port. Cela permet de réparer et de débugger beaucoup plus facilement.
+
+### Hardware
+Les modèles 3D format STL utilisés pour la voiture sont stockés dans `CoVAPSy/docs/Hardware/3D_model`. Ce ne sont que ceux qui ont été faits par les membres d'Autotech. D'autres modèles 3D, comme la plaque ou les pare chocs sont stockés directement dans [le repo officiel de CoVAPSy](https://github.com/ajuton-ens/CourseVoituresAutonomesSaclay/tree/main/Hardware/pieces_mecaniques_stp_dxf).  
 
 ### Mise en route de la voiture
 * Pour l'électronique Awake:  
@@ -162,3 +164,4 @@ Lorsqu'on soude des composants électroniques, il faut essayer au maximum de les
 ### Résolution de bugs
 * Si la direction ne marche pas, peut être que le code de la Arduino est compilé pour la mauvaise voiture. Le pin de la direction n'est pas le même sur l'électronique Awake et la nouvelle électronique. Un message est envoyé sur l'output serial quand la Arduino effectue son setup pour indiquer quelle version du code est dessus.
 * Si l'I²C ne marche pas, peut être que le level shifter a cramé. Sur l'électronique Awake, il est situé sur le dessous du PCB Hat. Je recommande de programmer la Arduino pour qu'elle envoie un signal periodique sur ses ports I²C puis de regarder à l'oscilloscope où le signal disparaît.
+* Si les cartes Arduino et Raspberry Pi ne s'allument pas parce que le hat ne reçoit pas ses 5v, ou si il n'y a pas de courant là où il devrait y en avoir, il peut être utile de prendre un voltmètre et, en partant de la batterie, suivre la trace qui transporte le voltage qui nous interesse jusqu'à trouver l'endroit où on le perd. La cause peut être un point de soudure qui a lâché, et on peut le vérifier en appuyant sur le point par différents angles pour vérifier si le forcer à se coller au cuivre dans le PCB rétablit la connexion.
